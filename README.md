@@ -1,6 +1,6 @@
 # godot-llightmap
 Lightmap module for Godot Engine 3.x
-Version 0.1
+Version 0.1 (work in progress, there may be bugs, but it is usable)
 
 <img src="/pics/llightmap_01screen.png" alt="screenshot" width="400"/>
 
@@ -15,6 +15,12 @@ LLightmap is designed to be easy to use and produce nice soft shadows, with high
 * Ambient occlusion
 * Linear HDR exr intermediate files
 * Linear HDR exr final texture or gamma corrected normalized png
+
+## Still todo
+* Albedo / roughness / metal from source textures for colored reflection
+* Colored lights
+* Option of multiple lightmaps
+* Transparency support
 
 ## Installation
 * Get the latest godot engine 3.x source
