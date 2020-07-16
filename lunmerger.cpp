@@ -78,6 +78,9 @@ bool UnMerger::UnMerge_Mesh(MeshInstance &mi, LMerged &merged)
 	PoolVector<Vector2> uv1s = arrays[VS::ARRAY_TEX_UV];
 	PoolVector<int> inds = arrays[VS::ARRAY_INDEX];
 
+	// if the mesh contains no indices, create some
+	EnsureIndicesValid(inds, verts.size());
+
 	// we need to get the vert positions and normals from local space to world space to match up with the
 	// world space coords in the merged mesh
 	PoolVector<Vector3> world_verts;
@@ -224,7 +227,6 @@ bool UnMerger::UnMerge_Mesh(MeshInstance &mi, LMerged &merged)
 
 
 
-	Ref<Material> mat = mi.get_surface_material(0);
 	Ref<ArrayMesh> am_new;
 	am_new.instance();
 	Array arr;
@@ -242,7 +244,19 @@ bool UnMerger::UnMerge_Mesh(MeshInstance &mi, LMerged &merged)
 	// hopefully the old mesh will be ref count freed? ???
 	mi.set_mesh(am_new);
 
-	mi.set_surface_material(0, mat);
+
+	// mesh instance has the material?
+	Ref<Material> mat = mi.get_surface_material(0);
+	if (mat.ptr())
+	{
+		mi.set_surface_material(0, mat);
+	}
+	else
+	{
+		// mesh has the material?
+		Ref<Material> smat = rmesh->surface_get_material(0);
+		mi.set_surface_material(0, smat);
+	}
 
 	return true;
 }
@@ -259,6 +273,9 @@ bool UnMerger::FillMergedFromMesh(LMerged &merged, const MeshInstance &mesh)
 	merged.m_UV2s = arrays[VS::ARRAY_TEX_UV2];
 	merged.m_Inds = arrays[VS::ARRAY_INDEX];
 	//	PoolVector<Vector2> p_UV1s = arrays[VS::ARRAY_TEX_UV];
+
+	// special case, if no indices, create some
+	EnsureIndicesValid(merged.m_Inds, merged.m_Verts.size());
 
 	merged.m_nFaces = merged.m_Inds.size() / 3;
 

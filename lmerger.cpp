@@ -126,6 +126,9 @@ void Merger::Merge_MeshInstance(const MeshInstance &mi, PoolVector<Vector3> &ver
 	PoolVector<int> p_indices = arrays[VS::ARRAY_INDEX];
 	//PoolVector<int>::Read ir = mesh_indices.read();
 
+	// special case, if no indices, create some
+	EnsureIndicesValid(p_indices, p_vertices.size());
+
 	// no normals, can't do
 	if (!p_normals.size())
 	{
@@ -170,8 +173,7 @@ void Merger::FindMeshes(Spatial * pNode)
 	MeshInstance * pMI = Object::cast_to<MeshInstance>(pNode);
 	if (pMI)
 	{
-		// must be set to bake in lightmap
-		if (pMI->get_flag(GeometryInstance::FLAG_USE_BAKED_LIGHT))
+		if (IsMeshInstanceSuitable(*pMI))
 		{
 			print_line("found mesh : " + pMI->get_name());
 			m_Meshes.push_back(pMI);
