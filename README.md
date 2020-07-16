@@ -82,9 +82,28 @@ Once the scene is uvmapped, we can move onto the fun stage, baking some lightmap
 4) If all goes well the final lightmap will be produced in your specified directory, check this and try opening it in an image editor.
 
 ### Showing the lightmap
-In order to actually show the lightmap on the level geometry we have to do a little more work than the core lightmapper. The lightmap is simply a texture. In order to show it, we have to use a custom shader.
+If the shader on the level geometry is set up correctly, assigned to the correct lightmap file, then after baking the lightmap should automatically import and show up. If this doesn't happen, check the lightmap looks correct, then check the shaders on the meshes.
 
+### Ambient Occlusion
+As well as lighting, LLightmap can bake ambient occlusion. You may decide to combine this with lights, or even use ambient occlusion on its own.
 
+1) Change the bake_mode to 'AO'.
+2) Hit the 'Bake Lightmap' button.
+3) This may take some time to bake, once it is done, it should appear similarly to the lights.
+
+### Merging
+Once you have made some intermediate lights and ambient occlusion exr files, you can merge them together.
+
+1) Change the bake mode to 'Merge'.
+2) Hit 'Bake Lightmap'.
+
+Merging is much faster than baking lights, or AO. This is because baking requires many ray tests, whereas merging is simply mixing two textures together. When merging you can play with the overall brightness and gamma, and the balance between ambient occlusion and lights.
+
+### Final
+* Once you are satisfied with your final lightmap (for a particular game level), make sure to save it somewhere.
+* For your final game build, you don't need the LLightmap node, and should remove it (it won't be understood in standard builds of the engine anyway).
+* You also don't need the intermediate lights and ao exr files. These should be deleted to reduce the export size of your game.
+* Instead of using the final png, you can alternatively use an exr file for your lightmap (it will contain more accurate colors, with higher dynamic range). For mobile use png is still recommended.
 
 ## Installation
 * Get the latest godot engine 3.x source
