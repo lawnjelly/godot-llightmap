@@ -51,7 +51,7 @@ You may end up using variations of this shader in practice, but it will get you 
 
 When you build your level geometry you should assign this shader, and in the shader parameters, set which texture to use for the mesh, and create a dummy png which will be our final lightmap, and assign this to the lightmap slot.
 
-### Initial setup
+#### Initial setup
 1) Make sure your scene to be lightmapped is under a spatial, name it e.g. 'level' (not the scene root).
 2) Mark any static geometry inside the level to be lightmapped with the 'use in baked light' flag in the geometry section of the mesh.
 3) Either place the lights as part of the level branch, or create another branch just for static lights.
@@ -62,7 +62,7 @@ If you click on the LLightmap inspector, we can now set things up for lightmappi
 2) Assign the 'light' to point to your lights branch.
 3) Set the filenames you wish to use for lights intermediate, ambient occlusion intermediate, and the final combined lightmap.
 
-### Unwrapping
+#### Unwrapping
 Before we can lightmap anything, we need to make sure the level geometry is uvmapped, usually in the 2nd uv channel. The first uv channel is typically used for the main texture, and we will use the 2nd uv for the lightmap.
 
 You can uv map scenes in a third party modelling program such as blender, but this is inconvenient, and LLightmap can use xatlas to do this for us.
@@ -73,7 +73,7 @@ You can uv map scenes in a third party modelling program such as blender, but th
 4) This does a number of things by magic. First it merges all the marked geometry into a single mesh, then it unwraps the mesh, then it 'unmerges' the wrapped mesh back to the original objects. This is quite a complex process and can result in added vertices. Finally it saves the new uvmapped scene into the file we specified, deletes the old scene from the scenetree, and replaces it with our new uvmapped scene.
 5) As this step is potentially destructive, it creates a backup of your original level scene in the root of your project.
 
-### Baking
+#### Baking
 Once the scene is uvmapped, we can move onto the fun stage, baking some lightmaps.
 
 1) Change the bake_mode to 'lightmap'.
@@ -81,17 +81,17 @@ Once the scene is uvmapped, we can move onto the fun stage, baking some lightmap
 3) This may take a while to complete, depending on the settings you use. The defaults should bake quite quickly for a very rough version.
 4) If all goes well the final lightmap will be produced in your specified directory, check this and try opening it in an image editor.
 
-### Showing the lightmap
+#### Showing the lightmap
 If the shader on the level geometry is set up correctly, assigned to the correct lightmap file, then after baking the lightmap should automatically import and show up. If this doesn't happen, check the lightmap looks correct, then check the shaders on the meshes.
 
-### Ambient Occlusion
+#### Ambient Occlusion
 As well as lighting, LLightmap can bake ambient occlusion. You may decide to combine this with lights, or even use ambient occlusion on its own.
 
 1) Change the bake_mode to 'AO'.
 2) Hit the 'Bake Lightmap' button.
 3) This may take some time to bake, once it is done, it should appear similarly to the lights.
 
-### Merging
+#### Merging
 Once you have made some intermediate lights and ambient occlusion exr files, you can merge them together.
 
 1) Change the bake mode to 'Merge'.
@@ -99,7 +99,7 @@ Once you have made some intermediate lights and ambient occlusion exr files, you
 
 Merging is much faster than baking lights, or AO. This is because baking requires many ray tests, whereas merging is simply mixing two textures together. When merging you can play with the overall brightness and gamma, and the balance between ambient occlusion and lights.
 
-### Final
+#### Final
 * Once you are satisfied with your final lightmap (for a particular game level), make sure to save it somewhere.
 * For your final game build, you don't need the LLightmap node, and should remove it (it won't be understood in standard builds of the engine anyway).
 * You also don't need the intermediate lights and ao exr files. These should be deleted to reduce the export size of your game.
