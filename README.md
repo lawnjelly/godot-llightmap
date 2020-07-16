@@ -22,10 +22,11 @@ https://www.youtube.com/watch?v=pBpF2raGA8A
 * SSE / Multithread ray tracing
 
 ### Still todo
-* Albedo / roughness / metal from source textures for colored reflection
+* Albedo / roughness / metal from source textures for colored reflection / PBR
 * Colored lights
 * Option of multiple lightmaps
 * Transparency support
+* Light probes (probably simple and compact format, and maybe read via gdscript addon so no need to compile engine)
 
 ## Instructions
 ### Shader
