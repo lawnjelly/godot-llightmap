@@ -1,6 +1,7 @@
 # godot-llightmap
 Lightmap module for Godot Engine 3.x
 Version 0.1
+<img src="/pics/llightmap_01screen.png" alt="screenshot" width="400"/>
 
 ## About
 While JFons is finishing off the new official core lightmapper for 3.2, I've spent some time playing making this toy lightmapper. It works so well I'm now going to be using it to replace the lightmapping functionality in my other module, lportal.
@@ -22,5 +23,4 @@ LLightmap is designed to be easy to use and produce nice soft shadows, with high
 
 Due to using SSE2, this will probably only currently compile on x86_64, on linux and (hopefully) windows. I'll fix up the reference methods so it will compile on other platforms soon. However, as you only need it to create lightmaps on desktop as a preprocess, the lightmaps produced can be used with a standard build of the engine / standard templates.
 
-<img src="/pics/llightmap_01screen.png" alt="screenshot" width="400"/>
 
