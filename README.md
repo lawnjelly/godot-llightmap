@@ -11,6 +11,7 @@ LLightmap is designed to be easy to use and produce nice soft shadows, with high
 
 ## Features
 * Forward and backward ray tracing options
+* Volumetric lights for soft shadows
 * Ambient occlusion
 * Linear HDR exr intermediate files
 * Linear HDR exr final texture or gamma corrected normalized png
