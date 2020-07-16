@@ -9,6 +9,9 @@ While JFons is finishing off the new official core lightmapper for 3.2, I've spe
 
 LLightmap is designed to be easy to use and produce nice soft shadows, with high performance at runtime. The existing core lightmappers produce a different lightmap for each object. This can be slow due to texture swapping. LLightmap instead can uv map your scene with multiple objects, unwrapping so that all your objects share the same texture space. Thus a single lightmap can be used.
 
+https://www.youtube.com/watch?v=m7fJTWoVYj0
+https://www.youtube.com/watch?v=pBpF2raGA8A
+
 ### Features
 * Forward and backward ray tracing options
 * Volumetric lights for soft shadows
