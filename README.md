@@ -23,6 +23,33 @@ LLightmap is designed to be easy to use and produce nice soft shadows, with high
 * Transparency support
 
 ## Instructions
+### Shader
+Before we begin, we need to understand that LLightmap simply produces a texture. It doesn't automatically show it on objects. In order to show our lightmaps, we should use a custom shader on our static level meshes.
+
+An example shader is as follows:
+```
+shader_type spatial;
+
+// we are using a lightmap, we don't need realtime lighting
+render_mode unshaded;
+
+// our input textures, a material texture, and the lightmap
+uniform sampler2D texture_albedo : hint_albedo;
+uniform sampler2D texture_lightmap : hint_albedo;
+
+void fragment() {
+  // lookup the colors at the uv location of our textures
+	vec4 albedo_tex = texture(texture_albedo,UV);
+	vec4 lightmap_tex = texture(texture_lightmap,UV2);
+  
+  // the overall albedo (color) will be the material texture TIMES the lightmap
+  // (so it can be darkened)
+	ALBEDO = albedo_tex.rgb * lightmap_tex.rgb;
+}
+```
+You may end up using variations of this shader in practice, but it will get you started.
+
+When you build your level geometry you should assign this shader, and in the shader parameters, set which texture to use for the mesh, and create a dummy png which will be our final lightmap, and assign this to the lightmap slot.
 
 ### Initial setup
 1) Make sure your scene to be lightmapped is under a spatial, name it e.g. 'level' (not the scene root).
