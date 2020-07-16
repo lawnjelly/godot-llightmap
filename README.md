@@ -23,6 +23,8 @@ LLightmap is designed to be easy to use and produce nice soft shadows, with high
 * Transparency support
 
 ## Instructions
+
+### Initial setup
 1) Make sure your scene to be lightmapped is under a spatial, name it e.g. 'level' (not the scene root).
 2) Mark any static geometry inside the level to be lightmapped with the 'use in baked light' flag in the geometry section of the mesh.
 3) Either place the lights as part of the level branch, or create another branch just for static lights.
@@ -33,6 +35,7 @@ If you click on the LLightmap inspector, we can now set things up for lightmappi
 2) Assign the 'light' to point to your lights branch.
 3) Set the filenames you wish to use for lights intermediate, ambient occlusion intermediate, and the final combined lightmap.
 
+### Unwrapping
 Before we can lightmap anything, we need to make sure the level geometry is uvmapped, usually in the 2nd uv channel. The first uv channel is typically used for the main texture, and we will use the 2nd uv for the lightmap.
 
 You can uv map scenes in a third party modelling program such as blender, but this is inconvenient, and LLightmap can use xatlas to do this for us.
@@ -43,7 +46,16 @@ You can uv map scenes in a third party modelling program such as blender, but th
 4) This does a number of things by magic. First it merges all the marked geometry into a single mesh, then it unwraps the mesh, then it 'unmerges' the wrapped mesh back to the original objects. This is quite a complex process and can result in added vertices. Finally it saves the new uvmapped scene into the file we specified, deletes the old scene from the scenetree, and replaces it with our new uvmapped scene.
 5) As this step is potentially destructive, it creates a backup of your original level scene in the root of your project.
 
+### Baking
+Once the scene is uvmapped, we can move onto the fun stage, baking some lightmaps.
 
+1) Change the bake_mode to 'lightmap'.
+2) Once we are sure we have some lights, the meshes and lights are assigned, and the filenames are chosen, hit the 'Bake Lightmap' button.
+3) This may take a while to complete, depending on the settings you use. The defaults should bake quite quickly for a very rough version.
+4) If all goes well the final lightmap will be produced in your specified directory, check this and try opening it in an image editor.
+
+### Showing the lightmap
+In order to actually show the lightmap on the level geometry we have to do a little more work than the core lightmapper. The lightmap is simply a texture. In order to show it, we have to use a custom shader.
 
 
 
