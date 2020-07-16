@@ -15,6 +15,7 @@ LLightmap is designed to be easy to use and produce nice soft shadows, with high
 * Ambient occlusion
 * Linear HDR exr intermediate files
 * Linear HDR exr final texture or gamma corrected normalized png
+* SSE2 / Multithread ray tracing
 
 ### Still todo
 * Albedo / roughness / metal from source textures for colored reflection
