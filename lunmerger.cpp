@@ -79,7 +79,7 @@ bool UnMerger::UnMerge_Mesh(MeshInstance &mi, LMerged &merged)
 	PoolVector<int> inds = arrays[VS::ARRAY_INDEX];
 
 	// if the mesh contains no indices, create some
-	EnsureIndicesValid(inds, verts.size());
+	EnsureIndicesValid(inds, verts);
 
 	// we need to get the vert positions and normals from local space to world space to match up with the
 	// world space coords in the merged mesh
@@ -275,7 +275,14 @@ bool UnMerger::FillMergedFromMesh(LMerged &merged, const MeshInstance &mesh)
 	//	PoolVector<Vector2> p_UV1s = arrays[VS::ARRAY_TEX_UV];
 
 	// special case, if no indices, create some
-	EnsureIndicesValid(merged.m_Inds, merged.m_Verts.size());
+	if (!merged.m_Inds.size())
+	{
+		WARN_PRINT("UnMerger::FillMergedFromMesh no indices");
+	}
+//	if (!EnsureIndicesValid(merged.m_Inds, merged.m_Verts))
+//	{
+//		print_line("invalid triangles due to duplicate indices detected in " + mesh.get_name());
+//	}
 
 	merged.m_nFaces = merged.m_Inds.size() / 3;
 

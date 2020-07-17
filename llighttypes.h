@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/math/vector3.h"
+#include "lvector.h"
 
 namespace LM
 {
@@ -193,21 +194,140 @@ bool IsMeshInstanceSuitable(const MeshInstance &mi)
 	return true;
 }
 
-bool EnsureIndicesValid(PoolVector<int> &indices, int num_verts)
+float Triangle_CalculateTwiceAreaSquared(const Vector3 &a, const Vector3 &b, const Vector3 &c)
 {
-	// already valid
-	if (indices.size())
+	// compute the area squared. Which is the result of the cross product of two edges. If it's near zero, bingo
+	Vector3 edge1 = b-a;
+	Vector3 edge2 = c - a;
+
+	Vector3 vec = edge1.cross(edge2);
+	return vec.length_squared();
+}
+
+
+void CheckForInvalidIndices(LVector<int> &r_invalid_tris, const PoolVector<int> &inds, const PoolVector<Vector3> &verts)
+{
+	// check for invalid tris
+//	bool res = true;
+
+	int nTris = inds.size() / 3;
+	int indCount = 0;
+	for (int t=0; t<nTris; t++)
+	{
+		int i0 = inds[indCount++];
+		int i1 = inds[indCount++];
+		int i2 = inds[indCount++];
+
+		bool ok = true;
+		if (i0 == i1) ok = false;
+		if (i1 == i2) ok = false;
+		if (i0 == i2) ok = false;
+
+		// check positions
+		if (ok)
+		{
+			// vertex positions
+			const Vector3 &p0 = verts[i0];
+			const Vector3 &p1 = verts[i1];
+			const Vector3 &p2 = verts[i2];
+
+			float area = Triangle_CalculateTwiceAreaSquared(p0, p1, p2);
+			if (area < 0.00001f)
+			{
+				print_line("\t\tdetected zero area triangle, ignoring");
+				ok = false;
+			}
+		}
+
+		if (ok)
+		{
+			//copy.push_back(i0); copy.push_back(i1); copy.push_back(i2);
+		}
+		else
+		{
+			r_invalid_tris.push_back(t);
+			//res = false;
+		}
+	}
+
+	// if any were invalid, copy the new list
+//	if (!res)
+//	{
+//		indices.resize(copy.size());
+//		for (int n=0; n<copy.size(); n++)
+//		{
+//			indices.set(n, copy[n]);
+//		}
+//	}
+
+//	return res;
+}
+
+bool EnsureIndicesValid(PoolVector<int> &indices, const PoolVector<Vector3> &verts)
+{
+	// no indices? create some
+	if (!indices.size())
+	{
+		// indices are blank!! let's create some, assuming the mesh is using triangles
+		indices.resize(verts.size());
+		PoolVector<int>::Write write = indices.write();
+		int * pi = write.ptr();
+
+		for (int n=0; n<verts.size(); n++)
+		{
+			*pi = n;
+			pi++;
+		}
+	}
+
+	LVector<int> invalid_tris;
+	CheckForInvalidIndices(invalid_tris, indices, verts);
+
+	if (!invalid_tris.size())
 		return true;
 
-	// indices are blank!! let's create some, assuming the mesh is using triangles
-	indices.resize(num_verts);
-	PoolVector<int>::Write write = indices.write();
-	int * pi = write.ptr();
+	// we have found invalid tris.
 
-	for (int n=0; n<num_verts; n++)
+	// check for duplicated inds in a triangle.
+	LVector<int> copy;
+	copy.reserve(indices.size());
+
+	int nTris = indices.size() / 3;
+	int indCount = 0;
+
+	int invalid_count = 0;
+	int next_invalid_id = invalid_tris[0];
+
+	for (int t=0; t<nTris; t++)
 	{
-		*pi = n;
-		pi++;
+		// is this tri invalid?
+		if (t == next_invalid_id)
+		{
+			invalid_count++;
+			if (invalid_count < invalid_tris.size())
+			{
+				next_invalid_id = invalid_tris[invalid_count];
+			}
+			continue;
+		}
+
+
+		int i0 = indices[indCount++];
+		int i1 = indices[indCount++];
+		int i2 = indices[indCount++];
+		copy.push_back(i0); copy.push_back(i1); copy.push_back(i2);
+	}
+
+	// copy the new list
+	indices.resize(copy.size());
+	{
+		PoolVector<int>::Write write = indices.write();
+		int * pi = write.ptr();
+
+		for (int n=0; n<copy.size(); n++)
+		{
+			pi[n] = copy[n];
+		}
 	}
 
 	return false;

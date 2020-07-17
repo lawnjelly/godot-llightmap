@@ -127,7 +127,10 @@ void Merger::Merge_MeshInstance(const MeshInstance &mi, PoolVector<Vector3> &ver
 	//PoolVector<int>::Read ir = mesh_indices.read();
 
 	// special case, if no indices, create some
-	EnsureIndicesValid(p_indices, p_vertices.size());
+	if (!EnsureIndicesValid(p_indices, p_vertices))
+	{
+		print_line("\tignoring INVALID TRIANGLES (duplicate indices) detected in " + mi.get_name() + ", num inds left " + itos(p_indices.size()));
+	}
 
 	// no normals, can't do
 	if (!p_normals.size())
@@ -141,7 +144,7 @@ void Merger::Merge_MeshInstance(const MeshInstance &mi, PoolVector<Vector3> &ver
 	// the first index of this mesh is offset from the verts we already have stored in the merged mesh
 	int first_index = verts.size();
 
-//	LPRINT(2, "Merge MI : " + mi.get_name() + "\tFirstVert : " + itos(first_index) + "\tNumUVs : " + itos(p_vertices.size()));
+//	print_line("Merge MI : " + mi.get_name() + "\tFirstVert : " + itos(first_index) + "\tNumUVs : " + itos(p_vertices.size()));
 
 	// transform verts to world space
 	Transform trans = mi.get_global_transform();
@@ -164,6 +167,27 @@ void Merger::Merge_MeshInstance(const MeshInstance &mi, PoolVector<Vector3> &ver
 	// indices
 	for (int n=0; n<p_indices.size(); n++)
 		inds.push_back(p_indices[n] + first_index);
+
+
+	// new .. test for zero size tris.
+//	int nTris = p_indices.size() / 3;
+//	int indCount = 0;
+//	for (int t=0; t<nTris; t++)
+//	{
+//		const Vector3 &v0 = verts[p_indices[indCount++]];
+//		const Vector3 &v1 = verts[p_indices[indCount++]];
+//		const Vector3 &v2 = verts[p_indices[indCount++]];
+
+//		// edge lengths
+//		float l0 = (v1 - v0).length();
+//		float l1 = (v2 - v1).length();
+//		float l2 = (v0 - v2).length();
+
+//		const float epsilon = 0.0001f;
+//		assert (l0 > epsilon);
+//		assert (l1 > epsilon);
+//		assert (l2 > epsilon);
+//	}
 
 }
 

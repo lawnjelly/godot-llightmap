@@ -13,17 +13,38 @@ bool LightMapper::uv_map_meshes(Spatial * pRoot)
 	if (!pRoot)
 		return false;
 
+	if (bake_begin_function) {
+		bake_begin_function(4);
+	}
+
+	if (bake_step_function) {
+		bake_step_function(0, String("Saving uvmap_backup.tscn"));
+	}
+
 	// first back up the existing meshes scene.
 	SceneSaver saver;
 	saver.SaveScene(pRoot, "res://uvmap_backup.tscn");
 
+	if (bake_step_function) {
+		bake_step_function(1, String("Merging to proxy"));
+	}
+
 	Merger m;
 	MeshInstance * pMerged = m.Merge(pRoot, m_Settings_UVPadding);
 	if (!pMerged)
+	{
+		if (bake_end_function) {
+			bake_end_function();
+		}
 		return false;
+	}
 
 	// test save the merged mesh
 	//saver.SaveScene(pMerged, "res://merged_test.tscn");
+
+	if (bake_step_function) {
+		bake_step_function(2, String("Unmerging"));
+	}
 
 	// unmerge
 	UnMerger u;
@@ -31,6 +52,10 @@ bool LightMapper::uv_map_meshes(Spatial * pRoot)
 
 	// delete merged mesh
 	pMerged->queue_delete();
+
+	if (bake_step_function) {
+		bake_step_function(2, String("Saving"));
+	}
 
 	// if we specified an output file, save
 	if (m_Settings_UVFilename != "")
@@ -51,7 +76,12 @@ bool LightMapper::uv_map_meshes(Spatial * pRoot)
 
 		Ref<PackedScene> ps = ResourceLoader::load(m_Settings_UVFilename, "PackedScene");
 		if (ps.is_null())
+		{
+			if (bake_end_function) {
+				bake_end_function();
+			}
 			return res;
+		}
 
 		Node * pFinalScene = ps->instance();
 		if (pFinalScene)
@@ -62,6 +92,10 @@ bool LightMapper::uv_map_meshes(Spatial * pRoot)
 			saver.SetOwnerRecursive(pFinalScene, pFinalScene);
 			pFinalScene->set_owner(pOrigOwner);
 		}
+	}
+
+	if (bake_end_function) {
+		bake_end_function();
 	}
 
 	return res;
