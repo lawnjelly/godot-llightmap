@@ -1,6 +1,6 @@
 # godot-llightmap
 * Lightmap module for Godot Engine 3.x
-* Version 0.11
+* Version 0.12
 * (work in progress, there may be bugs, especially in the uv mapping but it is usable)
 
 <img src="/pics/llightmap_01screen.png" alt="screenshot" width="400"/>
