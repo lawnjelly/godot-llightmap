@@ -121,4 +121,4 @@ Merging is much faster than baking lights, or AO. This is because baking require
 
 Due to using SSE2, this will probably only currently compile on x86_64, on linux and (hopefully) windows. I'll fix up the reference methods so it will compile on other platforms soon. However, as you only need it to create lightmaps on desktop as a preprocess, the lightmaps produced can be used with a standard build of the engine / standard templates.
 
-
+I'm hoping to eventually make some builds for windows / linux x86_64 so users won't need to compile. The custom build is only needed to create the lightmaps / probe data. Once these are created they can be used in standard vanilla Godot engine (with a gdscript addon for probes, but that requires no compilation).
