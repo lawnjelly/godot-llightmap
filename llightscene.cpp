@@ -69,7 +69,7 @@ void LightScene::ProcessVoxelHits(const Ray &ray, const PackedRay &pray, const V
 //	float record_nearest_t = r_nearest_t;
 //	int record_nearest_tri = r_nearest_tri;
 
-#ifdef LLIGHTMAPPER_USE_SIMD
+//#ifdef LLIGHTMAPPER_USE_SIMD
 	if (m_bUseSIMD)
 	{
 		//LightTests_SIMD simd;
@@ -157,7 +157,7 @@ void LightScene::ProcessVoxelHits(const Ray &ray, const PackedRay &pray, const V
 
 		return;
 	} // if use SIMD
-#endif
+//#endif
 
 	// trace after every voxel
 	int nHits = m_Tracer.m_TriHits.size();
