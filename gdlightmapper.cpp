@@ -205,23 +205,37 @@ LLIGHTMAP_IMPLEMENT_SETGET_FILENAME(set_combined_filename, get_combined_filename
 
 #undef LLIGHTMAP_IMPLEMENT_SETGET_FILENAME
 
+void LLightmap::ShowWarning(String sz)
+{
+#ifdef TOOLS_ENABLED
+	EditorNode::get_singleton()->show_warning(TTR(sz));
+#else
+	WARN_PRINT(sz);
+#endif
+}
+
+
 bool LLightmap::uvmap()
 {
 	if (!has_node(m_LM.m_Settings_Path_Mesh))
 	{
-		EditorNode::get_singleton()->show_warning(TTR("Meshes nodepath is invalid."));
+		ShowWarning("Meshes nodepath is invalid.");
 		return false;
 	}
 
 	Spatial * pRoot = Object::cast_to<Spatial>(get_node(m_LM.m_Settings_Path_Mesh));
 	if (!pRoot)
 	{
-		EditorNode::get_singleton()->show_warning(TTR("Meshes nodepath is not a spatial."));
-		WARN_PRINT("uvmap : mesh path is not a spatial");
+		ShowWarning("Meshes nodepath is not a spatial.");
 		return false;
 	}
 
+#ifndef TOOLS_ENABLED
+	ShowWarning("UVMapping only possible in TOOLS build.");
+	return false;
+#else
 	return m_LM.uv_map_meshes(pRoot);
+#endif
 }
 
 
@@ -328,27 +342,27 @@ bool LLightmap::lightmap_bake_to_image(Object * pOutputLightmapImage, Object * p
 	// get the mesh instance and light root
 	if (!has_node(m_LM.m_Settings_Path_Mesh))
 	{
-		EditorNode::get_singleton()->show_warning(TTR("Meshes nodepath is invalid."));
+		ShowWarning("Meshes nodepath is invalid.");
 		return false;
 	}
 
 	Spatial * pMeshInstance = Object::cast_to<Spatial>(get_node(m_LM.m_Settings_Path_Mesh));
 	if (!pMeshInstance)
 	{
-		EditorNode::get_singleton()->show_warning(TTR("Meshes nodepath is not a spatial."));
+		ShowWarning("Meshes nodepath is not a spatial.");
 		return false;
 	}
 
 	if (!has_node(m_LM.m_Settings_Path_Lights))
 	{
-		EditorNode::get_singleton()->show_warning(TTR("Lights nodepath is invalid."));
+		ShowWarning("Lights nodepath is invalid.");
 		return false;
 	}
 
 	Node * pLightRoot = Object::cast_to<Node>(get_node(m_LM.m_Settings_Path_Lights));
 	if (!pLightRoot)
 	{
-		EditorNode::get_singleton()->show_warning(TTR("Lights nodepath is not a node."));
+		ShowWarning("Lights nodepath is not a node.");
 		return false;
 	}
 
@@ -362,35 +376,35 @@ bool LLightmap::lightmap_mesh(Node * pMeshRoot, Node * pLightRoot, Object * pOut
 	Spatial * pMI = Object::cast_to<Spatial>(pMeshRoot);
 	if (!pMI)
 	{
-		WARN_PRINT("lightmap_mesh : pMeshRoot not a spatial");
+		ShowWarning("lightmap_mesh : pMeshRoot not a spatial");
 		return false;
 	}
 
 	Spatial * pLR = Object::cast_to<Spatial>(pLightRoot);
 	if (!pLR)
 	{
-		WARN_PRINT("lightmap_mesh : lights root is not a spatial");
+		ShowWarning("lightmap_mesh : lights root is not a spatial");
 		return false;
 	}
 
 	Image * pIm_Lightmap = Object::cast_to<Image>(pOutputImage_Lightmap);
 	if (!pIm_Lightmap)
 	{
-		WARN_PRINT("lightmap_mesh : lightmap not an image");
+		ShowWarning("lightmap_mesh : lightmap not an image");
 		return false;
 	}
 
 	Image * pIm_AO = Object::cast_to<Image>(pOutputImage_AO);
 	if (!pIm_AO)
 	{
-		WARN_PRINT("lightmap_mesh : AO not an image");
+		ShowWarning("lightmap_mesh : AO not an image");
 		return false;
 	}
 
 	Image * pIm_Combined = Object::cast_to<Image>(pOutputImage_Combined);
 	if (!pIm_Combined)
 	{
-		WARN_PRINT("lightmap_mesh : combined not an image");
+		ShowWarning("lightmap_mesh : combined not an image");
 		return false;
 	}
 

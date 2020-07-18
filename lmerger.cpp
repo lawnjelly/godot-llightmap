@@ -1,7 +1,10 @@
 #include "lmerger.h"
+
+#ifdef TOOLS_ENABLED
 #include "thirdparty/xatlas/xatlas.h"
 
 extern bool (*array_mesh_lightmap_unwrap_callback)(float p_texel_size, const float *p_vertices, const float *p_normals, int p_vertex_count, const int *p_indices, const int *p_face_materials, int p_index_count, float **r_uv, int **r_vertex, int *r_vertex_count, int **r_index, int *r_index_count, int *r_size_hint_x, int *r_size_hint_y);
+#endif
 
 namespace LM {
 
@@ -216,6 +219,7 @@ void Merger::FindMeshes(Spatial * pNode)
 
 bool Merger::LightmapUnwrap(Ref<ArrayMesh> am, const Transform &trans)
 {
+#ifdef TOOLS_ENABLED
 	array_mesh_lightmap_unwrap_callback = xatlas_unwrap;
 
 	// we can add the UV2 coords from here
@@ -224,11 +228,11 @@ bool Merger::LightmapUnwrap(Ref<ArrayMesh> am, const Transform &trans)
 		print_line ("UV Unwrap failed, mesh may not be manifold?");
 		return false;
 	}
-
+#endif
 	return true;
 }
 
-
+#ifdef TOOLS_ENABLED
 bool Merger::xatlas_unwrap(float p_texel_size, const float *p_vertices, const float *p_normals, int p_vertex_count, const int *p_indices, const int *p_face_materials, int p_index_count, float **r_uv, int **r_vertex, int *r_vertex_count, int **r_index, int *r_index_count, int *r_size_hint_x, int *r_size_hint_y)
 {
 
@@ -301,6 +305,6 @@ bool Merger::xatlas_unwrap(float p_texel_size, const float *p_vertices, const fl
 	printf("Done\n");
 	return true;
 }
-
+#endif // TOOLS_ENABLED
 
 } // namespace

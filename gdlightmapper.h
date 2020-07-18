@@ -126,6 +126,8 @@ public:
 private:
 	LM::LightMapper m_LM;
 
+	void ShowWarning(String sz);
+
 protected:
 	static void _bind_methods();
 };

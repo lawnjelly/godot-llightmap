@@ -13,7 +13,6 @@ class LLightmapEditorPlugin : public EditorPlugin {
 	LLightmap *lightmap;
 
 	ToolButton *bake;
-//	ToolButton *uvmap;
 	EditorNode *editor;
 
 	static EditorProgress *tmp_progress;
@@ -22,7 +21,6 @@ class LLightmapEditorPlugin : public EditorPlugin {
 	static void bake_func_end();
 
 	void _bake();
-//	void _uvmap();
 
 protected:
 	static void _bind_methods();

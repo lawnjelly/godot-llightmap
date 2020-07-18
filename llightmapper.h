@@ -31,12 +31,8 @@ private:
 
 	void Refresh_Process_State();
 
-//	float CalculateAO(const Vector3 &ptStart, const Vector3 &ptNormal, uint32_t tri0, uint32_t tri1_p1);
-
 	const int m_iRaysPerSection = 1024 * 1024 * 4; // 64
 	// 1024*1024 is 46 megs
-
-
 };
 
 

@@ -1,43 +1,11 @@
 #include "llightmapper_editor_plugin.h"
 
-//void LLightmapEditorPlugin::_uvmap()
-//{
-//	if (lightmap)
-//	{
-//		lightmap->uvmap();
-//	}
-//}
-
 void LLightmapEditorPlugin::_bake() {
 
 	if (lightmap)
 	{
 		lightmap->lightmap_bake();
 	}
-	/*
-	if (lightmap) {
-		BakedLightmap::BakeError err;
-		if (get_tree()->get_edited_scene_root() && get_tree()->get_edited_scene_root() == lightmap) {
-			err = lightmap->bake(lightmap);
-		} else {
-			err = lightmap->bake(lightmap->get_parent());
-		}
-
-		switch (err) {
-			case BakedLightmap::BAKE_ERROR_NO_SAVE_PATH:
-				EditorNode::get_singleton()->show_warning(TTR("Can't determine a save path for lightmap images.\nSave your scene (for images to be saved in the same dir), or pick a save path from the BakedLightmap properties."));
-				break;
-			case BakedLightmap::BAKE_ERROR_NO_MESHES:
-				EditorNode::get_singleton()->show_warning(TTR("No meshes to bake. Make sure they contain an UV2 channel and that the 'Bake Light' flag is on."));
-				break;
-			case BakedLightmap::BAKE_ERROR_CANT_CREATE_IMAGE:
-				EditorNode::get_singleton()->show_warning(TTR("Failed creating lightmap images, make sure path is writable."));
-				break;
-			default: {
-			}
-		}
-	}
-	*/
 }
 
 void LLightmapEditorPlugin::edit(Object *p_object) {
@@ -58,11 +26,9 @@ void LLightmapEditorPlugin::make_visible(bool p_visible) {
 
 	if (p_visible) {
 		bake->show();
-		//uvmap->show();
 	} else {
 
 		bake->hide();
-		//uvmap->hide();
 	}
 }
 
@@ -90,7 +56,6 @@ void LLightmapEditorPlugin::bake_func_end() {
 void LLightmapEditorPlugin::_bind_methods() {
 
 	ClassDB::bind_method("_bake", &LLightmapEditorPlugin::_bake);
-	//ClassDB::bind_method("_uvmap", &LLightmapEditorPlugin::_uvmap);
 }
 
 LLightmapEditorPlugin::LLightmapEditorPlugin(EditorNode *p_node) {
@@ -103,14 +68,6 @@ LLightmapEditorPlugin::LLightmapEditorPlugin(EditorNode *p_node) {
 	bake->connect("pressed", this, "_bake");
 	add_control_to_container(CONTAINER_SPATIAL_EDITOR_MENU, bake);
 	lightmap = NULL;
-
-//	uvmap = memnew(ToolButton);
-//	uvmap->set_icon(editor->get_gui_base()->get_icon("Bake", "EditorIcons"));
-//	uvmap->set_text(TTR("UV Map"));
-//	uvmap->hide();
-//	uvmap->connect("pressed", this, "_uvmap");
-//	add_control_to_container(CONTAINER_SPATIAL_EDITOR_MENU, uvmap);
-
 
 	LightMapper::bake_begin_function = bake_func_begin;
 	LightMapper::bake_step_function = bake_func_step;

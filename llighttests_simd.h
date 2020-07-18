@@ -1,11 +1,5 @@
 #pragma once
 
-
-//#ifdef WINDOWS_ENABLED
-//#ifdef UNIX_ENABLED
-//#ifdef ANDROID_ENABLED
-// #if defined(_MSC_VER) && (defined(_M_X64) || defined(_M_IX86))
-
 #if defined(__x86_64__) || defined(_M_X64)
 #define LLIGHTMAPPER_USE_SIMD
 #endif
@@ -168,9 +162,6 @@ struct PackedRay
 	u_m128 m_direction[3];
 	u_m128 m_length;
 
-	// debug
-	//Ray m_OrigRay;
-
 	void Create(const Ray &ray);
 	int Intersect(const PackedTriangles& packedTris, float &nearest_dist) const;
 //	int Intersect_ORIG(const PackedTriangles& packedTris, float &nearest_dist) const;
@@ -184,8 +175,6 @@ class LightTests_SIMD
 public:
 	bool TestIntersect4(const Tri *tris[4], const Ray &ray, float &r_nearest_t, int &r_winner) const;
 	bool TestIntersect4_Packed(const PackedTriangles &ptris, const Ray &ray, float &r_nearest_t, int &r_winner) const;
-
-
 };
 
 

@@ -36,12 +36,6 @@ void multi_cross(__m128 result[3], const __m128 a[3], const __m128 b[3])
 	result[2] = _mm_sub_ps(tmp, tmp2);
 }
 
-//real_t Vector3::dot(const Vector3 &p_b) const {
-
-//	return x * p_b.x + y * p_b.y + z * p_b.z;
-//}
-
-
 __m128 multi_dot(const __m128 a[3], const __m128 b[3])
 {
 	__m128 tmp = _mm_mul_ps(a[0], b[0]);
