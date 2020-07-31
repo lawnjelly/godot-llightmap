@@ -69,6 +69,16 @@ void LightTracer::Create(const LightScene &scene, int voxel_density)
 	FillVoxels();
 }
 
+void LightTracer::FindNearestVoxel(const Vector3 &ptWorld, Vec3i &ptVoxel) const
+{
+	Vector3 pt = ptWorld;
+	pt -= m_SceneWorldBound.position;
+	pt.x /= m_VoxelSize.x;
+	pt.y /= m_VoxelSize.y;
+	pt.z /= m_VoxelSize.z;
+
+	ptVoxel.Set(pt.x, pt.y, pt.z);
+}
 
 void LightTracer::GetDistanceInVoxels(float dist, Vec3i &ptVoxelDist) const
 {
@@ -161,6 +171,8 @@ const Voxel * LightTracer::RayTrace(const Ray &ray_orig, Ray &ray_out, Vec3i &pt
 	if (!VoxelWithinBounds(ptVoxel))
 		return 0;
 
+
+
 	// debug check
 	DebugCheckLocalPointInVoxel(ray_orig.o, ptVoxel);
 
@@ -168,6 +180,10 @@ const Voxel * LightTracer::RayTrace(const Ray &ray_orig, Ray &ray_out, Vec3i &pt
 	int iVoxelNum = GetVoxelNum(ptVoxel);
 	const Voxel &vox = m_Voxels[iVoxelNum];
 	const Voxel * pCurrVoxel = &vox;
+
+//	const AABB &bb = m_VoxelBounds[iVoxelNum];
+//	print_line("Checking Voxel " + ptVoxel.ToString() + " bound " + String(bb));
+
 
 	if (!m_bSIMD)
 	{

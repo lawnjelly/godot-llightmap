@@ -4,6 +4,7 @@
 #include "llighttypes.h"
 #include "llighttracer.h"
 #include "llightimage.h"
+#include "lmaterials.h"
 #include "scene/3d/mesh_instance.h"
 
 
@@ -49,6 +50,9 @@ public:
 	}
 	//int FindTriAtUV(float x, float y, float &u, float &v, float &w) const;
 
+	bool FindPrimaryTextureColors(int tri_id, const Vector3 &bary, Color &albedo);
+
+
 	// setup
 	void RasterizeTriangleIDs(LightMapper_Base &base, LightImage<uint32_t> &im_p1, LightImage<uint32_t> &im2_p1, LightImage<Vector3> &im_bary);
 	int GetNumTris() const {return m_UVTris.size();}
@@ -58,7 +62,9 @@ private:
 	void FindCuts_Texel(LightMapper_Base &base, int tx, int ty, int tri_id, const Vector3 &bary);
 	bool FindCuts_TangentTrace(LightMapper_Base &base, int tx, int ty, Ray r, float max_dist);
 	void FindMeshes(Spatial * pNode);
+
 	bool Create_FromMesh(int mesh_id, int width, int height);
+	bool Create_FromMeshSurface(int mesh_id, int surf_id, Ref<Mesh> rmesh, int width, int height);
 
 
 	void CalculateTriTexelSize(int tri_id, int width, int height);
@@ -83,6 +89,8 @@ private:
 	// precalculate these .. useful for finding cutting tris.
 	LVector<float> m_Tri_TexelSizeWorldSpace;
 
+	LMaterials m_Materials;
+
 protected:
 public:
 	LVector<UVTri> m_UVTris;
@@ -99,7 +107,15 @@ public:
 	LVector<Tri> m_Tris_EdgeForm;
 
 	// stuff for mapping to original meshes
-	LVector<int> m_Tri_MeshIDs;
+//	LVector<int> m_Tri_MeshIDs;
+//	LVector<uint16_t> m_Tri_SurfIDs;
+
+	// these are plus 1
+	LVector<uint16_t> m_Tri_LMaterialIDs;
+
+	// these are UVs in the first channel, if present, or 0.
+	// This allows mapping back to the albedo etc texture.
+	LVector<UVTri> m_UVTris_Primary;
 
 	Vec3i m_VoxelRange;
 

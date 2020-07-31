@@ -8,8 +8,11 @@
 
 namespace LM {
 
+
 bool LightMapper::uv_map_meshes(Spatial * pRoot)
 {
+	bool replace_mesh_scene = false;
+
 	if (!pRoot)
 		return false;
 
@@ -51,7 +54,9 @@ bool LightMapper::uv_map_meshes(Spatial * pRoot)
 	UnMerger u;
 	bool res = u.UnMerge(m, *pMerged);
 
-	// delete merged mesh
+	// for debug save the merged version
+	saver.SaveScene(pMerged, "res://merged_proxy.tscn");
+
 	pMerged->queue_delete();
 
 	if (bake_step_function) {
@@ -63,36 +68,40 @@ bool LightMapper::uv_map_meshes(Spatial * pRoot)
 	{
 		Node * pOrigOwner = pRoot->get_owner();
 
-		saver.SaveScene(pRoot, m_Settings_UVFilename);
+		saver.SaveScene(pRoot, m_Settings_UVFilename, true);
 
-		// delete the orig
-		Node * pParent = pRoot->get_parent();
-
-		// rename the old scene to prevent naming conflict
-		pRoot->set_name("ToBeDeleted");
-		pRoot->queue_delete();
-
-		// now load the new file
-		//ResourceLoader::import(m_Settings_UVFilename);
-
-		Ref<PackedScene> ps = ResourceLoader::load(m_Settings_UVFilename, "PackedScene");
-		if (ps.is_null())
+		if (replace_mesh_scene)
 		{
-			if (bake_end_function) {
-				bake_end_function();
+			// delete the orig
+			Node * pParent = pRoot->get_parent();
+
+			// rename the old scene to prevent naming conflict
+			pRoot->set_name("ToBeDeleted");
+			pRoot->queue_delete();
+
+			// now load the new file
+			//ResourceLoader::import(m_Settings_UVFilename);
+
+			Ref<PackedScene> ps = ResourceLoader::load(m_Settings_UVFilename, "PackedScene");
+			if (ps.is_null())
+			{
+				if (bake_end_function) {
+					bake_end_function();
+				}
+				return res;
 			}
-			return res;
-		}
 
-		Node * pFinalScene = ps->instance();
-		if (pFinalScene)
-		{
-			pParent->add_child(pFinalScene);
+			Node * pFinalScene = ps->instance();
+			if (pFinalScene)
+			{
+				pParent->add_child(pFinalScene);
 
-			// set owners
-			saver.SetOwnerRecursive(pFinalScene, pFinalScene);
-			pFinalScene->set_owner(pOrigOwner);
-		}
+				// set owners
+				saver.SetOwnerRecursive(pFinalScene, pFinalScene);
+				pFinalScene->set_owner(pOrigOwner);
+			}
+
+		} // if replace the scene
 	}
 
 	if (bake_end_function) {
@@ -309,7 +318,7 @@ void LightMapper::ProcessTexels_Bounce()
 
 		for (int x=0; x<m_iWidth; x++)
 		{
-			float power = ProcessTexel_Bounce(x, y);
+			FColor power = ProcessTexel_Bounce(x, y);
 
 			// save the incoming light power in the mirror image (as the source is still being used)
 			m_Image_L_mirror.GetItem(x, y) = power;
@@ -321,9 +330,11 @@ void LightMapper::ProcessTexels_Bounce()
 	{
 		for (int x=0; x<m_iWidth; x++)
 		{
-			float f = m_Image_L.GetItem(x, y);
-			f += (m_Image_L_mirror.GetItem(x, y) * m_Settings_Backward_BouncePower);
-			m_Image_L.GetItem(x, y) = f;
+			FColor col = m_Image_L.GetItem(x, y);
+
+			col += (m_Image_L_mirror.GetItem(x, y) * m_Settings_Backward_BouncePower);
+
+			m_Image_L.GetItem(x, y) = col;
 		}
 	}
 
@@ -388,7 +399,7 @@ void LightMapper::ProcessTexels()
 }
 
 
-float LightMapper::ProcessTexel_Light(int light_id, const Vector3 &ptDest, const Vector3 &ptNormal, uint32_t tri_ignore)
+void LightMapper::ProcessTexel_Light(int light_id, const Vector3 &ptDest, const Vector3 &ptNormal, FColor &color, uint32_t tri_ignore)
 {
 	const LLight &light = m_Lights[light_id];
 
@@ -406,17 +417,66 @@ float LightMapper::ProcessTexel_Light(int light_id, const Vector3 &ptDest, const
 	int nSamples = m_Settings_Backward_NumRays;
 
 	// total light hitting texel
-	float fTotal = 0.0f;
+//	float fTotal = 0.0f;
+	color.Set(0.0f);
+	float total = 0.0f;
+
+
+	// for a spotlight, we can cull completely in a lot of cases.
+	if (light.type == LLight::LT_SPOT)
+	{
+		r.o = light.spot_emanation_point;
+		r.d = ptDest - r.o;
+		r.d.normalize();
+		float dot = r.d.dot(light.dir);
+		//float angle = safe_acosf(dot);
+		//if (angle >= light.spot_angle_radians)
+
+		dot -= light.spot_dot_max;
+
+		if (dot <= 0.0f)
+			return;
+	}
+
 
 	// each ray
 	for (int n=0; n<nSamples; n++)
 	{
 		r.o = light.pos;
 
+		// allow falloff for cones
+		float multiplier = 1.0f;
+
 		switch (light.type)
 		{
 		case LLight::LT_SPOT:
 			{
+				// source
+				Vector3 offset;
+				RandomUnitDir(offset);
+				offset *= light.scale;
+				r.o += offset;
+
+				// offset from origin to destination texel
+				r.d = ptDest - r.o;
+				r.d.normalize();
+
+				float dot = r.d.dot(light.dir);
+				//float angle = safe_acosf(dot);
+				//if (angle >= light.spot_angle_radians)
+
+				dot -= light.spot_dot_max;
+
+				if (dot <= 0.0f)
+					continue;
+
+				dot *= 1.0f / (1.0f - light.spot_dot_max);
+				multiplier = dot * dot;
+				multiplier *= multiplier;
+
+
+
+				// direction
 				//				r.d = light.dir;
 				//				float spot_ball = 0.2f;
 				//				float x = Math::random(-spot_ball, spot_ball);
@@ -428,19 +488,21 @@ float LightMapper::ProcessTexel_Light(int light_id, const Vector3 &ptDest, const
 			break;
 		default:
 			{
-				float x = Math::random(-light.scale.x, light.scale.x);
-				float y = Math::random(-light.scale.y, light.scale.y);
-				float z = Math::random(-light.scale.z, light.scale.z);
-				r.o += Vector3(x, y, z);
+				Vector3 offset;
+				RandomUnitDir(offset);
+				offset *= light.scale;
+				r.o += offset;
+
+				// offset from origin to destination texel
+				r.d = ptDest - r.o;
+				r.d.normalize();
+
 			}
 			break;
 		}
 
-		// offset from origin to destination texel
-		r.d = ptDest - r.o;
 
 		// collision detect
-		r.d.normalize();
 		float u, v, w, t;
 
 		m_Scene.m_Tracer.m_bUseSDF = true;
@@ -469,21 +531,34 @@ float LightMapper::ProcessTexel_Light(int light_id, const Vector3 &ptDest, const
 
 			local_power *= dot;
 
-			fTotal += local_power;
+			// cone falloff
+			local_power *= multiplier;
+
+			// albedo
+			total += local_power;
+//			FColor col = light.color * local_power;
+
+//			color += col;
+			//fTotal += local_power;
 		}
 	}
 
+
+	color = light.color * total;
 	// save in the texel
-	return fTotal;
+	//return fTotal;
 }
 
 
-float LightMapper::ProcessTexel_Bounce(int x, int y)
+FColor LightMapper::ProcessTexel_Bounce(int x, int y)
 {
+	FColor total;
+	total.Set(0.0f);
+
 	// find triangle
 	uint32_t tri_source = *m_Image_ID_p1.Get(x, y);
 	if (!tri_source)
-		return 0.0f;
+		return total;
 	tri_source--; // plus one based
 
 	// barycentric
@@ -496,8 +571,6 @@ float LightMapper::ProcessTexel_Bounce(int x, int y)
 	const Tri &triangle_normal = m_Scene.m_TriNormals[tri_source];
 	triangle_normal.InterpolateBarycentric(norm, bary.x, bary.y, bary.z);
 	norm.normalize();
-
-	float fTotal = 0.0f;
 
 	int nSamples = m_Settings_Backward_NumBounceRays;
 	for (int n=0; n<nSamples; n++)
@@ -543,14 +616,19 @@ float LightMapper::ProcessTexel_Bounce(int x, int y)
 
 			if (m_Image_L.IsWithin(dx, dy))
 			{
-				float power = m_Image_L.GetItem(dx, dy);
-				fTotal += power;
+				// the contribution is the luminosity at that spot and the albedo
+				Color albedo;
+				m_Scene.FindPrimaryTextureColors(tri_hit, Vector3(u, v, w), albedo);
+				FColor falbedo;
+				falbedo.Set(albedo);
+
+				total += (m_Image_L.GetItem(dx, dy) * falbedo);
 			}
 
 		}
 	}
 
-	return fTotal / nSamples;
+	return total / nSamples;
 }
 
 
@@ -601,15 +679,17 @@ void LightMapper::ProcessTexel(int tx, int ty)
 	//Vector2i tex_uv = Vector2i(x, y);
 
 	// could be off the image
-	float * pfTexel = m_Image_L.Get(tx, ty);
-	if (!pfTexel)
+	FColor * pTexel = m_Image_L.Get(tx, ty);
+	if (!pTexel)
 		return;
 
+	FColor temp;
 	for (int l=0; l<m_Lights.size(); l++)
 	{
-		float power = ProcessTexel_Light(l, pos, normal, tri);
-		*pfTexel += power;
+		ProcessTexel_Light(l, pos, normal, temp, tri);
+		*pTexel += temp;
 	}
+
 }
 
 void LightMapper::ProcessRay(LM::Ray r, int depth, float power, int dest_tri_id, const Vector2i * pUV)
@@ -647,7 +727,7 @@ void LightMapper::ProcessRay(LM::Ray r, int depth, float power, int dest_tri_id,
 	}
 
 	// could be off the image
-	float * pf = m_Image_L.Get(tx, ty);
+	float * pf = &m_Image_L.Get(tx, ty)->r;
 	if (!pf)
 		return;
 
@@ -795,12 +875,18 @@ void LightMapper::ProcessLight(int light_id, int num_rays)
 
 	// the power should depend on the volume, with 1x1x1 being normal power
 	//	float power = light.scale.x * light.scale.y * light.scale.z;
-	float power = light.energy;
-	power *= m_Settings_Forward_RayPower;
+//	float power = light.energy;
+//	power *= m_Settings_Forward_RayPower;
 
-
+	FColor light_color = light.color * m_Settings_Forward_RayPower;
+//	light_color.r = power;
+//	light_color.g = power;
+//	light_color.b = power;
 
 	// each ray
+
+//	num_rays = 1; // debug
+
 	for (int n=0; n<num_rays; n++)
 	{
 		//		if ((n % 10000) == 0)
@@ -819,13 +905,72 @@ void LightMapper::ProcessLight(int light_id, int num_rays)
 		{
 		case LLight::LT_SPOT:
 			{
+				Vector3 offset;
+				RandomUnitDir(offset);
+				offset *= light.scale;
+				r.o += offset;
+
 				r.d = light.dir;
-				float spot_ball = 0.2f;
-				float x = Math::random(-spot_ball, spot_ball);
-				float y = Math::random(-spot_ball, spot_ball);
-				float z = Math::random(-spot_ball, spot_ball);
-				r.d += Vector3(x, y, z);
-				r.d.normalize();
+
+
+				// random axis
+				Vector3 axis;
+				RandomAxis(axis);
+
+				float falloff_start = 0.5f;// this could be adjustable;
+
+				float ang_max = light.spot_angle_radians;
+				float ang_falloff = ang_max * falloff_start;
+				float ang_falloff_range = ang_max - ang_falloff;
+
+				// random angle giving equal circle distribution
+				float a = Math::random(0.0f, 1.0f);
+
+				// below a certain proportion are the central, outside is falloff
+				a *= 2.0f;
+				if (a > 1.0f)
+				{
+					// falloff
+					a -= 1.0f;
+					//angle /= 3.0f;
+
+					//a *= a;
+
+					a = ang_falloff + (a * ang_falloff_range);
+				}
+				else
+				{
+					// central
+					a = sqrtf(a);
+					a *= ang_falloff;
+				}
+
+//				if (angle > ang_falloff)
+//				{
+//					// in the falloff zone, use different math.
+//					float r = Math::random(0.0f, 1.0f);
+//					r = r*r;
+//					r *= ang_falloff_range;
+//					angle = ang_falloff + r;
+//				}
+
+
+				Quat rot;
+				rot.set_axis_angle(axis, a);
+
+				// TURNED OFF FOR TESTING
+				r.d = rot.xform(r.d);
+
+				// this is the radius of the cone at distance 1
+//				float radius_at_dist_one = Math::tan(Math::deg2rad(light.spot_angle));
+
+//				float spot_ball_size = radius_at_dist_one;
+
+//				Vector3 ball;
+//				RandomSphereDir(ball, spot_ball_size);
+
+//				r.d += ball;
+//				r.d.normalize();
 			}
 			break;
 		default:
@@ -846,7 +991,7 @@ void LightMapper::ProcessLight(int light_id, int num_rays)
 		}
 		//r.d.normalize();
 
-		RayBank_RequestNewRay(r, m_Settings_Forward_NumBounces + 1, power, 0);
+		RayBank_RequestNewRay(r, m_Settings_Forward_NumBounces + 1, light_color, 0);
 
 		//		ProcessRay(r, 0, power);
 	}

@@ -20,7 +20,7 @@ public:
 	void RayBank_Create();
 
 	// every time we want to queue a new ray for processing
-	FRay * RayBank_RequestNewRay(Ray ray,  int num_rays_left, float power, const Vec3i * pStartVoxel);
+	FRay * RayBank_RequestNewRay(Ray ray,  int num_rays_left, const FColor &col, const Vec3i * pStartVoxel);
 
 	// can be used from several threads
 	void RayBank_Process();

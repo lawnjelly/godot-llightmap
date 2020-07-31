@@ -5,6 +5,15 @@ void LLightmapEditorPlugin::_bake() {
 	if (lightmap)
 	{
 		lightmap->lightmap_bake();
+
+//#ifdef TOOLS_ENABLED
+//	// FIXME: Hack to refresh editor in order to display new properties and signals. See if there is a better alternative.
+//	if (Engine::get_singleton()->is_editor_hint()) {
+//		EditorNode::get_singleton()->get_inspector()->update_tree();
+//		//NodeDock::singleton->update_lists();
+//	}
+//#endif
+
 	}
 }
 

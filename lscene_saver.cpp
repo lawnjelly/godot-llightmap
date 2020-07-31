@@ -5,6 +5,16 @@
 
 namespace LM {
 
+void SceneSaver::SetFilenameRecursive(Node * pNode)
+{
+	pNode->set_filename("");
+
+	for (int n=0; n<pNode->get_child_count(); n++)
+	{
+		SetFilenameRecursive(pNode->get_child(n));
+	}
+}
+
 void SceneSaver::SetOwnerRecursive(Node * pNode, Node * pOwner)
 {
 //	String sz;
@@ -16,7 +26,7 @@ void SceneSaver::SetOwnerRecursive(Node * pNode, Node * pOwner)
 //	print_line(sz);
 
 
-	if (pNode != pOwner)
+//	if (pNode != pOwner)
 		pNode->set_owner(pOwner);
 
 	for (int n=0; n<pNode->get_child_count(); n++)
@@ -26,8 +36,14 @@ void SceneSaver::SetOwnerRecursive(Node * pNode, Node * pOwner)
 }
 
 
-bool SceneSaver::SaveScene(Node * pNode, String szFilename)
+bool SceneSaver::SaveScene(Node * pNode, String szFilename, bool reset_filenames)
 {
+	// for subscenes, it doesn't seem to save edited stuff correctly unless we blank
+	// the filenames.
+	if (reset_filenames)
+		SetFilenameRecursive(pNode);
+
+
 	Node * pPreviousOwner = pNode->get_owner();
 
 	// godot needs owner to be set on nodes that are to be saved as part of a packed scene

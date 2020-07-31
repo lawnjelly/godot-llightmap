@@ -28,10 +28,15 @@ protected:
 		Vector3 pos;
 		Vector3 dir;
 		Vector3 scale;
+		FColor color;
 		float energy;
 		float indirect_energy;
 		float range;
-		float spot_angle;
+		float spot_angle_radians; // radians
+		// precalculated dot product threshold for inside / outside light cone
+		float spot_dot_max;
+		// behind the origin, takes account of the scale in order to cull spotlights
+		Vector3 spot_emanation_point;
 		const Light * m_pLight;
 	};
 
@@ -77,14 +82,18 @@ protected:
 	void Merge_AndWriteOutputImage_Combined(Image &image);
 
 	void RandomUnitDir(Vector3 &dir) const;
+	void RandomSphereDir(Vector3 &dir, float max_length) const;
 	void RandomBarycentric(Vector3 &bary) const;
+	void RandomAxis(Vector3 &axis) const;
+
+	float safe_acosf(float f) const {f = CLAMP(f, -1.0f, 1.0f); return acosf(f);}
 
 protected:
 	// luminosity
-	LightImage<float> m_Image_L;
+	LightImage<FColor> m_Image_L;
 
 	// for bounces
-	LightImage<float> m_Image_L_mirror;
+	LightImage<FColor> m_Image_L_mirror;
 
 	// ambient occlusion
 	LightImage<float> m_Image_AO;
@@ -194,6 +203,38 @@ inline void LightMapper_Base::RandomBarycentric(Vector3 &bary) const
 	bary.x = 1.0f - sqrt_r1;
 	bary.y = r2 * sqrt_r1;
 	bary.z = 1.0f - bary.x - bary.y;
+}
+
+inline void LightMapper_Base::RandomAxis(Vector3 &axis) const
+{
+	float sl;
+	while (true)
+	{
+		axis.x = Math::random(-1.0f, 1.0f);
+		axis.y = Math::random(-1.0f, 1.0f);
+		axis.z = Math::random(-1.0f, 1.0f);
+
+		sl = axis.length_squared();
+		if (sl > 0.0001f)
+			break;
+	}
+
+	// normalize
+	float l = sqrtf(sl);
+	axis /= l;
+}
+
+inline void LightMapper_Base::RandomSphereDir(Vector3 &dir, float max_length) const
+{
+	dir.x = Math::random(-1.0f, 1.0f);
+	dir.y = Math::random(-1.0f, 1.0f);
+	dir.z = Math::random(-1.0f, 1.0f);
+
+	// zero length is ok
+	dir.normalize();
+
+	float f = Math::random(0.0f, max_length);
+	dir *= f;
 }
 
 

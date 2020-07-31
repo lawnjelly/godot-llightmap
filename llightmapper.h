@@ -24,10 +24,10 @@ private:
 
 	void ProcessTexels();
 	void ProcessTexel(int tx, int ty);
-	float ProcessTexel_Light(int light_id, const Vector3 &ptDest, const Vector3 &ptNormal, uint32_t tri_ignore);
+	void ProcessTexel_Light(int light_id, const Vector3 &ptDest, const Vector3 &ptNormal, FColor &color, uint32_t tri_ignore);
 
 	void ProcessTexels_Bounce();
-	float ProcessTexel_Bounce(int x, int y);
+	FColor ProcessTexel_Bounce(int x, int y);
 
 	void Refresh_Process_State();
 

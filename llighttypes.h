@@ -19,9 +19,15 @@ public:
 	Vec3i() {}
 	Vec3i(int xx, int yy, int zz) {x = xx; y = yy; z = zz;}
 	int32_t x, y, z;
+
+	Vec3i &operator-=(const Vec3i &v) {x -= v.x; y -= v.y; z -= v.z; return *this;}
+	int SquareLength() const {return (x * x) + (y * y)  + (z * z);}
+	float Length() const {return sqrtf(SquareLength());}
+
 	void Set(int xx, int yy, int zz) {x = xx; y = yy; z = zz;}
-	void Set(const Vector3 &p) {x = (int) (p.x + 0.5f); y = (int) (p.y + 0.5f); z = (int) (p.z + 0.5f);}
+	void Set_Round(const Vector3 &p) {x = (int) (p.x + 0.5f); y = (int) (p.y + 0.5f); z = (int) (p.z + 0.5f);}
 	void To(Vector3 &p) const {p.x = x; p.y = y; p.z = z;}
+	String ToString() const {return itos(x) + ", " + itos(y) + ", " + itos(z);}
 };
 
 class Vec2_i16
@@ -93,14 +99,31 @@ struct FHit
 	uint16_t tx, ty;
 };
 
+struct FColor
+{
+	float r, g, b;
+	void Set(float v) {r = v; g = v; b = v;}
+	void Set(float rr, float gg, float bb) {r = rr; g = gg; b = bb;}
+	void Set(const Color &col) {r = col.r; g = col.g; b = col.b;}
+	float Max() const {return MAX(r, MAX(g, b));}
+	FColor operator*(float v) const {FColor s; s.r = r * v; s.g = g * v; s.b = b * v; return s;}
+	FColor operator/(float v) const {FColor s; s.r = r / v; s.g = g / v; s.b = b / v; return s;}
+	FColor &operator+=(const FColor &v) {r += v.r; g += v.g; b += v.b; return *this;}
+	FColor operator*(const FColor &o) const {FColor s; s.r = r * o.r; s.g = g * o.g; s.b = b * o.b; return s;}
+};
+
 struct FRay
 {
-//	enum {FRAY_MAX_HITS = 4};
 	Ray ray;
-//	FHit hits[FRAY_MAX_HITS];
-//	int num_hits;
 	int num_rays_left;
-	float power;
+
+	// the color of the ray at the moment
+	FColor color;
+
+	// the color of the ray that is reflected after hitting a surface
+	FColor bounce_color;
+
+	// hit texel
 	FHit hit;
 };
 

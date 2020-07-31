@@ -18,6 +18,7 @@
 #include "lmerger.cpp"
 #include "lunmerger.cpp"
 #include "lscene_saver.cpp"
+#include "lmaterials.cpp"
 
 
 

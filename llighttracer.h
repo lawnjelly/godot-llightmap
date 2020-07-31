@@ -73,10 +73,13 @@ public:
 
 	bool RayTrace_Start(Ray ray, Ray &voxel_ray, Vec3i &start_voxel);
 	const Voxel * RayTrace(const Ray &ray_orig, Ray &ray_out, Vec3i &ptVoxel);
+
 	LVector<uint32_t> m_TriHits;
 
 	bool m_bSIMD;
 	bool m_bUseSDF;
+
+	void FindNearestVoxel(const Vector3 &ptWorld, Vec3i &ptVoxel) const;
 
 private:
 	void CalculateWorldBound();

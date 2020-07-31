@@ -15,7 +15,7 @@ LightMapper_Base::LightMapper_Base()
 	m_Settings_Forward_NumRays = 1;
 	m_Settings_Forward_NumBounces = 0;
 	m_Settings_Forward_RayPower = 0.01f;
-	m_Settings_Forward_BouncePower = 0.5f;
+	m_Settings_Forward_BouncePower = 1.0f;
 	m_Settings_Forward_BounceDirectionality = 0.5f;
 
 	m_Settings_Backward_NumRays = 8;
@@ -81,7 +81,19 @@ void LightMapper_Base::FindLight(const Node * pNode)
 	l->energy = pLight->get_param(Light::PARAM_ENERGY);
 	l->indirect_energy = pLight->get_param(Light::PARAM_INDIRECT_ENERGY);
 	l->range = pLight->get_param(Light::PARAM_RANGE);
-	l->spot_angle = pLight->get_param(Light::PARAM_SPOT_ANGLE);
+	l->spot_angle_radians = Math::deg2rad(pLight->get_param(Light::PARAM_SPOT_ANGLE));
+	l->spot_dot_max = Math::cos(l->spot_angle_radians);
+	l->spot_dot_max = MIN(l->spot_dot_max, 0.9999f); // just to prevent divide by zero in cone of spotlight
+
+	// the spot emanation point is used for spotlight cone culling.
+	// if we used the dot from the pos to cull, we would miss cases where
+	// the sample origin is offset by scale from pos. So we push back the pos
+	// in order to account for the scale 'cloud' of origins.
+	float radius = MAX(l->scale.x, MAX(l->scale.y, l->scale.z));
+	l->spot_emanation_point =l->pos - (l->dir * radius);
+
+	// pre apply intensity
+	l->color.Set(pLight->get_color() * l->energy);
 
 	const DirectionalLight * pDLight = Object::cast_to<DirectionalLight>(pLight);
 	if (pDLight)
@@ -191,7 +203,7 @@ void LightMapper_Base::Normalize()
 	// first find the max
 	for (int n=0; n<nPixels; n++)
 	{
-		float f = *m_Image_L.Get(n);
+		float f = m_Image_L.Get(n)->Max();
 		if (f > fmax)
 			fmax = f;
 	}
@@ -211,8 +223,8 @@ void LightMapper_Base::Normalize()
 	// apply multiplier
 	for (int n=0; n<nPixels; n++)
 	{
-		float &f = *m_Image_L.Get(n);
-		f *= mult;
+		FColor &col = *m_Image_L.Get(n);
+		col = col * mult;
 	}
 }
 
@@ -234,7 +246,7 @@ void LightMapper_Base::LoadLightmap(Image &image)
 	{
 		for (int x=0; x<m_iWidth; x++)
 		{
-			m_Image_L.GetItem(x, y) = image.get_pixel(x, y).r;
+			m_Image_L.GetItem(x, y).Set(image.get_pixel(x, y));
 		}
 	}
 	image.unlock();
@@ -281,10 +293,10 @@ void LightMapper_Base::Merge_AndWriteOutputImage_Combined(Image &image)
 		for (int x=0; x<m_iWidth; x++)
 		{
 			float ao = m_Image_AO.GetItem(x, y);
-			float lum = m_Image_L.GetItem(x, y);
+			FColor lum = m_Image_L.GetItem(x, y);
 
 			// combined
-			float f;
+			FColor f;
 			switch (m_Settings_BakeMode)
 			{
 			case LMBAKEMODE_LIGHTMAP:
@@ -294,24 +306,24 @@ void LightMapper_Base::Merge_AndWriteOutputImage_Combined(Image &image)
 				break;
 			case LMBAKEMODE_AO:
 				{
-					f = ao;
+					f.Set(ao);
 				}
 				break;
 			default:
 				{
-					float mid = ao * lum;
+					FColor mid = lum * ao;
 
 					if (m_Settings_Light_AO_Ratio < 0.5f)
 					{
 						float r = m_Settings_Light_AO_Ratio / 0.5f;
-						f = (1.0f - r) * ao;
-						f += r * mid;
+						f.Set((1.0f - r) * ao);
+						f += mid * r;
 					}
 					else
 					{
 						float r = (m_Settings_Light_AO_Ratio-0.5f) / 0.5f;
-						f = (1.0f - r) * mid;
-						f += r * lum;
+						f =  mid * (1.0f - r);
+						f += lum * r;
 					}
 				}
 				break;
@@ -320,11 +332,13 @@ void LightMapper_Base::Merge_AndWriteOutputImage_Combined(Image &image)
 			// gamma correction
 			if (!m_Settings_CombinedIsHDR)
 			{
-				f = powf(f, gamma);
+				f.r = powf(f.r, gamma);
+				f.g = powf(f.g, gamma);
+				f.b = powf(f.b, gamma);
 			}
 
 			Color col;
-			col = Color(f, f, f, 1);
+			col = Color(f.r, f.g, f.b, 1);
 
 			image.set_pixel(x, y, col);
 		}
@@ -380,7 +394,7 @@ void LightMapper_Base::WriteOutputImage_AO(Image &image)
 
 void LightMapper_Base::WriteOutputImage_Lightmap(Image &image)
 {
-	Dilate<float> dilate;
+	Dilate<FColor> dilate;
 	dilate.DilateImage(m_Image_L, m_Image_ID_p1, 256);
 
 	// test
@@ -430,19 +444,19 @@ void LightMapper_Base::WriteOutputImage_Lightmap(Image &image)
 	{
 		for (int x=0; x<m_iWidth; x++)
 		{
-			const float * pf = m_Image_L.Get(x, y);
-			assert (pf);
-			float f = *pf;
+			FColor f = *m_Image_L.Get(x, y);
 
 			// gamma correction
 			if (!m_Settings_LightmapIsHDR)
 			{
 				float gamma = 1.0f / 2.2f;
-				f = powf(f, gamma);
+				f.r = powf(f.r, gamma);
+				f.g = powf(f.g, gamma);
+				f.b = powf(f.b, gamma);
 			}
 
 			Color col;
-			col = Color(f, f, f, 1);
+			col = Color(f.r, f.g, f.b, 1);
 
 
 			// debug mark the dilated pixels

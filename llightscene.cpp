@@ -6,6 +6,7 @@
 
 
 //#define LLIGHTSCENE_VERBOSE
+//#define LLIGHTSCENE_TRACE_VERBOSE
 
 using namespace LM;
 
@@ -115,6 +116,21 @@ void LightScene::ProcessVoxelHits(const Ray &ray, const PackedRay &pray, const V
 //				winner = pray.Intersect(pcopy, r_nearest_t);
 //			}
 
+#ifdef LLIGHTSCENE_TRACE_VERBOSE
+			String sz = "\ttesting tris ";
+			for (int t=0; t<4; t++)
+			{
+				int test_tri = (q*4) + t;
+				if (test_tri < voxel.m_TriIDs.size())
+				{
+					sz += itos(voxel.m_TriIDs[(q*4) + t]);
+					sz += ", ";
+				}
+			}
+			print_line(sz);
+#endif
+
+
 			if (winner != 0)
 			//if (pray.Intersect(ptris, r_nearest_t, winner))
 			{
@@ -122,6 +138,12 @@ void LightScene::ProcessVoxelHits(const Ray &ray, const PackedRay &pray, const V
 				int winner_tri_index = (q * 4) + winner;
 				//int winner_tri = m_Tracer.m_TriHits[winner_tri_index];
 				int winner_tri = voxel.m_TriIDs[winner_tri_index];
+
+
+#ifdef LLIGHTSCENE_TRACE_VERBOSE
+				const AABB &tri_bb = m_TriPos_aabbs[winner_tri];
+				print_line("\t\tWINNER tri : " + itos(winner_tri) + " at dist " + String(Variant(r_nearest_t)) + " aabb " + String(tri_bb));
+#endif
 
 				/*
 			// test assert condition
@@ -371,19 +393,19 @@ int LightScene::FindIntersect_Ray(const Ray &ray, float &u, float &v, float &w, 
 	Vec3i ptVoxelFirstHit;
 
 	// if we have specified a (optional) maximum range for the trace in voxels
-	Vec3i ptVoxelStart;
-	if (pVoxelRange)
-	{
-		ptVoxelStart = ptVoxel;
-	}
+	Vec3i ptVoxelStart = ptVoxel;
 
 	// create the packed ray as a once off and reuse it for each voxel
 	PackedRay pray;
 	pray.Create(ray);
 
+	// keep track of when we need to expand the bounds of the trace
+	int nearest_tri_so_far = -1;
+	int square_length_from_start_to_terminate =INT_MAX;
+
 	while (true)
 	{
-		Vec3i ptVoxelBefore = ptVoxel;
+//		Vec3i ptVoxelBefore = ptVoxel;
 
 		const Voxel * pVoxel = m_Tracer.RayTrace(voxel_ray, voxel_ray, ptVoxel);
 //		if (!m_Tracer.RayTrace(voxel_ray, voxel_ray, ptVoxel))
@@ -396,6 +418,56 @@ int LightScene::FindIntersect_Ray(const Ray &ray, float &u, float &v, float &w, 
 				int nHits = m_Tracer.m_TriHits.size();
 				num_tests += nHits;
 
+
+		// if there is a nearest hit, calculate the voxel in which the hit occurs.
+		// if we have travelled more than 1 voxel more than this, no need to traverse further.
+		if (nearest_tri != nearest_tri_so_far)
+		{
+			nearest_tri_so_far = nearest_tri;
+			Vector3 ptNearestHit = ray.o + (ray.d * nearest_t);
+			m_Tracer.FindNearestVoxel(ptNearestHit, ptVoxelFirstHit);
+			bFirstHit = true;
+
+			// length in voxels to nearest hit
+			Vec3i voxel_diff = ptVoxelFirstHit;
+			voxel_diff -= ptVoxelStart;
+			float voxel_length_to_nearest_hit = voxel_diff.Length();
+			// add a bit
+			voxel_length_to_nearest_hit += 2.0f;
+
+			// square length
+			voxel_length_to_nearest_hit *= voxel_length_to_nearest_hit;
+
+			// plus 1 for rounding up.
+			square_length_from_start_to_terminate = voxel_length_to_nearest_hit + 1;
+		}
+
+		// first hit?
+		if (!bFirstHit)
+		{
+			// check for voxel range
+			if (pVoxelRange)
+			{
+				if (abs(ptVoxel.x - ptVoxelStart.x) > pVoxelRange->x)
+					break;
+				if (abs(ptVoxel.y - ptVoxelStart.y) > pVoxelRange->y)
+					break;
+				if (abs(ptVoxel.z - ptVoxelStart.z) > pVoxelRange->z)
+					break;
+			} // if voxel range
+		}
+		else
+		{
+			// check the range to this voxel. Have we gone further than the terminate voxel distance?
+			Vec3i voxel_diff = ptVoxel;
+			voxel_diff -= ptVoxelStart;
+			int sl = voxel_diff.SquareLength();
+			if (sl >= square_length_from_start_to_terminate)
+				break;
+		}
+
+
+		/*
 		// first hit?
 		if (!bFirstHit)
 		{
@@ -428,6 +500,7 @@ int LightScene::FindIntersect_Ray(const Ray &ray, float &u, float &v, float &w, 
 			if (abs(ptVoxel.z - ptVoxelFirstHit.z) > 1)
 				break;
 		}
+		*/
 
 #ifdef LIGHTTRACER_IGNORE_VOXELS
 		break;
@@ -472,6 +545,7 @@ int LightScene::IntersectRay_old(const Ray &r, float &u, float &v, float &w, flo
 
 void LightScene::Reset()
 {
+	m_Materials.Reset();
 //	m_ptPositions.resize(0);
 //	m_ptNormals.resize(0);
 	//m_UVs.resize(0);
@@ -489,7 +563,10 @@ void LightScene::Reset()
 	m_TriPlanes.clear(true);
 
 	m_Meshes.clear(true);
-	m_Tri_MeshIDs.clear(true);
+	//m_Tri_MeshIDs.clear(true);
+	//m_Tri_SurfIDs.clear(true);
+	m_Tri_LMaterialIDs.clear(true);
+	m_UVTris_Primary.clear(true);
 }
 
 void LightScene::FindMeshes(Spatial * pNode)
@@ -514,12 +591,14 @@ void LightScene::FindMeshes(Spatial * pNode)
 	}
 }
 
-bool LightScene::Create_FromMesh(int mesh_id, int width, int height)
+bool LightScene::Create_FromMeshSurface(int mesh_id, int surf_id, Ref<Mesh> rmesh, int width, int height)
 {
 	const MeshInstance &mi = *m_Meshes[mesh_id];
 
-	Ref<Mesh> rmesh = mi.get_mesh();
-	Array arrays = rmesh->surface_get_arrays(0);
+	if (rmesh->surface_get_primitive_type(surf_id) != Mesh::PRIMITIVE_TRIANGLES)
+		return false; //only triangles
+
+	Array arrays = rmesh->surface_get_arrays(surf_id);
 	if (!arrays.size())
 		return false;
 
@@ -531,10 +610,18 @@ bool LightScene::Create_FromMesh(int mesh_id, int width, int height)
 		return false;
 
 
+	// uvs for lightmapping
 	PoolVector<Vector2> uvs = arrays[VS::ARRAY_TEX_UV2];
+
+	// optional uvs for albedo etc
+	PoolVector<Vector2> uvs_primary;
 	if (!uvs.size())
 	{
 		uvs = arrays[VS::ARRAY_TEX_UV];
+	}
+	else
+	{
+		uvs_primary = arrays[VS::ARRAY_TEX_UV];
 	}
 
 	if (!uvs.size())
@@ -568,7 +655,13 @@ bool LightScene::Create_FromMesh(int mesh_id, int width, int height)
 	m_TriPos_aabbs.resize(nNewTris);
 	m_Tri_TexelSizeWorldSpace.resize(nNewTris);
 
-	m_Tri_MeshIDs.resize(nNewTris);
+	//m_Tri_MeshIDs.resize(nNewTris);
+	//m_Tri_SurfIDs.resize(nNewTris);
+	m_Tri_LMaterialIDs.resize(nNewTris);
+	m_UVTris_Primary.resize(nNewTris);
+
+	// lmaterial
+	int lmat_id = m_Materials.FindOrCreateMaterial(mi, rmesh, surf_id);
 
 	int i = 0;
 	for (int n=0; n<nTris; n++)
@@ -583,7 +676,11 @@ bool LightScene::Create_FromMesh(int mesh_id, int width, int height)
 		UVTri &uvt = m_UVTris[an];
 		Rect2 &rect = m_TriUVaabbs[an];
 		AABB &aabb = m_TriPos_aabbs[an];
-		m_Tri_MeshIDs[an] = mesh_id;
+
+//		m_Tri_MeshIDs[an] = mesh_id;
+//		m_Tri_SurfIDs[an] = surf_id;
+		m_Tri_LMaterialIDs[an] = lmat_id;
+		UVTri &uvt_primary = m_UVTris_Primary[an];
 
 		int ind = inds[i];
 		rect = Rect2(uvs[ind], Vector2(0, 0));
@@ -601,6 +698,16 @@ bool LightScene::Create_FromMesh(int mesh_id, int width, int height)
 			rect.expand_to(uvt.uv[c]);
 			//aabb.position = t.pos[0];
 			aabb.expand_to(t.pos[c]);
+
+			// store primary uvs if present
+			if (uvs_primary.size())
+			{
+				uvt_primary.uv[c] = uvs_primary[ind];
+			}
+			else
+			{
+				uvt_primary.uv[c] = Vector2(0, 0);
+			}
 		}
 
 		// plane - calculate normal BEFORE changing winding into UV space
@@ -670,6 +777,28 @@ bool LightScene::Create_FromMesh(int mesh_id, int width, int height)
 	return true;
 }
 
+
+bool LightScene::Create_FromMesh(int mesh_id, int width, int height)
+{
+	const MeshInstance &mi = *m_Meshes[mesh_id];
+
+	Ref<Mesh> rmesh = mi.get_mesh();
+
+	int num_surfaces = rmesh->get_surface_count();
+
+	for (int surf=0; surf<num_surfaces; surf++)
+	{
+		if (!Create_FromMeshSurface(mesh_id, surf, rmesh, width, height))
+		{
+			String sz;
+			sz = "Mesh " + itos(mesh_id) + " surf " + itos (surf) + " cannot be converted.";
+			WARN_PRINT(sz);
+		}
+	}
+
+	return true;
+}
+
 bool LightScene::Create(Spatial * pMeshesRoot, int width, int height, int voxel_density)
 {
 	m_bUseSIMD = true;
@@ -731,6 +860,15 @@ void LightScene::CalculateTriTexelSize(int tri_id, int width, int height)
 
 	m_Tri_TexelSizeWorldSpace[tri_id] = texel_size;
 }
+
+bool LightScene::FindPrimaryTextureColors(int tri_id, const Vector3 &bary, Color &albedo)
+{
+	Vector2 uvs;
+	m_UVTris_Primary[tri_id].FindUVBarycentric(uvs, bary.x, bary.y, bary.z);
+
+	return m_Materials.FindColors(m_Tri_LMaterialIDs[tri_id], uvs, albedo);
+}
+
 
 void LightScene::RasterizeTriangleIDs(LightMapper_Base &base, LightImage<uint32_t> &im_p1, LightImage<uint32_t> &im2_p1, LightImage<Vector3> &im_bary)
 {

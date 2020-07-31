@@ -203,7 +203,7 @@ bool UnMerger::UnMerge_Mesh(MeshInstance &mi, LMerged &merged)
 
 	}
 
-//	LPRINT(2, "UnMerge MI : " + mi.get_name() + "\tFirstVert : " + itos(vert_count) + "\tNumUVs : " + itos(verts.size()));
+	print_line("UnMerge MI : " + mi.get_name());// + "\tFirstVert : " + itos(vert_count) + "\tNumUVs : " + itos(verts.size()));
 
 
 	// rebuild the sob mesh, but now using the new uv2s
@@ -241,22 +241,36 @@ bool UnMerger::UnMerge_Mesh(MeshInstance &mi, LMerged &merged)
 
 //	am_new->surface_set_material(0, mat);
 
+	// get the old material before setting the new mesh
+	Ref<Material> mat = mi.get_surface_material(0);
+	bool mat_on_mi = true;
+	if (!mat.ptr())
+	{
+		mat_on_mi = false;
+		mat = rmesh->surface_get_material(0);
+	}
+
+
 	// hopefully the old mesh will be ref count freed? ???
 	mi.set_mesh(am_new);
 
-
 	// mesh instance has the material?
-	Ref<Material> mat = mi.get_surface_material(0);
-	if (mat.ptr())
+//	Ref<Material> mat = mi.get_surface_material(0);
+//	if (mat_on_mi)
+//	{
+	if (!mat.ptr())
 	{
-		mi.set_surface_material(0, mat);
+		print_line("\t\tno material found");
 	}
-	else
-	{
+
+	mi.set_surface_material(0, mat);
+//	}
+//	else
+//	{
 		// mesh has the material?
-		Ref<Material> smat = rmesh->surface_get_material(0);
-		mi.set_surface_material(0, smat);
-	}
+	//	Ref<Material> smat = rmesh->surface_get_material(0);
+		//mi.set_surface_material(0, smat);
+//	}
 
 	return true;
 }
