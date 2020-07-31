@@ -80,8 +80,8 @@ You can uv map scenes in a third party modelling program such as blender, but th
 1) In order to add the new UVs, we will need to modify the level scene, so it makes sense to save it as a new tscn file. You should set the filename as 'uv_filename' in the uv unwrap section of the inspector.
 2) Set the bake_mode to 'UVMap'.
 3) Once this output filename is set, and the meshes is assigned correctly, and the bake mode is correct, hit the 'Bake Lightmap' button above the main 3d window.
-4) This does a number of things by magic. First it merges all the marked geometry into a single mesh, then it unwraps the mesh, then it 'unmerges' the wrapped mesh back to the original objects. This is quite a complex process and can result in added vertices. Finally it saves the new uvmapped scene into the file we specified, deletes the old scene from the scenetree, and replaces it with our new uvmapped scene.
-5) As this step is potentially destructive, it creates a backup of your original level scene in the root of your project.
+4) This does a number of things by magic. First it merges all the marked geometry into a single mesh, then it unwraps the mesh, then it 'unmerges' the wrapped mesh back to the original objects. This is quite a complex process and can result in added vertices. Finally it saves the new uvmapped scene into the file we specified.
+5) As the mesh data has been altered, you should now delete your level scene, and load in its place the UVmapped level that was exported.
 
 #### Baking
 Once the scene is uvmapped, we can move onto the fun stage, baking some lightmaps.
