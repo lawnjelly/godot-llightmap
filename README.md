@@ -114,6 +114,7 @@ Merging is much faster than baking lights, or AO. This is because baking require
 * For your final game build, you don't need the LLightmap node, and should remove it (it won't be understood in standard builds of the engine anyway).
 * You also don't need the intermediate lights and ao exr files. These should be deleted to reduce the export size of your game.
 * Instead of using the final png, you can alternatively use an exr file for your lightmap (it will contain more accurate colors, with higher dynamic range). For mobile use png is still recommended.
+* At the moment it is recommended to run noise reduction on the final lightmap with an image editing program (e.g. gimp, photoshop). Soon OpenImageDenoise will be in core and I will add a hook to use that as soon as available, which will make this more user friendly.
 
 ## Installation
 * Get the latest godot engine 3.x source
