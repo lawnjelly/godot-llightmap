@@ -1,5 +1,5 @@
 # godot-llightmap
-* Lightmap module for Godot Engine 3.2.2 (source later than June 4th 2020)
+* Lightmap module for Godot Engine 3.2.2 or later (source later than June 4th 2020)
 * Version 0.15 (July 31st, 2020)
 * (work in progress, there may be bugs, especially in the uv mapping but it is usable)
 
@@ -118,6 +118,7 @@ Merging is much faster than baking lights, or AO. This is because baking require
 
 ## Installation
 * Get the latest godot engine 3.2 source, NOT 3.2 stable, as there has been a change to xatlas since then:
+
 (go to https://github.com/godotengine/godot/tree/3.2 and click download zip)
 
 * Create a folder called 'llightmap' in the modules directory
