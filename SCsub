@@ -9,7 +9,7 @@ module_env = env.Clone()
 # warning!! these command lines are linux only
 #module_env.Append(CXXFLAGS=['-O2', '-std=c++11', '-Wno-sign-compare', '-Wno-strict-aliasing'])
 #module_env.Append(CXXFLAGS=['-std=c++11', '-Wno-sign-compare', '-Wno-strict-aliasing'])
-#module_env.Append(CXXFLAGS=['-fopenmp'])
+#module_env.Append(CXXFLAGS=['-Wextra'])
 
 if ARGUMENTS.get('llightmap_shared', 'no') == 'yes':
     # Shared lib compilation

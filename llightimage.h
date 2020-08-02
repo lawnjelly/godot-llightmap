@@ -71,8 +71,8 @@ public:
 	{
 		if (x < 0) return false;
 		if (y < 0) return false;
-		if (x >= m_uiWidth) return false;
-		if (y >= m_uiHeight) return false;
+		if (x >= (int) m_uiWidth) return false;
+		if (y >= (int) m_uiHeight) return false;
 		return true;
 	}
 

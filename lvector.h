@@ -198,7 +198,7 @@ public:
 
 	void delete_items_first(unsigned int uiNumItems)
 	{
-		if (uiNumItems < size())
+		if (uiNumItems < (unsigned int) size())
 		{
 			unsigned int num_to_move = size() - uiNumItems;
 
@@ -210,7 +210,7 @@ public:
 		}
 		else
 		{
-			if (uiNumItems == size())
+			if (uiNumItems == (unsigned int) size())
 			{
 				clear();
 			}

@@ -517,7 +517,7 @@ void LightMapper::ProcessTexel_Light(int light_id, const Vector3 &ptDest, const 
 		//		}
 
 		// nothing hit
-		if ((tri == -1) || (tri == tri_ignore))
+		if ((tri == -1) || (tri == (int) tri_ignore))
 		{
 			// for backward tracing, first pass, this is a special case, because we DO
 			// take account of distance to the light, and normal, in order to simulate the effects
@@ -604,7 +604,7 @@ FColor LightMapper::ProcessTexel_Bounce(int x, int y)
 		int tri_hit = m_Scene.FindIntersect_Ray(r, u, v, w, t, nullptr, m_iNumTests);
 
 		// nothing hit
-		if ((tri_hit != -1) && (tri_hit != tri_source))
+		if ((tri_hit != -1) && (tri_hit != (int) tri_source))
 		{
 			// look up the UV of the tri hit
 			Vector2 uvs;
