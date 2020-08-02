@@ -30,8 +30,8 @@ jobs:
       with:
         path: build/modules/llightmap/ 
 
-    - name: Show folders
-      run: pwd && whoami && ls -l -R
+    #- name: Show folders
+    #  run: pwd && whoami && ls -l -R
       
     # Runs a single command using the runners shell
     - name: Run a one-line script
@@ -42,3 +42,10 @@ jobs:
       run: |
         echo Add other actions to build,
         echo test, and deploy your project.
+        
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: windows-editor (x64)
+        path: build/modules/llightmap/README.md
+        #path: build/bin/godot.windows.opt.tools.64.exe
