@@ -31,7 +31,7 @@ jobs:
         path: build/modules/llightmap/ 
 
     - name: Show folders before
-      run: pwd && whoami && ls -l -R
+      run: pwd && whoami && ls -R
       
     # Runs a single command using the runners shell
     - name: Run a one-line script
@@ -44,7 +44,7 @@ jobs:
         echo test, and deploy your project.
         
     - name: Show folders after
-      run: pwd && whoami && ls -l -R
+      run: pwd && whoami && ls -R
         
     - name: Upload a Build Artifact
       uses: actions/upload-artifact@v2
