@@ -4,7 +4,7 @@ on: [workflow_dispatch]
 # Global Cache Settings
 # SCONS_CACHE for windows must be set in the build environment
 env:
-  GODOT_BASE_BRANCH: master
+  GODOT_BASE_BRANCH: 3.2
   SCONS_CACHE_MSVC_CONFIG: true
   SCONS_CACHE_LIMIT: 4096
 
@@ -13,8 +13,9 @@ jobs:
     # Windows 10 with latest image
     runs-on: "windows-latest"
 
+
     # Windows Editor - checkout with the plugin
-    name: Editor (target=release_debug, tools=yes, tests=yes)
+    name: Editor (target=release_debug, tools=yes, tests=no)
 
     steps:
     - uses: actions/checkout@v2
