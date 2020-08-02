@@ -23,12 +23,12 @@ jobs:
       with:
         repository: godotengine/godot
         ref: 3.2
-        path: build
+        #path: build
 
     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
     - uses: actions/checkout@v2
       with:
-        path: build/modules/llightmap/ 
+        path: modules/llightmap/ 
 
     - name: Show folders before
       run: pwd && whoami && ls -R
@@ -64,5 +64,5 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: windows-editor (x64)
-        path: build/bin/godot.windows.opt.tools.64.exe
+        path: bin/godot.windows.opt.tools.64.exe
         #path: build/modules/llightmap/README.md
