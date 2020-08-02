@@ -50,6 +50,13 @@ jobs:
         python --version
         scons --version
         
+    # We should always be explicit with our flags usage here since it's gonna be sure to always set those flags
+    - name: Compilation
+      #env:
+      #  SCONS_CACHE: /.scons_cache/
+      run: |
+        scons -j2 verbose=no warnings=all werror=no platform=windows tools=yes tests=no target=release_debug
+        
     - name: Show folders after
       run: pwd && whoami && ls -R
         
