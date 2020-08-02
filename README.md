@@ -1,6 +1,6 @@
 # godot-llightmap
 * Lightmap module for Godot Engine 3.2.2 or later
-* Version 0.16 (August 2nd, 2020)
+* Version 0.17 (August 2nd, 2020)
 * Lightmaps created can be used with standard Godot builds and templates, i.e. you only need the module for a preprocess
 * (work in progress, there may be bugs, especially in the uv mapping but it is usable)
 
@@ -89,7 +89,7 @@ Once the scene is uvmapped, we can move onto the fun stage, baking some lightmap
 
 1) Change the bake_mode to 'lightmap'.
 2) Once we are sure we have some lights, the meshes and lights are assigned, and the filenames are chosen, hit the 'Bake Lightmap' button.
-3) This may take a while to complete, depending on the settings you use. The defaults should bake quite quickly for a very rough version.
+3) This may take a while to complete, depending on the settings you use. The defaults should bake quite quickly for a very rough version if you choose 'low' or 'medium' quality.
 4) If all goes well the final lightmap will be produced in your specified directory, check this and try opening it in an image editor.
 
 #### Showing the lightmap
