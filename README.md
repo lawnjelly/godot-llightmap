@@ -117,9 +117,12 @@ Merging is much faster than baking lights, or AO. This is because baking require
 * At the moment it is recommended to run noise reduction on the final lightmap with an image editing program (e.g. gimp, photoshop). Soon OpenImageDenoise will be in core and I will add a hook to use that as soon as available, which will make this more user friendly.
 
 ## Installation
-* Get the latest godot engine 3.2 source, NOT 3.2 stable, as there has been a change to xatlas since then:
+* Get the latest godot engine 3.2 source, NOT 3.2 stable, it should be 3.2.2 or later as there has been a change to xatlas since then:
 
-(go to https://github.com/godotengine/godot/tree/3.2 and click download zip)
+Either:
+1) go to https://github.com/godotengine/godot/tree/3.2 and click download zip for the bleeding edge latest
+2) go to https://github.com/godotengine/godot/releases/tag/3.2.2-stable and click to download source code
+3) A later official release of the source (e.g. 3.2.3 or 3.2.4 when available)
 
 * Create a folder called 'llightmap' in the modules directory
 * Clone / download this repository into the folder
