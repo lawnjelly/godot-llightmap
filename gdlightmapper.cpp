@@ -15,6 +15,11 @@ void LLightmap::_bind_methods()
 	BIND_ENUM_CONSTANT(LLightmap::BAKEMODE_MERGE);
 	BIND_ENUM_CONSTANT(LLightmap::BAKEMODE_COMBINED);
 
+	BIND_ENUM_CONSTANT(LLightmap::QUALITY_LOW);
+	BIND_ENUM_CONSTANT(LLightmap::QUALITY_MEDIUM);
+	BIND_ENUM_CONSTANT(LLightmap::QUALITY_HIGH);
+	BIND_ENUM_CONSTANT(LLightmap::QUALITY_FINAL);
+
 	// main functions
 	ClassDB::bind_method(D_METHOD("lightmap_bake"), &LLightmap::lightmap_bake);
 	ClassDB::bind_method(D_METHOD("lightmap_bake_to_image", "output_image"), &LLightmap::lightmap_bake_to_image);
@@ -25,6 +30,9 @@ void LLightmap::_bind_methods()
 
 	ClassDB::bind_method(D_METHOD("set_bake_mode", "bake_mode"), &LLightmap::set_bake_mode);
 	ClassDB::bind_method(D_METHOD("get_bake_mode"), &LLightmap::get_bake_mode);
+
+	ClassDB::bind_method(D_METHOD("set_quality", "quality"), &LLightmap::set_quality);
+	ClassDB::bind_method(D_METHOD("get_quality"), &LLightmap::get_quality);
 
 	ClassDB::bind_method(D_METHOD("set_lightmap_filename", "lightmap_filename"), &LLightmap::set_lightmap_filename);
 	ClassDB::bind_method(D_METHOD("get_lightmap_filename"), &LLightmap::get_lightmap_filename);
@@ -52,6 +60,7 @@ ADD_PROPERTY(PropertyInfo(P_TYPE, LIGHTMAP_TOSTRING(P_NAME), PROPERTY_HINT_RANGE
 	ADD_GROUP("Main", "");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "bake_mode", PROPERTY_HINT_ENUM, "UVMap,Lightmap,AO,Merge,Combined"), "set_bake_mode", "get_bake_mode");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "mode", PROPERTY_HINT_ENUM, "Forward,Backward"), "set_mode", "get_mode");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "quality", PROPERTY_HINT_ENUM, "Low,Medium,High,Final"), "set_quality", "get_quality");
 	LIMPL_PROPERTY(Variant::NODE_PATH, meshes, set_mesh_path, get_mesh_path);
 	LIMPL_PROPERTY(Variant::NODE_PATH, lights, set_lights_path, get_lights_path);
 
@@ -67,6 +76,7 @@ ADD_PROPERTY(PropertyInfo(P_TYPE, LIGHTMAP_TOSTRING(P_NAME), PROPERTY_HINT_RANGE
 	LIMPL_PROPERTY_RANGE(Variant::INT, tex_height, set_tex_height, get_tex_height, "128,8192,128");
 //	LIMPL_PROPERTY(Variant::VECTOR3, voxel_grid, set_voxel_dims, get_voxel_dims);
 	LIMPL_PROPERTY(Variant::REAL, surface_bias, set_surface_bias, get_surface_bias);
+	LIMPL_PROPERTY_RANGE(Variant::INT, material_size, set_material_size, get_material_size, "128,2048,128");
 	LIMPL_PROPERTY_RANGE(Variant::INT, voxel_density, set_voxel_density, get_voxel_density, "1,512,1");
 
 	ADD_GROUP("Forward Parameters", "");
@@ -105,6 +115,9 @@ LLightmap::eMode LLightmap::get_mode() const {return (LLightmap::eMode) m_LM.m_S
 
 void LLightmap::set_bake_mode(LLightmap::eBakeMode p_mode) {m_LM.m_Settings_BakeMode = (LM::LightMapper::eLMBakeMode) p_mode;}
 LLightmap::eBakeMode LLightmap::get_bake_mode() const {return (LLightmap::eBakeMode) m_LM.m_Settings_BakeMode;}
+
+void LLightmap::set_quality(LLightmap::eQuality p_quality) {m_LM.m_Settings_Quality = (LM::LightMapper::eLMBakeQuality) p_quality;}
+LLightmap::eQuality LLightmap::get_quality() const {return (LLightmap::eQuality) m_LM.m_Settings_Quality;}
 
 void LLightmap::set_mesh_path(const NodePath &p_path) {m_LM.m_Settings_Path_Mesh = p_path;}
 NodePath LLightmap::get_mesh_path() const {return m_LM.m_Settings_Path_Mesh;}
@@ -160,8 +173,8 @@ int LLightmap::get_tex_width() const {return m_LM.m_Settings_TexWidth;}
 void LLightmap::set_tex_height(int height) {m_LM.m_Settings_TexHeight = height;}
 int LLightmap::get_tex_height() const {return m_LM.m_Settings_TexHeight;}
 
-//void LLightmap::set_voxel_dims(const Vector3 &dims) {m_LM.m_Settings_VoxelDims.Set(dims);}
-//Vector3 LLightmap::get_voxel_dims() const {Vector3 p; m_LM.m_Settings_VoxelDims.To(p); return p;}
+void LLightmap::set_material_size(int size) {m_LM.m_Settings_Max_Material_Size = size;}
+int LLightmap::get_material_size() const {return m_LM.m_Settings_Max_Material_Size;}
 
 void LLightmap::set_voxel_density(int density) {m_LM.m_Settings_VoxelDensity = density;}
 int LLightmap::get_voxel_density() const {return m_LM.m_Settings_VoxelDensity;}

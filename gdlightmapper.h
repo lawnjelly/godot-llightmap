@@ -23,6 +23,14 @@ public:
 		BAKEMODE_COMBINED = LM::LightMapper::LMBAKEMODE_COMBINED,
 	};
 
+	enum eQuality
+	{
+		QUALITY_LOW = LM::LightMapper::LM_QUALITY_LOW,
+		QUALITY_MEDIUM = LM::LightMapper::LM_QUALITY_MEDIUM,
+		QUALITY_HIGH = LM::LightMapper::LM_QUALITY_HIGH,
+		QUALITY_FINAL = LM::LightMapper::LM_QUALITY_FINAL,
+	};
+
 	bool lightmap_mesh(Node * pMeshRoot, Node * pLightRoot, Object * pOutputImage_Lightmap, Object * pOutputImage_AO, Object * pOutputImage_Combined);
 	bool lightmap_bake();
 	bool lightmap_bake_to_image(Object * pOutputLightmapImage, Object * pOutputAOImage, Object * pOutputCombinedImage);
@@ -34,6 +42,9 @@ public:
 
 	void set_bake_mode(LLightmap::eBakeMode p_mode);
 	LLightmap::eBakeMode get_bake_mode() const;
+
+	void set_quality(LLightmap::eQuality p_quality);
+	LLightmap::eQuality get_quality() const;
 
 	void set_mesh_path(const NodePath &p_path);
 	NodePath get_mesh_path() const;
@@ -95,6 +106,9 @@ public:
 	void set_surface_bias(float bias);
 	float get_surface_bias() const;
 
+	void set_material_size(int size);
+	int get_material_size() const;
+
 	void set_normalize(bool norm);
 	bool get_normalize() const;
 
@@ -135,3 +149,4 @@ protected:
 
 VARIANT_ENUM_CAST(LLightmap::eMode);
 VARIANT_ENUM_CAST(LLightmap::eBakeMode);
+VARIANT_ENUM_CAST(LLightmap::eQuality);

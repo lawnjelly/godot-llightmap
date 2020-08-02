@@ -799,8 +799,10 @@ bool LightScene::Create_FromMesh(int mesh_id, int width, int height)
 	return true;
 }
 
-bool LightScene::Create(Spatial * pMeshesRoot, int width, int height, int voxel_density)
+bool LightScene::Create(Spatial * pMeshesRoot, int width, int height, int voxel_density, int max_material_size)
 {
+	m_Materials.Prepare(max_material_size);
+
 	m_bUseSIMD = true;
 
 	FindMeshes(pMeshesRoot);

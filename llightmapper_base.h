@@ -56,6 +56,14 @@ public:
 		LMBAKEMODE_COMBINED,
 	};
 
+	enum eLMBakeQuality
+	{
+		LM_QUALITY_LOW,
+		LM_QUALITY_MEDIUM,
+		LM_QUALITY_HIGH,
+		LM_QUALITY_FINAL,
+	};
+
 
 	// these enable feedback in the Godot UI as we bake
 	typedef void (*BakeBeginFunc)(int);
@@ -86,6 +94,7 @@ protected:
 	void RandomBarycentric(Vector3 &bary) const;
 	void RandomAxis(Vector3 &axis) const;
 
+	void CalculateQualityAdjustedSettings();
 	float safe_acosf(float f) const {f = CLAMP(f, -1.0f, 1.0f); return acosf(f);}
 
 protected:
@@ -131,6 +140,21 @@ protected:
 	// with LLightMapper_Base. It is not recognised in global namespace.
 	// Perhaps some Godot template fu is involved.
 public:
+	// actual params (after applying quality)
+	struct AdjustedSettings
+	{
+		int m_Forward_NumRays;
+		int m_Forward_NumBounces;
+
+		int m_Backward_NumRays;
+		int m_Backward_NumBounceRays;
+		int m_Backward_NumBounces;
+
+		int m_AO_Samples;
+
+		int m_Max_Material_Size;
+	} m_AdjustedSettings;
+
 	// params
 	int m_Settings_Forward_NumRays;
 	int m_Settings_Forward_NumBounces;
@@ -151,11 +175,14 @@ public:
 
 	eLMMode m_Settings_Mode;
 	eLMBakeMode m_Settings_BakeMode;
+	eLMBakeQuality m_Settings_Quality;
 	int m_Settings_VoxelDensity; // number of units on largest axis
 	float m_Settings_SurfaceBias;
 
 	int m_Settings_TexWidth;
 	int m_Settings_TexHeight;
+
+	int m_Settings_Max_Material_Size;
 
 	bool m_Settings_Normalize;
 	float m_Settings_NormalizeBias;

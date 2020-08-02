@@ -11,6 +11,8 @@ namespace LM {
 
 bool LightMapper::uv_map_meshes(Spatial * pRoot)
 {
+	CalculateQualityAdjustedSettings();
+
 	bool replace_mesh_scene = false;
 
 	if (!pRoot)
@@ -114,11 +116,13 @@ bool LightMapper::uv_map_meshes(Spatial * pRoot)
 
 bool LightMapper::lightmap_mesh(Spatial * pMeshesRoot, Spatial * pLR, Image * pIm_Lightmap, Image * pIm_AO, Image * pIm_Combined)
 {
+	CalculateQualityAdjustedSettings();
+
 	// get the output dimensions before starting, because we need this
 	// to determine number of rays, and the progress range
 	m_iWidth = pIm_Combined->get_width();
 	m_iHeight = pIm_Combined->get_height();
-	m_iNumRays = m_Settings_Forward_NumRays;
+	m_iNumRays = m_AdjustedSettings.m_Forward_NumRays;
 
 		int nTexels = m_iWidth * m_iHeight;
 
@@ -187,7 +191,7 @@ bool LightMapper::LightmapMesh(Spatial * pMeshesRoot, const Spatial &light_root,
 {
 	// print out settings
 	print_line("Lightmap mesh");
-	print_line("\tnum_bounces " + itos(m_Settings_Forward_NumBounces));
+	print_line("\tnum_bounces " + itos(m_AdjustedSettings.m_Forward_NumBounces));
 	print_line("\tbounce_power " + String(Variant(m_Settings_Forward_BouncePower)));
 
 	Refresh_Process_State();
@@ -227,7 +231,7 @@ bool LightMapper::LightmapMesh(Spatial * pMeshesRoot, const Spatial &light_root,
 
 		print_line("Scene Create");
 		before = OS::get_singleton()->get_ticks_msec();
-		if (!m_Scene.Create(pMeshesRoot, m_iWidth, m_iHeight, m_Settings_VoxelDensity))
+		if (!m_Scene.Create(pMeshesRoot, m_iWidth, m_iHeight, m_Settings_VoxelDensity, m_AdjustedSettings.m_Max_Material_Size))
 			return false;
 
 		RayBank_Create();
@@ -388,7 +392,7 @@ void LightMapper::ProcessTexels()
 	//	m_iNumTests /= (m_iHeight * m_iWidth);
 	print_line("num tests : " + itos(m_iNumTests));
 
-	for (int b=0; b<m_Settings_Backward_NumBounces; b++)
+	for (int b=0; b<m_AdjustedSettings.m_Backward_NumBounces; b++)
 	{
 		ProcessTexels_Bounce();
 	}
@@ -414,7 +418,7 @@ void LightMapper::ProcessTexel_Light(int light_id, const Vector3 &ptDest, const 
 	float power = light.energy;
 	power *= m_Settings_Backward_RayPower;
 
-	int nSamples = m_Settings_Backward_NumRays;
+	int nSamples = m_AdjustedSettings.m_Backward_NumRays;
 
 	// total light hitting texel
 //	float fTotal = 0.0f;
@@ -572,7 +576,7 @@ FColor LightMapper::ProcessTexel_Bounce(int x, int y)
 	triangle_normal.InterpolateBarycentric(norm, bary.x, bary.y, bary.z);
 	norm.normalize();
 
-	int nSamples = m_Settings_Backward_NumBounceRays;
+	int nSamples = m_AdjustedSettings.m_Backward_NumBounceRays;
 	for (int n=0; n<nSamples; n++)
 	{
 		// bounce
@@ -836,7 +840,7 @@ void LightMapper::ProcessLights()
 
 			ProcessLight(n, m_iRaysPerSection);
 
-			for (int b=0; b<m_Settings_Forward_NumBounces+1; b++)
+			for (int b=0; b<m_AdjustedSettings.m_Forward_NumBounces+1; b++)
 			{
 				RayBank_Process();
 				RayBank_Flush();
@@ -848,7 +852,7 @@ void LightMapper::ProcessLights()
 			int num_leftover = m_iNumRays - (num_sections * m_iRaysPerSection);
 			ProcessLight(n, num_leftover);
 
-			for (int b=0; b<m_Settings_Forward_NumBounces+1; b++)
+			for (int b=0; b<m_AdjustedSettings.m_Forward_NumBounces+1; b++)
 			{
 				RayBank_Process();
 				RayBank_Flush();

@@ -117,7 +117,7 @@ void AmbientOcclusion::ProcessAO_LineMT(uint32_t y_offset, int y_section_start)
 float AmbientOcclusion::CalculateAO(int tx, int ty, int qmc_variation, const MiniList &ml)
 {
 	Ray r;
-	int nSamples = m_Settings_AO_Samples;
+	int nSamples = m_AdjustedSettings.m_AO_Samples;
 
 	// find the max range in voxels. This can be used to speed up the ray trace
 	Vec3i voxel_range = m_Scene.m_VoxelRange;

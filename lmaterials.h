@@ -31,6 +31,7 @@ public:
 	LMaterials();
 	~LMaterials();
 	void Reset();
+	void Prepare(unsigned int max_material_size) {m_uiMaxMaterialSize = max_material_size;}
 
 	int FindOrCreateMaterial(const MeshInstance &mi, Ref<Mesh> rmesh, int surf_id);
 	bool FindColors(int mat_id, const Vector2 &uv, Color &albedo);
@@ -42,6 +43,7 @@ private:
 	LTexture * _make_dummy_texture(LTexture * pLTexture, Color col);
 
 	LVector<LMaterial> m_Materials;
+	unsigned int m_uiMaxMaterialSize;
 };
 
 

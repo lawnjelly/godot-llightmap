@@ -16,6 +16,7 @@ void LMaterial::Destroy()
 
 LMaterials::LMaterials()
 {
+	m_uiMaxMaterialSize = 256;
 }
 
 LMaterials::~LMaterials()
@@ -193,11 +194,33 @@ LTexture * LMaterials::_get_bake_texture(Ref<Image> p_image, const Color &p_colo
 	}
 
 	p_image->convert(Image::FORMAT_RGBA8);
-	//p_image->resize(width, height, Image::INTERPOLATE_CUBIC);
 
-
+	// downsize if necessary
 	int w = p_image->get_width();
 	int h = p_image->get_height();
+
+	bool bResize = false;
+	while (true)
+	{
+		if ((w > m_uiMaxMaterialSize) || (h > m_uiMaxMaterialSize))
+		{
+			w /= 2;
+			h /= 2;
+			bResize = true;
+		}
+		else
+		{
+			w = MAX(w, 1);
+			h = MAX(h, 1);
+			break;
+		}
+	}
+	if (bResize)
+		p_image->resize(w, h, Image::INTERPOLATE_CUBIC);
+
+
+	w = p_image->get_width();
+	h = p_image->get_height();
 	int size = w * h;
 
 	lt->width = w;

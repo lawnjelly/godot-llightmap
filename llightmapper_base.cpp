@@ -12,30 +12,33 @@ LightMapper_Base::BakeEndFunc LightMapper_Base::bake_end_function = NULL;
 LightMapper_Base::LightMapper_Base()
 {
 	m_iNumRays = 1;
-	m_Settings_Forward_NumRays = 1;
+	m_Settings_Forward_NumRays = 16;
 	m_Settings_Forward_NumBounces = 0;
 	m_Settings_Forward_RayPower = 0.01f;
 	m_Settings_Forward_BouncePower = 1.0f;
 	m_Settings_Forward_BounceDirectionality = 0.5f;
 
-	m_Settings_Backward_NumRays = 8;
-	m_Settings_Backward_NumBounceRays = 1;
+	m_Settings_Backward_NumRays = 128;
+	m_Settings_Backward_NumBounceRays = 128;
 	m_Settings_Backward_NumBounces = 0;
 	m_Settings_Backward_RayPower = 0.01f;
 	m_Settings_Backward_BouncePower = 0.5f;
 
 	m_Settings_AO_Range = 2.0f;
-	m_Settings_AO_Samples = 64;
+	m_Settings_AO_Samples = 256;
 	m_Settings_AO_CutRange = 1.5f;
 	m_Settings_AO_ReverseBias = 0.005f;
 
 	m_Settings_Mode = LMMODE_FORWARD;
 	m_Settings_BakeMode = LMBAKEMODE_LIGHTMAP;
+	m_Settings_Quality = LM_QUALITY_MEDIUM;
 
-	m_Settings_TexWidth = 128;
-	m_Settings_TexHeight = 128;
+	m_Settings_TexWidth = 512;
+	m_Settings_TexHeight = 512;
 	m_Settings_VoxelDensity = 20;
 	m_Settings_SurfaceBias = 0.005f;
+
+	m_Settings_Max_Material_Size = 256;
 
 	m_Settings_Normalize = true;
 	m_Settings_NormalizeBias = 4.0f;
@@ -52,6 +55,63 @@ LightMapper_Base::LightMapper_Base()
 	m_Settings_UVPadding = 4;
 }
 
+void LightMapper_Base::CalculateQualityAdjustedSettings()
+{
+	// set them initially to the same
+	AdjustedSettings &as = m_AdjustedSettings;
+
+	as.m_Forward_NumRays = m_Settings_Forward_NumRays;
+	as.m_Forward_NumBounces = m_Settings_Forward_NumBounces;
+
+	as.m_Backward_NumRays= m_Settings_Backward_NumRays;
+	as.m_Backward_NumBounceRays = m_Settings_Backward_NumBounceRays;
+	as.m_Backward_NumBounces = m_Settings_Backward_NumBounces;
+
+	as.m_AO_Samples = m_Settings_AO_Samples;
+
+	as.m_Max_Material_Size = m_Settings_Max_Material_Size;
+
+	// overrides
+	switch (m_Settings_Quality)
+	{
+	case LM_QUALITY_LOW:
+		{
+			as.m_Forward_NumRays = 1;
+			as.m_Forward_NumBounces = 0;
+			as.m_Backward_NumRays = 4;
+			as.m_Backward_NumBounces = 0;
+			as.m_AO_Samples = 1;
+			as.m_Max_Material_Size = 32;
+		}
+		break;
+	case LM_QUALITY_MEDIUM:
+		{
+			as.m_Forward_NumRays /= 2;
+			as.m_Backward_NumRays /= 2;
+			as.m_Backward_NumBounceRays /= 2;
+			as.m_AO_Samples /= 2;
+			as.m_Max_Material_Size /= 4;
+		}
+		break;
+	default:
+		// high is default
+		break;
+	case LM_QUALITY_FINAL:
+		as.m_Forward_NumRays *= 2;
+		as.m_Backward_NumRays *= 2;
+		as.m_Backward_NumBounceRays *= 2;
+		as.m_AO_Samples *= 2;
+		break;
+	}
+
+	// minimums
+	as.m_Forward_NumRays = MAX(as.m_Forward_NumRays, 1);
+	as.m_Backward_NumRays = MAX(as.m_Backward_NumRays, 1);
+	as.m_Backward_NumBounceRays = MAX(as.m_Backward_NumBounceRays, 1);
+	as.m_AO_Samples = MAX(as.m_AO_Samples, 1);
+	as.m_Max_Material_Size = MAX(as.m_Max_Material_Size, 32);
+
+}
 
 void LightMapper_Base::FindLight(const Node * pNode)
 {

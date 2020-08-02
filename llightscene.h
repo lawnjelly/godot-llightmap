@@ -32,7 +32,7 @@ public:
 
 	void Reset();
 //	bool Create(Spatial * pMeshesRoot, int width, int height, const Vec3i &voxel_dims);
-	bool Create(Spatial * pMeshesRoot, int width, int height, int voxel_density);
+	bool Create(Spatial * pMeshesRoot, int width, int height, int voxel_density, int max_material_size);
 
 	// returns triangle ID (or -1) and barycentric coords
 	int FindIntersect_Ray(const Ray &ray, float &u, float &v, float &w, float &nearest_t, const Vec3i * pVoxelRange, int &num_tests);//, int ignore_tri_p1 = 0);
