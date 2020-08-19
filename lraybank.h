@@ -33,7 +33,6 @@ private:
 	// used for below multithread routine
 	RB_Voxel * m_pCurrentThreadVoxel;
 	void RayBank_ProcessRay_MT(uint32_t ray_id, int start_ray);
-//	void RayBank_ProcessRay(uint32_t ray_id, RB_Voxel &vox);
 
 	void RayBank_FlushRay(RB_Voxel &vox, int ray_id);
 

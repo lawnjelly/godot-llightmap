@@ -38,6 +38,14 @@ protected:
 		// behind the origin, takes account of the scale in order to cull spotlights
 		Vector3 spot_emanation_point;
 		const Light * m_pLight;
+
+		// for directional lights
+		// all that is needed for a random distribution
+		Vector3 dl_plane_pt;
+		Vector3 dl_tangent;
+		Vector3 dl_bitangent;
+		float dl_tangent_range;
+		float dl_bitangent_range;
 	};
 
 public:
@@ -76,6 +84,7 @@ public:
 protected:
 	void FindLights_Recursive(const Node * pNode);
 	void FindLight(const Node * pNode);
+	void PrepareLights();
 
 	void PrepareImageMaps();
 	void Normalize();
@@ -93,6 +102,9 @@ protected:
 	void RandomSphereDir(Vector3 &dir, float max_length) const;
 	void RandomBarycentric(Vector3 &bary) const;
 	void RandomAxis(Vector3 &axis) const;
+
+	void LightToPlane(LLight &light);
+	Plane FindContainmentPlane(const Vector3 &dir, Vector3 pts[8], float &range, float padding);
 
 	void CalculateQualityAdjustedSettings();
 	float safe_acosf(float f) const {f = CLAMP(f, -1.0f, 1.0f); return acosf(f);}

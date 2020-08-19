@@ -80,6 +80,7 @@ public:
 	bool m_bUseSDF;
 
 	void FindNearestVoxel(const Vector3 &ptWorld, Vec3i &ptVoxel) const;
+	const AABB &GetWorldBound() const {return m_SceneWorldBound;}
 
 private:
 	void CalculateWorldBound();
@@ -123,7 +124,7 @@ private:
 	int m_DimsXTimesY;
 	Vector3 m_VoxelSize;
 	int m_iNumVoxels;
-	Plane m_VoxelPlanes[6];
+//	Plane m_VoxelPlanes[6];
 
 
 	int GetVoxelNum(const Vec3i &pos) const
@@ -147,7 +148,27 @@ private:
 		return m_Voxels[v];
 	}
 
+	// the pt is both the output intersection point, and the input plane constant (in the correct tuple)
+	void IntersectAAPlane_OnlyWithinAABB(const AABB &aabb, const Ray &ray, int axis, Vector3 &pt, float &nearest_hit, int plane_id, int &nearest_plane_id, float aabb_epsilon = 0.0f) const
+	{
+		if (ray.IntersectAAPlane(axis, pt))
+		{
+			Vector3 offset = (pt - ray.o);
+			float dist = offset.length_squared();
+			if (dist < nearest_hit)
+			{
+				// must be within aabb
+				if (aabb.has_point(pt))
+				{
+					nearest_hit = dist;
+					nearest_plane_id = plane_id;
+				}
+			}
+		}
+	}
 
+
+	// the pt is both the output intersection point, and the input plane constant (in the correct tuple)
 	void IntersectAAPlane(const Ray &ray, int axis, Vector3 &pt, float &nearest_hit, int plane_id, int &nearest_plane_id) const
 	{
 		if (ray.IntersectAAPlane(axis, pt))
@@ -163,21 +184,6 @@ private:
 	}
 
 	bool IntersectRayAABB(const Ray &ray, const AABB &aabb, Vector3 &ptInter);
-	void IntersectPlane(const Ray &ray, int plane_id, Vector3 &ptIntersect, float constant, float &nearest_hit, int &nearest_plane_id)
-	{
-		m_VoxelPlanes[plane_id].d = constant;
-		bool bHit = m_VoxelPlanes[plane_id].intersects_ray(ray.o, ray.d, &ptIntersect);
-		if (bHit)
-		{
-			Vector3 offset = (ptIntersect - ray.o);
-			float dist = offset.length_squared();
-			if (dist < nearest_hit)
-			{
-				nearest_hit = dist;
-				nearest_plane_id = plane_id;
-			}
-		} // if hit
-	}
 };
 
 }

@@ -52,7 +52,9 @@ FRay * RayBank::RayBank_RequestNewRay(Ray ray, int num_rays_left, const FColor &
 			Vector3 clip;
 
 			// if the ray starts outside, and doesn't hit the world, the ray is invalid
-			if (!GetTracer().IntersectRayAABB(ray, GetTracer().m_SceneWorldBound_contracted, clip))
+			// must use the expanded world bound here, so we catch triangles on the edge of the world
+			// the epsilons are CRUCIAL
+			if (!GetTracer().IntersectRayAABB(ray, GetTracer().m_SceneWorldBound, clip))
 				return 0;
 
 			// does hit the world bound
@@ -77,6 +79,7 @@ FRay * RayBank::RayBank_RequestNewRay(Ray ray, int num_rays_left, const FColor &
 	if (!GetTracer().VoxelWithinBounds(*pStartVoxel))
 	{
 		// should not happen?
+		WARN_PRINT_ONCE("RayBank_RequestNewRay : Ray from outside is not within world bound");
 		return 0;
 	}
 

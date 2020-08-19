@@ -2,6 +2,7 @@
 #include "ldilate.h"
 #include "core/os/os.h"
 #include "scene/3d/light.h"
+#include "core/math/plane.h"
 
 using namespace LM;
 
@@ -128,6 +129,10 @@ void LightMapper_Base::FindLight(const Node * pNode)
 //		return;
 
 	LLight * l = m_Lights.request();
+
+	// blank
+	memset (l, 0, sizeof (LLight));
+
 	l->m_pLight = pLight;
 	// get global transform only works if glight is in the tree
 	Transform trans = pLight->get_global_transform();
@@ -169,6 +174,17 @@ void LightMapper_Base::FindLight(const Node * pNode)
 
 }
 
+void LightMapper_Base::PrepareLights()
+{
+	for (int n=0; n<m_Lights.size(); n++)
+	{
+		LLight &light = m_Lights[n];
+
+		if (light.type == LLight::LT_DIRECTIONAL)
+			LightToPlane(light);
+	}
+}
+
 
 void LightMapper_Base::FindLights_Recursive(const Node * pNode)
 {
@@ -183,7 +199,145 @@ void LightMapper_Base::FindLights_Recursive(const Node * pNode)
 	}
 }
 
+Plane LightMapper_Base::FindContainmentPlane(const Vector3 &dir, Vector3 pts[8], float &range, float padding)
+{
+	// construct a plane with one of the points
+	Plane pl(pts[0], dir);
 
+	float furthest_dist = 0.0f;
+	int furthest = 0;
+
+	// find the furthest point
+	for (int n=0; n<8; n++)
+	{
+		float d = pl.distance_to(pts[n]);
+
+		if (d < furthest_dist)
+		{
+			furthest_dist = d;
+			furthest = n;
+		}
+	}
+
+	// reconstruct the plane based on the furthest point
+	pl = Plane(pts[furthest], dir);
+
+	// find the range
+	range = 0.0f;
+
+	for (int n=0; n<8; n++)
+	{
+		float d = pl.distance_to(pts[n]);
+
+		if (d > range)
+		{
+			range = d;
+		}
+	}
+
+//	const float padding = 8.0f;
+
+	// move plane backward a bit for luck
+	pl.d -= padding;
+
+	// add a boost to the range
+	range += padding * 2.0f;
+
+	return pl;
+}
+
+void LightMapper_Base::LightToPlane(LLight &light)
+{
+	AABB bb = m_Scene.m_Tracer.GetWorldBound();
+	Vector3 minmax[2];
+	minmax[0] = bb.position;
+	minmax[1] = bb.position + bb.size;
+
+	Vector3 pts[8];
+	for (int n=0; n<8; n++)
+	{
+		// which x etc. either 0 or 1 for each axis
+		int wx = MIN(n & 1, 1);
+		int wy = MIN(n & 2, 1);
+		int wz = MIN(n & 4, 1);
+
+		pts[n].x = minmax[wx].x;
+		pts[n].y = minmax[wy].y;
+		pts[n].z = minmax[wz].z;
+	}
+
+	float main_range;
+	Plane pl = FindContainmentPlane(light.dir, pts, main_range, 2.0f);
+
+	// push it back even further for safety
+	//pl.d -= 2.0f;
+
+	// now create a bound on this plane
+
+	// find a good tangent
+	Vector3 cross[3];
+	cross[0] = light.dir.cross(Vector3(1, 0, 0));
+	cross[1] = light.dir.cross(Vector3(0, 1, 0));
+	cross[2] = light.dir.cross(Vector3(0, 0, 1));
+
+	float lx = cross[0].length();
+	float ly = cross[1].length();
+	float lz = cross[2].length();
+
+	int best_cross = 0;
+	if (ly > lx)
+	{
+		best_cross = 1;
+		if (lz > ly)
+			best_cross = 2;
+	}
+	if (lz > lx)
+		best_cross = 2;
+
+	Vector3 tangent = cross[best_cross];
+	tangent.normalize();
+
+	Vector3 bitangent = light.dir.cross(tangent);
+	bitangent.normalize();
+
+	float tangent_range;
+	Plane pl_tangent = FindContainmentPlane(tangent, pts, tangent_range, 2.0f);
+
+	float bitangent_range;
+	Plane pl_bitangent = FindContainmentPlane(bitangent, pts, bitangent_range, 2.0f);
+
+	// find point at mins of the planes
+	Vector3 ptPlaneMins;
+	bool res = pl.intersect_3(pl_tangent, pl_bitangent, &ptPlaneMins);
+	assert (res);
+
+	// we now have a point, 2 vectors (tangent and bitangent) and ranges,
+	// all that is needed for a random distribution!
+
+//	Vector3 dl_plane_pt;
+//	Vector3 dl_plane_tangent;
+//	Vector3 dl_plane_bitangent;
+//	float dl_plane_tangent_range;
+//	float dl_plane_bitangent_range;
+	light.dl_plane_pt = ptPlaneMins;
+	light.dl_tangent = tangent;
+	light.dl_bitangent = bitangent;
+	light.dl_tangent_range = tangent_range;
+	light.dl_bitangent_range = bitangent_range;
+
+	// debug output the positions
+	/*
+	Vector3 pA = ptPlaneMins;
+	Vector3 pB = ptPlaneMins + (tangent * tangent_range);
+	Vector3 pC = ptPlaneMins + (tangent * tangent_range) + (bitangent * bitangent_range);
+	Vector3 pD = ptPlaneMins + (bitangent * bitangent_range);
+
+	print_line("dir light A : " + String(Variant(pA)));
+	print_line("dir light B : " + String(Variant(pB)));
+	print_line("dir light C : " + String(Variant(pC)));
+	print_line("dir light D : " + String(Variant(pD)));
+	*/
+}
 
 
 void LightMapper_Base::PrepareImageMaps()

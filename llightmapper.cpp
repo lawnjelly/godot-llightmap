@@ -234,6 +234,8 @@ bool LightMapper::LightmapMesh(Spatial * pMeshesRoot, const Spatial &light_root,
 		if (!m_Scene.Create(pMeshesRoot, m_iWidth, m_iHeight, m_Settings_VoxelDensity, m_AdjustedSettings.m_Max_Material_Size))
 			return false;
 
+		PrepareLights();
+
 		RayBank_Create();
 
 		after = OS::get_singleton()->get_ticks_msec();
@@ -882,7 +884,6 @@ void LightMapper::ProcessLight(int light_id, int num_rays)
 //	float power = light.energy;
 //	power *= m_Settings_Forward_RayPower;
 
-	FColor light_color = light.color * m_Settings_Forward_RayPower;
 //	light_color.r = power;
 //	light_color.g = power;
 //	light_color.b = power;
@@ -890,6 +891,30 @@ void LightMapper::ProcessLight(int light_id, int num_rays)
 	// each ray
 
 //	num_rays = 1; // debug
+
+
+
+	// new... allow the use of indirect energy to scale the number of samples
+	num_rays *= light.indirect_energy;
+
+	// compensate for the number of rays in terms of the power per ray
+	float power = m_Settings_Forward_RayPower;
+
+	if (light.indirect_energy > 0.001f)
+		power *= 1.0f / light.indirect_energy;
+
+	// for directional, we need a load more rays for it to work well - it is expensive
+	if (light.type == LLight::LT_DIRECTIONAL)
+	{
+		num_rays *= 2;
+//		float area = light.dl_tangent_range * light.dl_bitangent_range;
+//		num_rays = num_rays * area;
+		// we will increase the power as well, because daylight more powerful than light bulbs typically.
+		power *= 4.0f;
+	}
+
+
+	FColor light_color = light.color * power;
 
 	for (int n=0; n<num_rays; n++)
 	{
@@ -907,6 +932,36 @@ void LightMapper::ProcessLight(int light_id, int num_rays)
 
 		switch (light.type)
 		{
+		case LLight::LT_DIRECTIONAL:
+			{
+				// use the precalculated source plane stored in the llight
+				r.o = light.dl_plane_pt;
+				r.o += light.dl_tangent * Math::random(0.0f, light.dl_tangent_range);
+				r.o += light.dl_bitangent * Math::random(0.0f, light.dl_bitangent_range);
+
+
+//				Vector3 offset;
+//				RandomUnitDir(offset);
+//				offset *= light.scale;
+//				r.o += offset;
+
+//				r.d = light.dir;
+				RandomUnitDir(r.d);
+				r.d *= light.scale;
+
+				// must point down - reverse hemisphere if pointing up
+				if (light.dir.dot(r.d) < 0.0f)
+				{
+					r.d = -r.d;
+				}
+
+				//r.d = light.dir.linear_interpolate(r.d, fract);
+				r.d += (light.dir * 2.0f);
+
+//				r.d += (light.dir * 3.0f);
+				r.d.normalize();
+			}
+			break;
 		case LLight::LT_SPOT:
 			{
 				Vector3 offset;
@@ -983,11 +1038,6 @@ void LightMapper::ProcessLight(int light_id, int num_rays)
 				RandomUnitDir(offset);
 				offset *= light.scale;
 				r.o += offset;
-
-				//				float x = Math::random(-light.scale.x, light.scale.x);
-				//				float y = Math::random(-light.scale.y, light.scale.y);
-				//				float z = Math::random(-light.scale.z, light.scale.z);
-				//				r.o += Vector3(x, y, z);
 
 				RandomUnitDir(r.d);
 			}

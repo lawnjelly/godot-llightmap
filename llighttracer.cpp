@@ -24,18 +24,8 @@ void LightTracer::Create(const LightScene &scene, int voxel_density)
 	m_pScene = &scene;
 	m_iNumTris = m_pScene->m_Tris.size();
 
-	// precalc voxel planes
-	m_VoxelPlanes[0].normal = Vector3(-1, 0, 0);
-	m_VoxelPlanes[1].normal = Vector3(1, 0, 0);
-	m_VoxelPlanes[2].normal = Vector3(0, -1, 0);
-	m_VoxelPlanes[3].normal = Vector3(0, 1, 0);
-	m_VoxelPlanes[4].normal = Vector3(0, 0, -1);
-	m_VoxelPlanes[5].normal = Vector3(0, 0, 1);
-
 	CalculateWorldBound();
-
 	CalculateVoxelDims(voxel_density);
-//	m_Dims = voxel_dims;
 
 	m_iNumVoxels = m_Dims.x * m_Dims.y * m_Dims.z;
 	m_DimsXTimesY = m_Dims.x * m_Dims.y;
@@ -101,7 +91,8 @@ bool LightTracer::RayTrace_Start(Ray ray, Ray &voxel_ray, Vec3i &start_voxel)
 	if (!m_SceneWorldBound.has_point(ray.o))
 	{
 		Vector3 clip;
-		if (!IntersectRayAABB(ray, m_SceneWorldBound_contracted, clip))
+		//if (!IntersectRayAABB(ray, m_SceneWorldBound_contracted, clip))
+		if (!IntersectRayAABB(ray, m_SceneWorldBound, clip))
 			return false;
 
 		// does hit the world bound
@@ -539,40 +530,73 @@ void LightTracer::CalculateWorldBound()
 	m_SceneWorldBound_contracted = aabb;
 
 	// expanded
-	aabb.grow_by(0.01f);
+
+	// it is CRUCIAL that the expansion here is more than the push in provided
+	// by LightTracer::IntersectRayAABB
+	// otherwise triangles at the very edges of the world will be missed by the ray tracing.
+
+	aabb.grow_by(0.2f);
 }
 
 bool LightTracer::IntersectRayAABB(const Ray &ray, const AABB &aabb, Vector3 &ptInter)
 {
+	// the 3 intersection points
 	const Vector3 &mins = aabb.position;
 	Vector3 maxs = aabb.position + aabb.size;
 
-	// the 3 intersection points
+
 	Vector3 ptIntersect[3];
 	float nearest_hit = FLT_MAX;
 	int nearest_hit_plane = -1;
 	const Vector3 &dir = ray.d;
 
 	// planes from constants
-	if (dir.x >= 0.0f)
-		IntersectPlane(ray, 0, ptIntersect[0], -mins.x, nearest_hit, nearest_hit_plane);
+	if (dir.x <= 0.0f)
+	{
+		ptIntersect[0].x = maxs.x;
+		IntersectAAPlane_OnlyWithinAABB(aabb, ray, 0, ptIntersect[0], nearest_hit, 0, nearest_hit_plane);
+	}
 	else
-		IntersectPlane(ray, 1, ptIntersect[0], maxs.x, nearest_hit, nearest_hit_plane);
+	{
+		ptIntersect[0].x = mins.x;
+		IntersectAAPlane_OnlyWithinAABB(aabb, ray, 0, ptIntersect[0], nearest_hit, 1, nearest_hit_plane);
+	}
 
-	if (dir.y >= 0.0f)
-		IntersectPlane(ray, 2, ptIntersect[1], -mins.y, nearest_hit, nearest_hit_plane);
+	if (dir.y <= 0.0f)
+	{
+		ptIntersect[1].y = maxs.y;
+		IntersectAAPlane_OnlyWithinAABB(aabb, ray, 1, ptIntersect[1], nearest_hit, 2, nearest_hit_plane);
+	}
 	else
-		IntersectPlane(ray, 3, ptIntersect[1], maxs.y, nearest_hit, nearest_hit_plane);
+	{
+		ptIntersect[1].y = mins.y;
+		IntersectAAPlane_OnlyWithinAABB(aabb, ray, 1, ptIntersect[1], nearest_hit, 3, nearest_hit_plane);
+	}
 
-	if (dir.z >= 0.0f)
-		IntersectPlane(ray, 4, ptIntersect[2], -mins.z, nearest_hit, nearest_hit_plane);
+	if (dir.z <= 0.0f)
+	{
+		ptIntersect[2].z = maxs.z;
+		IntersectAAPlane_OnlyWithinAABB(aabb, ray, 2, ptIntersect[2], nearest_hit, 4, nearest_hit_plane);
+	}
 	else
-		IntersectPlane(ray, 5, ptIntersect[2], maxs.z, nearest_hit, nearest_hit_plane);
+	{
+		ptIntersect[2].z = mins.z;
+		IntersectAAPlane_OnlyWithinAABB(aabb, ray, 2, ptIntersect[2], nearest_hit, 5, nearest_hit_plane);
+	}
+
+	ptInter = ptIntersect[nearest_hit_plane/2];
 
 	if (nearest_hit_plane == -1)
 		return false;
 
-	// intersection point
-	ptInter = ptIntersect[nearest_hit_plane/2];
-	return true;
+	// recalculate intersect using distance plus epsilon
+	float nearest_length = sqrtf(nearest_hit);
+
+	// this epsilon MUST be less than the world expansion in LightTracer::CalculateWorldBound
+	ptInter = ray.o + (ray.d * (nearest_length + 0.1f));
+
+	if (aabb.has_point(ptInter))
+		return true;
+
+	return false;
 }
