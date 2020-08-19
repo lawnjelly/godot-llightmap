@@ -17,7 +17,7 @@ https://www.youtube.com/watch?v=pBpF2raGA8A
 
 ### Features
 * Forward and backward ray tracing options
-* Volumetric lights for soft shadows
+* Volumetric lights for soft shadows (use the light transform scale to control the volume)
 * Ambient occlusion
 * Linear HDR exr intermediate files
 * Linear HDR exr final texture or gamma corrected normalized png
