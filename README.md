@@ -17,7 +17,7 @@ https://www.youtube.com/watch?v=pBpF2raGA8A
 
 ### Features
 * Forward and backward ray tracing options
-* Volumetric lights for soft shadows (use the light transform scale to control the volume)
+* Volumetric lights for soft shadows
 * Ambient occlusion
 * Linear HDR exr intermediate files
 * Linear HDR exr final texture or gamma corrected normalized png
@@ -133,3 +133,7 @@ Either:
 As you only need it to create lightmaps on desktop as a preprocess, the lightmaps produced can be used with a standard build of the engine / standard templates.
 
 I'm hoping to eventually make some builds for windows / linux x86_64 so users won't need to compile. The custom build is only needed to create the lightmaps / probe data. Once these are created they can be used in standard vanilla Godot engine (with a gdscript addon for probes, but that requires no compilation).
+
+### Tips
+* For each light, you can control the volumetric effect (soft or hard shadows) by changing the x, y, and z scale in the node `Transform` properties.
+* Be sure to use bounces in order to get colors from textures. You can make a bounced scene darker by reducing the bounce power.
