@@ -1,6 +1,6 @@
 # godot-llightmap
 * Lightmap module for Godot Engine 3.2.2 or later
-* Version 0.18 (August 19th, 2020)
+* Version 0.19 (August 20th, 2020)
 * Lightmaps created can be used with standard Godot builds and templates, i.e. you only need the module for a preprocess
 * (work in progress, there may be bugs, especially in the uv mapping but it is usable)
 
@@ -82,7 +82,7 @@ You can uv map scenes in a third party modelling program such as blender, but th
 2) Set the bake_mode to 'UVMap'.
 3) Once this output filename is set, and the meshes is assigned correctly, and the bake mode is correct, hit the 'Bake Lightmap' button above the main 3d window.
 4) This does a number of things by magic. First it merges all the marked geometry into a single mesh, then it unwraps the mesh, then it 'unmerges' the wrapped mesh back to the original objects. This is quite a complex process and can result in added vertices. Finally it saves the new uvmapped scene into the file we specified.
-5) As the mesh data has been altered, you should now delete your level scene, and load in its place the UVmapped level that was exported.
+5) As the mesh data has been altered, the original level mesh is deleted, and you should load in its place the UVmapped level that was exported. It is *highly recommended* to restart Godot IDE before loading in the UVmapped level due to referencing bugs in Godot core.
 
 #### Baking
 Once the scene is uvmapped, we can move onto the fun stage, baking some lightmaps.
