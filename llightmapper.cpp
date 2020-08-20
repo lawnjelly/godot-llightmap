@@ -104,6 +104,11 @@ bool LightMapper::uv_map_meshes(Spatial * pRoot)
 			}
 
 		} // if replace the scene
+		else
+		{
+			// delete, to save confusion
+			pRoot->queue_delete();
+		}
 	}
 
 	if (bake_end_function) {

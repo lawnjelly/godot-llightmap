@@ -72,6 +72,13 @@ bool UnMerger::UnMerge_Mesh(MeshInstance &mi, LMerged &merged)
 	//LPRINT(2, "UnMerge_SOB " + mi.get_name());
 
 	Ref<Mesh> rmesh = mi.get_mesh();
+
+	if (rmesh->get_surface_count() == 0)
+	{
+		WARN_PRINT_ONCE("UnMerger::UnMerge_Mesh mesh has no surfaces");
+		return false;
+	}
+
 	Array arrays = rmesh->surface_get_arrays(0);
 	PoolVector<Vector3> verts = arrays[VS::ARRAY_VERTEX];
 	PoolVector<Vector3> norms = arrays[VS::ARRAY_NORMAL];
@@ -279,8 +286,20 @@ bool UnMerger::UnMerge_Mesh(MeshInstance &mi, LMerged &merged)
 bool UnMerger::FillMergedFromMesh(LMerged &merged, const MeshInstance &mesh)
 {
 	Ref<Mesh> rmesh = mesh.get_mesh();
+
+	if (rmesh->get_surface_count() == 0)
+	{
+		WARN_PRINT("UnMerger::FillMergedFromMesh no surfaces");
+		return false;
+	}
+
 	Array arrays = rmesh->surface_get_arrays(0);
 
+	if (arrays.size() <= 1)
+	{
+		WARN_PRINT("UnMerger::FillMergedFromMesh no arrays");
+		return false;
+	}
 
 	merged.m_Verts = arrays[VS::ARRAY_VERTEX];
 	merged.m_Norms = arrays[VS::ARRAY_NORMAL];

@@ -11,12 +11,11 @@ class Merger
 public:
 	MeshInstance * Merge(Spatial * pRoot, int padding);
 
-
 private:
 	Node * FindSceneRoot(Node * pNode) const;
 
 	void FindMeshes(Spatial * pNode);
-	void MergeMeshes(MeshInstance &merged);
+	bool MergeMeshes(MeshInstance &merged);
 	void Merge_MeshInstance(const MeshInstance &mi, PoolVector<Vector3> &verts, PoolVector<Vector3> &norms, PoolVector<int> &inds);
 	bool LightmapUnwrap(Ref<ArrayMesh> am, const Transform &trans);
 

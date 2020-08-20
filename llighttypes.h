@@ -186,20 +186,38 @@ bool IsMeshInstanceSuitable(const MeshInstance &mi)
 {
 	// must be set to bake in lightmap
 	if (!mi.get_flag(GeometryInstance::FLAG_USE_BAKED_LIGHT))
+	{
+		print_line("\tunsuitable : " + mi.get_name() + " (use_baked_light unset)");
 		return false;
+	}
 
 	Ref<Mesh> rmesh = mi.get_mesh();
+	if (rmesh->get_surface_count() == 0)
+	{
+		print_line("\tunsuitable : " + mi.get_name() + " (no surfaces)");
+		return false;
+	}
+
 	Array arrays = rmesh->surface_get_arrays(0);
 	if (!arrays.size())
+	{
+		print_line("\tunsuitable : " + mi.get_name() + " (no arrays)");
 		return false;
+	}
 
 	PoolVector<Vector3> verts = arrays[VS::ARRAY_VERTEX];
 	if (!verts.size())
+	{
+		print_line("\tunsuitable : " + mi.get_name() + " (no positions)");
 		return false;
+	}
 
 	PoolVector<Vector3> norms = arrays[VS::ARRAY_NORMAL];
 	if (!norms.size())
+	{
+		print_line("\tunsuitable : " + mi.get_name() + " (no normals)");
 		return false;
+	}
 
 //	PoolVector<int> indices = arrays[VS::ARRAY_INDEX];
 //	if (!indices.size())

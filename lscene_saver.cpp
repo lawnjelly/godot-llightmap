@@ -26,7 +26,7 @@ void SceneSaver::SetOwnerRecursive(Node * pNode, Node * pOwner)
 //	print_line(sz);
 
 
-//	if (pNode != pOwner)
+	if (pNode != pOwner)
 		pNode->set_owner(pOwner);
 
 	for (int n=0; n<pNode->get_child_count(); n++)

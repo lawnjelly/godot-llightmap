@@ -1,4 +1,5 @@
 #include "lmerger.h"
+#include "llighttypes.h"
 
 #ifdef TOOLS_ENABLED
 #include "thirdparty/xatlas/xatlas.h"
@@ -20,7 +21,6 @@ Node * Merger::FindSceneRoot(Node * pNode) const
 
 	return pNode;
 }
-
 
 MeshInstance * Merger::Merge(Spatial * pRoot, int padding)
 {
@@ -49,14 +49,18 @@ MeshInstance * Merger::Merge(Spatial * pRoot, int padding)
 //		print_line("\t" + pChild->get_name());
 //	}
 
-	MergeMeshes(*pMerged);
+	if (!MergeMeshes(*pMerged))
+	{
+		pMerged->queue_delete();
+		return 0;
+	}
 //	return 0;
 
 	return pMerged;
 }
 
 
-void Merger::MergeMeshes(MeshInstance &merged)
+bool Merger::MergeMeshes(MeshInstance &merged)
 {
 	PoolVector<Vector3> verts;
 	PoolVector<Vector3> normals;
@@ -69,6 +73,14 @@ void Merger::MergeMeshes(MeshInstance &merged)
 	}
 
 	print_line("Merging, num verts is " + itos(verts.size()));
+
+	// if there are no verts, there has been an error, abort
+	if (!verts.size())
+	{
+		WARN_PRINT_ONCE("Merger::MergeMeshes : No vertices, aborting");
+		OS::get_singleton()->alert("Error: No vertices, aborting. Check output log for details.", "MergeMeshes");
+		return false;
+	}
 
 	// lightmap unwrap
 	//LightmapUnwrap(verts, normals, inds, uv2s);
@@ -117,12 +129,18 @@ void Merger::MergeMeshes(MeshInstance &merged)
 
 	// set mesh to use in baked lighting
 	merged.set_flag(GeometryInstance::FLAG_USE_BAKED_LIGHT, true);
+
+	return true;
 }
 
 void Merger::Merge_MeshInstance(const MeshInstance &mi, PoolVector<Vector3> &verts, PoolVector<Vector3> &norms, PoolVector<int> &inds)
 {
 	// some godot jiggery pokery to get the mesh verts in local space
 	Ref<Mesh> rmesh = mi.get_mesh();
+
+	if (rmesh->get_surface_count() == 0)
+		return;
+
 	Array arrays = rmesh->surface_get_arrays(0);
 	PoolVector<Vector3> p_vertices = arrays[VS::ARRAY_VERTEX];
 	PoolVector<Vector3> p_normals = arrays[VS::ARRAY_NORMAL];
