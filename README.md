@@ -1,6 +1,6 @@
 # godot-llightmap
 * Lightmap module for Godot Engine 3.2.2 or later
-* Version 0.19 (August 20th, 2020)
+* Version 0.20 (August 22nd, 2020)
 * Lightmaps created can be used with standard Godot builds and templates, i.e. you only need the module for a preprocess
 * (work in progress, there may be bugs, especially in the uv mapping but it is usable)
 
@@ -44,18 +44,24 @@ shader_type spatial;
 // we are using a lightmap, we don't need realtime lighting
 render_mode unshaded;
 
+// these 2 are optional, and although unused in the shader,
+// allow us to set materials to emit light
+uniform float emission;
+uniform vec4 emission_color : hint_color;
+
 // our input textures, a material texture, and the lightmap
 uniform sampler2D texture_albedo : hint_albedo;
 uniform sampler2D texture_lightmap : hint_albedo;
 
 void fragment() {
-  // lookup the colors at the uv location of our textures
+	// lookup the colors at the uv location of our textures
 	vec4 albedo_tex = texture(texture_albedo,UV);
 	vec4 lightmap_tex = texture(texture_lightmap,UV2);
   
-  // the overall albedo (color) will be the material texture TIMES the lightmap
-  // (so it can be darkened)
-	ALBEDO = albedo_tex.rgb * lightmap_tex.rgb;
+	// the overall albedo (color) will be the material texture TIMES the lightmap
+	// (so it can be darkened).
+	// you can optionally use a multiplier to allow lightening areas (the 2.0 here)
+	ALBEDO = albedo_tex.rgb * lightmap_tex.rgb * 2.0;
 }
 ```
 You may end up using variations of this shader in practice, but it will get you started.
@@ -142,3 +148,4 @@ I'm hoping to eventually make some builds for windows / linux x86_64 so users wo
 * For each light you can scale power with the `energy` parameter, and change color.
 * In forward tracing you can scale the number of samples per light using the `indirect energy` light parameter. This is useful for directional lights which may need more samples.
 * Spotlights have position, direction and spot angle, and volume with scale.
+* When using spatial materials, the albedo texture will be found automatically. When using custom shaders, in order for LLightmap to find the texture colors for bouncing light, the texture _must_ be called `texture_albedo`. Otherwise a plain white color will be used for bounces.
