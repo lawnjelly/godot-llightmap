@@ -67,6 +67,9 @@ public:
 	void set_forward_bounce_directionality(float bounce_dir);
 	float get_forward_bounce_directionality() const;
 
+	void set_forward_emission_density(float density);
+	float get_forward_emission_density() const;
+
 	////////////////////////////
 	void set_backward_num_rays(int num_rays);
 	int get_backward_num_rays() const;

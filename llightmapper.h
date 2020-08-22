@@ -20,6 +20,9 @@ private:
 	void ProcessLights();
 	void ProcessLight(int light_id, int num_rays);
 	void ProcessRay(LM::Ray r, int depth, float power, int dest_tri_id = 0, const Vector2i * pUV = 0);
+	void ProcessEmissionTris();
+	void ProcessEmissionTris_Section(float fraction_of_total);
+	void ProcessEmissionTri(int etri_id, float fraction_of_total);
 
 
 	void ProcessTexels();

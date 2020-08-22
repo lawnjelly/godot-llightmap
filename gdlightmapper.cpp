@@ -85,6 +85,7 @@ ADD_PROPERTY(PropertyInfo(P_TYPE, LIGHTMAP_TOSTRING(P_NAME), PROPERTY_HINT_RANGE
 	LIMPL_PROPERTY_RANGE(Variant::INT, f_bounces, set_forward_num_bounces, get_forward_num_bounces, "0,16,1");
 	LIMPL_PROPERTY_RANGE(Variant::REAL, f_bounce_power, set_forward_bounce_power, get_forward_bounce_power, "0.0,8.0,0.05");
 	LIMPL_PROPERTY_RANGE(Variant::REAL, f_bounce_directionality, set_forward_bounce_directionality, get_forward_bounce_directionality, "0.0,1.0,0.05");
+	LIMPL_PROPERTY_RANGE(Variant::REAL, f_emission_density, set_forward_emission_density, get_forward_emission_density, "0.0,8.0,0.05");
 
 	ADD_GROUP("Backward Parameters", "");
 	LIMPL_PROPERTY(Variant::INT, b_initial_rays, set_backward_num_rays, get_backward_num_rays);
@@ -138,6 +139,9 @@ float LLightmap::get_forward_bounce_power() const {return m_LM.m_Settings_Forwar
 
 void LLightmap::set_forward_bounce_directionality(float bounce_dir) {m_LM.m_Settings_Forward_BounceDirectionality = bounce_dir;}
 float LLightmap::get_forward_bounce_directionality() const {return m_LM.m_Settings_Forward_BounceDirectionality;}
+
+void LLightmap::set_forward_emission_density(float density) {m_LM.m_Settings_Forward_Emission_Density = density;}
+float LLightmap::get_forward_emission_density() const {return m_LM.m_Settings_Forward_Emission_Density;}
 
 ////////////////////////////
 void LLightmap::set_backward_num_rays(int num_rays) {m_LM.m_Settings_Backward_NumRays = num_rays;}

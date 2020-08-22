@@ -4,6 +4,7 @@
 #include "lunmerger.h"
 #include "lscene_saver.h"
 #include "scene/resources/packed_scene.h"
+#include "llightscene.h"
 
 
 namespace LM {
@@ -216,7 +217,8 @@ bool LightMapper::LightmapMesh(Spatial * pMeshesRoot, const Spatial &light_root,
 
 	if (m_Settings_BakeMode != LMBAKEMODE_MERGE)
 	{
-		m_QMC.Create(m_Settings_AO_Samples);
+
+		m_QMC.Create(m_AdjustedSettings.m_AO_Samples);
 
 		uint32_t before, after;
 		FindLights_Recursive(&light_root);
@@ -236,7 +238,7 @@ bool LightMapper::LightmapMesh(Spatial * pMeshesRoot, const Spatial &light_root,
 
 		print_line("Scene Create");
 		before = OS::get_singleton()->get_ticks_msec();
-		if (!m_Scene.Create(pMeshesRoot, m_iWidth, m_iHeight, m_Settings_VoxelDensity, m_AdjustedSettings.m_Max_Material_Size))
+		if (!m_Scene.Create(pMeshesRoot, m_iWidth, m_iHeight, m_Settings_VoxelDensity, m_AdjustedSettings.m_Max_Material_Size, m_AdjustedSettings.m_Forward_Emission_Density))
 			return false;
 
 		PrepareLights();
@@ -277,6 +279,7 @@ bool LightMapper::LightmapMesh(Spatial * pMeshesRoot, const Spatial &light_root,
 			else
 			{
 				ProcessLights();
+				ProcessEmissionTris();
 			}
 			after = OS::get_singleton()->get_ticks_msec();
 			print_line("ProcessTexels took " + itos(after -before) + " ms");
@@ -809,6 +812,146 @@ void LightMapper::ProcessRay(LM::Ray r, int depth, float power, int dest_tri_id,
 	}
 
 }
+
+void LightMapper::ProcessEmissionTris()
+{
+	int num_sections = m_iNumRays / m_iRaysPerSection;
+
+	if (!num_sections)
+		num_sections = 1;
+
+	float fraction = 1.0f / num_sections;
+
+	if (bake_begin_function) {
+		bake_begin_function(num_sections);
+	}
+
+	for (int s=0; s<num_sections; s++)
+	{
+		if ((s % 1) == 0)
+		{
+			if (bake_step_function)
+			{
+				m_bCancel = bake_step_function(s, String("Process Emission Section: ") + " (" + itos(s) + ")");
+				if (m_bCancel)
+				{
+					if (bake_end_function)
+						bake_end_function();
+					return;
+				}
+			}
+		}
+
+		ProcessEmissionTris_Section(fraction);
+
+		for (int b=0; b<m_AdjustedSettings.m_Forward_NumBounces+1; b++)
+		{
+			RayBank_Process();
+			RayBank_Flush();
+		} // for bounce
+	} // for section
+
+	// left over
+//	{
+//		int num_leftover = m_iNumRays - (num_sections * m_iRaysPerSection);
+//		ProcessLight(n, num_leftover);
+
+//		for (int b=0; b<m_AdjustedSettings.m_Forward_NumBounces+1; b++)
+//		{
+//			RayBank_Process();
+//			RayBank_Flush();
+//		} // for bounce
+//	}
+
+
+	if (bake_end_function) {
+		bake_end_function();
+	}
+
+}
+
+void LightMapper::ProcessEmissionTris_Section(float fraction_of_total)
+{
+	for (int n=0; n<m_Scene.m_EmissionTris.size(); n++)
+	{
+		ProcessEmissionTri(n, fraction_of_total);
+	}
+}
+
+
+void LightMapper::ProcessEmissionTri(int etri_id, float fraction_of_total)
+{
+	const EmissionTri &etri = m_Scene.m_EmissionTris[etri_id];
+	int tri_id = etri.tri_id;
+
+	// get the material
+
+	// positions
+	const Tri &tri_pos = m_Scene.m_Tris[tri_id];
+
+	// normals .. just use plane normal for now (no interpolation)
+	Vector3 norm = m_Scene.m_TriPlanes[tri_id].normal;
+
+	Ray ray;
+	ray.d = norm;
+
+	// use the area to get number of samples
+	float rays_per_unit_area = m_iNumRays * m_AdjustedSettings.m_Forward_Emission_Density  * 0.12f * 0.05f;
+	int nSamples = etri.area * rays_per_unit_area * fraction_of_total;
+
+	// nSamples may be zero incorrectly for small triangles, maybe we need to adjust for this
+	// NYI
+
+
+	for (int s=0; s<nSamples; s++)
+	{
+		// find a random barycentric coord
+		Vector3 bary;
+		RandomBarycentric(bary);
+
+		// find point on this actual triangle
+		tri_pos.InterpolateBarycentric(ray.o, bary);
+
+		// shoot a ray from this pos and normal, using the emission color
+		RandomUnitDir(ray.d);
+		ray.d += norm;
+
+		if (ray.d.dot(norm) < 0.0f)
+			ray.d = -ray.d;
+
+		ray.d.normalize();
+
+		// get the albedo etc
+		Color emission_tex_color;
+		Color emission_color;
+		m_Scene.FindEmissionColor(tri_id, bary, emission_tex_color, emission_color);
+
+		FColor fcol;
+		fcol.Set(emission_tex_color);
+
+		RayBank_RequestNewRay(ray, m_Settings_Forward_NumBounces + 1, fcol);
+
+		// special. For emission we want to also affect the emitting surface.
+		// convert barycentric to uv coords in the lightmap
+		Vector2 uv;
+		m_Scene.FindUVsBarycentric(tri_id, uv, bary);
+
+		// texel address
+		int tx = uv.x * m_iWidth;
+		int ty = uv.y * m_iHeight;
+
+		// could be off the image
+		if (!m_Image_L.IsWithin(tx, ty))
+			continue;
+
+		FColor * pTexelCol = m_Image_L.Get(tx, ty);
+
+//		fcol.Set(emission_color * 0.5f);
+		*pTexelCol += fcol;
+
+	}
+}
+
 
 void LightMapper::ProcessLights()
 {

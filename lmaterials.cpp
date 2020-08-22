@@ -1,5 +1,7 @@
 #include "lmaterials.h"
 
+#define LM_STRING_EMIT "_emit"
+
 namespace LM
 {
 
@@ -34,6 +36,25 @@ void LMaterials::Reset()
 	m_Materials.clear(true);
 }
 
+void LMaterials::AdjustMaterials(float emission_density)
+{
+	if (emission_density == 0.0f)
+		return;
+
+	float emission_multiplier = 1.0f / emission_density;
+
+	for (int n=0; n<m_Materials.size(); n++)
+	{
+		LMaterial &mat = m_Materials[n];
+
+		if (mat.m_bEmitter)
+		{
+			mat.m_Power_Emission *= emission_multiplier;
+			mat.m_Col_Emission *= emission_multiplier;
+		}
+	}
+
+}
 
 int LMaterials::FindOrCreateMaterial(const MeshInstance &mi, Ref<Mesh> rmesh, int surf_id)
 {
@@ -68,46 +89,98 @@ int LMaterials::FindOrCreateMaterial(const MeshInstance &mi, Ref<Mesh> rmesh, in
 	}
 
 	// doesn't exist create a new material
-	LMaterial * pNew = m_Materials.request();
-	pNew->Create();
-	pNew->pGodotMaterial = pSrcMaterial;
+	LMaterial * pMat = m_Materials.request();
+	pMat->Create();
+	pMat->pGodotMaterial = pSrcMaterial;
 
 	// spatial material?
 	Ref<SpatialMaterial> spatial_mat = src_material;
 	Ref<Texture> albedo_tex;
 	Color albedo = Color(1, 1, 1, 1);
 
+
+	float emission = 0.0f;
+	Color emission_color(1, 1, 1, 1);
+
 	if (spatial_mat.is_valid())
 	{
 		albedo_tex = spatial_mat->get_texture(SpatialMaterial::TEXTURE_ALBEDO);
 		albedo = spatial_mat->get_albedo();
+
+		emission = spatial_mat->get_emission_energy();
+		emission_color = spatial_mat->get_emission();
 	}
 	else
 	{
 		// shader material?
-		Variant shader_tex = FindShaderTex(src_material);
+		Variant shader_tex = FindCustom_AlbedoTex(src_material);
 		albedo_tex = shader_tex;
+
+		// check the name of the material to allow emission
+//		String szMat = src_material->get_path();
+//		if (szMat.find(LM_STRING_EMIT) != -1)
+//		{
+//			pMat->m_bEmitter = true;
+//			pMat->m_Col_Emission = Color(1, 1, 1, 1);
+//		}
+
+		FindCustom_ShaderParams(src_material, emission, emission_color);
+
 	} // not spatial mat
+
+	// emission
+	if (emission > 0.0f)
+	{
+		pMat->m_bEmitter = true;
+		pMat->m_Power_Emission = emission / 20.0f; // some constant to be comparable to lights
+		pMat->m_Col_Emission = emission_color * pMat->m_Power_Emission;
+
+		// apply a modifier for the emission density. As the number of samples go up, the power per sample
+		// must reduce in order to prevent brightness changing.
+	}
 
 	Ref<Image> img_albedo;
 	if (albedo_tex.is_valid())
 	{
 		img_albedo = albedo_tex->get_data();
-		pNew->pAlbedo = _get_bake_texture(img_albedo, albedo, Color(0, 0, 0)); // albedo texture, color is multiplicative
+		pMat->pAlbedo = _get_bake_texture(img_albedo, albedo, Color(0, 0, 0)); // albedo texture, color is multiplicative
 		//albedo_texture = _get_bake_texture(img_albedo, size, mat->get_albedo(), Color(0, 0, 0)); // albedo texture, color is multiplicative
 	} else
 	{
 		//albedo_texture = _get_bake_texture(img_albedo, size, Color(1, 1, 1), mat->get_albedo()); // no albedo texture, color is additive
 	}
 
+	// emission?
+
 
 	// returns the new material ID plus 1
 	return m_Materials.size();
 }
 
-Variant LMaterials::FindShaderTex(Ref<Material> src_material)
+void LMaterials::FindCustom_ShaderParams(Ref<Material> src_material, float &emission, Color &emission_color)
 {
+	// defaults
+	emission = 0.0f;
+	emission_color = Color(1, 1, 1, 1);
 
+	Ref<ShaderMaterial> shader_mat = src_material;
+
+	if (!shader_mat.is_valid())
+		return;
+
+	Variant p_emission = shader_mat->get_shader_param("emission");
+	if (p_emission)
+		emission = p_emission;
+
+	Variant p_emission_color = shader_mat->get_shader_param("emission_color");
+	if (p_emission_color)
+		emission_color = p_emission_color;
+
+}
+
+
+Variant LMaterials::FindCustom_AlbedoTex(Ref<Material> src_material)
+{
 	Ref<ShaderMaterial> shader_mat = src_material;
 
 	if (!shader_mat.is_valid())
@@ -118,6 +191,13 @@ Variant LMaterials::FindShaderTex(Ref<Material> src_material)
 	if (!shader.is_valid())
 		return Variant::NIL;
 
+	// first - is there a named albedo texture?
+	Variant named_param = shader_mat->get_shader_param("texture_albedo");
+//	if (named_param)
+//		return named_param;
+	return named_param;
+
+	/*
 	// find the most likely albedo texture
 	List<PropertyInfo> plist;
 	shader->get_param_list(&plist);
@@ -159,6 +239,7 @@ Variant LMaterials::FindShaderTex(Ref<Material> src_material)
 
 	print_line("\tparam is " + String(param));
 	return param;
+	*/
 }
 
 

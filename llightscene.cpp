@@ -562,6 +562,8 @@ void LightScene::Reset()
 	m_Tris_EdgeForm.clear(true);
 	m_TriPlanes.clear(true);
 
+	m_EmissionTris.clear(true);
+
 	m_Meshes.clear(true);
 	//m_Tri_MeshIDs.clear(true);
 	//m_Tri_SurfIDs.clear(true);
@@ -663,6 +665,13 @@ bool LightScene::Create_FromMeshSurface(int mesh_id, int surf_id, Ref<Mesh> rmes
 	// lmaterial
 	int lmat_id = m_Materials.FindOrCreateMaterial(mi, rmesh, surf_id);
 
+	// emission tri?
+	bool bEmit = false;
+	if (lmat_id)
+	{
+		bEmit = m_Materials.GetMaterial(lmat_id-1).m_bEmitter;
+	}
+
 	int i = 0;
 	for (int n=0; n<nTris; n++)
 	{
@@ -681,6 +690,7 @@ bool LightScene::Create_FromMeshSurface(int mesh_id, int surf_id, Ref<Mesh> rmes
 //		m_Tri_SurfIDs[an] = surf_id;
 		m_Tri_LMaterialIDs[an] = lmat_id;
 		UVTri &uvt_primary = m_UVTris_Primary[an];
+
 
 		int ind = inds[i];
 		rect = Rect2(uvs[ind], Vector2(0, 0));
@@ -733,6 +743,14 @@ bool LightScene::Create_FromMeshSurface(int mesh_id, int surf_id, Ref<Mesh> rmes
 			uvt.FlipWinding();
 			t.FlipWinding();
 			tri_norm.FlipWinding();
+		}
+
+		if (bEmit)
+		{
+			EmissionTri et;
+			et.tri_id = an;
+			et.area = t.CalculateArea();
+			m_EmissionTris.push_back(et);
 		}
 
 
@@ -799,7 +817,7 @@ bool LightScene::Create_FromMesh(int mesh_id, int width, int height)
 	return true;
 }
 
-bool LightScene::Create(Spatial * pMeshesRoot, int width, int height, int voxel_density, int max_material_size)
+bool LightScene::Create(Spatial * pMeshesRoot, int width, int height, int voxel_density, int max_material_size, float emission_density)
 {
 	m_Materials.Prepare(max_material_size);
 
@@ -816,6 +834,10 @@ bool LightScene::Create(Spatial * pMeshesRoot, int width, int height, int voxel_
 	}
 
 	m_Tracer.Create(*this, voxel_density);
+
+	// adjust material emission power to take account of sample density,
+	// to keep brightness the same
+	m_Materials.AdjustMaterials(emission_density);
 
 	return true;
 }
@@ -863,12 +885,42 @@ void LightScene::CalculateTriTexelSize(int tri_id, int width, int height)
 	m_Tri_TexelSizeWorldSpace[tri_id] = texel_size;
 }
 
+bool LightScene::FindEmissionColor(int tri_id, const Vector3 &bary, Color &texture_col, Color &col)
+{
+	Vector2 uvs;
+	m_UVTris_Primary[tri_id].FindUVBarycentric(uvs, bary.x, bary.y, bary.z);
+
+	int mat_id_p1 = m_Tri_LMaterialIDs[tri_id];
+
+	// should never happen?
+	if (!mat_id_p1)
+	{
+		texture_col = Color(0,0, 0, 0);
+		col = Color(0, 0, 0, 0);
+		return false;
+	}
+
+	// albedo
+	// return whether texture found
+	bool res = m_Materials.FindColors(mat_id_p1, uvs, texture_col);
+
+	const LMaterial &mat = m_Materials.GetMaterial(mat_id_p1-1);
+	texture_col *= mat.m_Col_Emission;
+//		power = mat.m_Power_Emission;
+
+	col = mat.m_Col_Emission;
+	return res;
+}
+
+
 bool LightScene::FindPrimaryTextureColors(int tri_id, const Vector3 &bary, Color &albedo)
 {
 	Vector2 uvs;
 	m_UVTris_Primary[tri_id].FindUVBarycentric(uvs, bary.x, bary.y, bary.z);
 
-	return m_Materials.FindColors(m_Tri_LMaterialIDs[tri_id], uvs, albedo);
+	int mat_id_p1 = m_Tri_LMaterialIDs[tri_id];
+
+	return m_Materials.FindColors(mat_id_p1, uvs, albedo);
 }
 
 

@@ -158,6 +158,8 @@ public:
 		int m_Forward_NumRays;
 		int m_Forward_NumBounces;
 
+		float m_Forward_Emission_Density;
+
 		int m_Backward_NumRays;
 		int m_Backward_NumBounceRays;
 		int m_Backward_NumBounces;
@@ -173,6 +175,7 @@ public:
 	float m_Settings_Forward_RayPower;
 	float m_Settings_Forward_BouncePower;
 	float m_Settings_Forward_BounceDirectionality;
+	float m_Settings_Forward_Emission_Density;
 
 	int m_Settings_Backward_NumRays;
 	int m_Settings_Backward_NumBounceRays;
@@ -230,6 +233,66 @@ protected:
 		// 4 PI = 12.5664
 		float area = 4.0f * ((float) Math_PI) * (dist * dist);
 		return 1.0f / area;
+	}
+
+	float LargestColorComponent(const Color &c) const
+	{
+		float l = c.r;
+		if (c.g > l) l = c.g;
+		if (c.b > l) l = c.b;
+		return l;
+	}
+
+	// use the alpha as a multiplier to increase dynamic range
+	void ColorToRGBM(Color &c) const
+	{
+		c.a = 0.0f;
+		if (LargestColorComponent(c) > 1.0f)
+		{
+			c *= 0.125f;
+			//c.a = 255.0f;
+		}
+		return;
+
+
+//		c *= 5;
+		// if multiplier 1x = x16;
+//		Color o = c;
+		Color o = c * (1.0f / 6.0f);
+//		o.a = 16.0f / l;
+
+		// first find the largest component
+		float l = LargestColorComponent(o);
+		if (l > 1.0f) l = 1.0f;
+
+		o.a = l;
+
+		// quantize the multiplier
+		o.a = ceilf(o.a * 255.0f) / 255.0f;
+
+		// zero color pass as is, prevents divide by zero
+		if (o.a == 0.0f)
+		{
+			c.a = 0.0f;
+			return;
+		}
+
+		// scale the color balance for best result
+		c.r = o.r / o.a;
+		c.g = o.g / o.a;
+		c.b = o.b / o.a;
+		c.a = o.a;
+
+
+//		print_line("a is " + String(Variant(c.a)));
+
+//		float4 rgbm;
+//	  color *= 1.0 / 6.0;
+//	  rgbm.a = saturate( max( max( color.r, color.g ), max( color.b, 1e-6 ) ) );
+//	  rgbm.a = ceil( rgbm.a * 255.0 ) / 255.0;
+//	  rgbm.rgb = color / rgbm.a;
+//	  return rgbm;
+
 	}
 };
 

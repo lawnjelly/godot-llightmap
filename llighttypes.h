@@ -42,6 +42,12 @@ public:
 	bool IsNonZero() const {return !IsZero();}
 };
 
+struct EmissionTri
+{
+	uint32_t tri_id;
+	float area;
+};
+
 class Tri
 {
 public:
@@ -73,6 +79,22 @@ public:
 		// a
 		pos[2] = t.pos[0];
 	}
+
+	float CalculateArea() const
+	{
+		return sqrtf(CalculateTwiceAreaSquared()) * 0.5f;
+	}
+
+	float CalculateTwiceAreaSquared() const
+	{
+		// compute the area squared. Which is the result of the cross product of two edges. If it's near zero, bingo
+		Vector3 edge1 = pos[1]-pos[0];
+		Vector3 edge2 = pos[2] - pos[0];
+
+		Vector3 vec = edge1.cross(edge2);
+		return vec.length_squared();
+	}
+
 };
 
 
