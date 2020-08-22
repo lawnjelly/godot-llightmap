@@ -148,4 +148,4 @@ I'm hoping to eventually make some builds for windows / linux x86_64 so users wo
 * For each light you can scale power with the `energy` parameter, and change color.
 * In forward tracing you can scale the number of samples per light using the `indirect energy` light parameter. This is useful for directional lights which may need more samples.
 * Spotlights have position, direction and spot angle, and volume with scale.
-* When using spatial materials, the albedo texture will be found automatically. When using custom shaders, in order for LLightmap to find the texture colors for bouncing light, the texture _must_ be called `texture_albedo`. Otherwise a plain white color will be used for bounces.
+* When using spatial materials, the albedo texture will be found automatically. When using custom shaders, in order for LLightmap to find the texture colors for bouncing light, the uniform in the shader _must_ be called `texture_albedo`. Otherwise a plain white color will be used for bounces.
