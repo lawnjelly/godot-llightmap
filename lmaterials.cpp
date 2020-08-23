@@ -132,7 +132,7 @@ int LMaterials::FindOrCreateMaterial(const MeshInstance &mi, Ref<Mesh> rmesh, in
 	if (emission > 0.0f)
 	{
 		pMat->m_bEmitter = true;
-		pMat->m_Power_Emission = emission / 20.0f; // some constant to be comparable to lights
+		pMat->m_Power_Emission = emission / 1000.0f; // some constant to be comparable to lights
 		pMat->m_Col_Emission = emission_color * pMat->m_Power_Emission;
 
 		// apply a modifier for the emission density. As the number of samples go up, the power per sample

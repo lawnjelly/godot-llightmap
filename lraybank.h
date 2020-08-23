@@ -39,8 +39,10 @@ private:
 	RB_Voxel &RayBank_GetVoxelWrite(const Vec3i &pt) {int n = GetTracer().GetVoxelNum(pt); return m_Data_RB.GetVoxels_Write()[n];}
 	RB_Voxel &RayBank_GetVoxelRead(const Vec3i &pt) {int n = GetTracer().GetVoxelNum(pt); return m_Data_RB.GetVoxels_Read()[n];}
 
+public:
 	LightTracer &GetTracer() {return m_Scene.m_Tracer;}
 	const LightTracer &GetTracer() const {return m_Scene.m_Tracer;}
+private:
 
 	struct RayBank_Data
 	{

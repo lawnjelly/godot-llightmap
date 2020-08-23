@@ -896,7 +896,7 @@ void LightMapper::ProcessEmissionTri(int etri_id, float fraction_of_total)
 	ray.d = norm;
 
 	// use the area to get number of samples
-	float rays_per_unit_area = m_iNumRays * m_AdjustedSettings.m_Forward_Emission_Density  * 0.12f * 0.05f;
+	float rays_per_unit_area = m_iNumRays * m_AdjustedSettings.m_Forward_Emission_Density  * 0.12f * 0.5f;
 	int nSamples = etri.area * rays_per_unit_area * fraction_of_total;
 
 	// nSamples may be zero incorrectly for small triangles, maybe we need to adjust for this
@@ -1048,7 +1048,7 @@ void LightMapper::ProcessLight(int light_id, int num_rays)
 	// compensate for the number of rays in terms of the power per ray
 	float power = m_Settings_Forward_RayPower;
 
-	if (light.indirect_energy > 0.001f)
+	if (light.indirect_energy > 0.0001f)
 		power *= 1.0f / light.indirect_energy;
 
 	// for directional, we need a load more rays for it to work well - it is expensive
@@ -1059,10 +1059,14 @@ void LightMapper::ProcessLight(int light_id, int num_rays)
 //		num_rays = num_rays * area;
 		// we will increase the power as well, because daylight more powerful than light bulbs typically.
 		power *= 4.0f;
+
+		if (light.dir.y >= 0.0f)
+			return; // not supported
 	}
 
 
 	FColor light_color = light.color * power;
+
 
 	for (int n=0; n<num_rays; n++)
 	{
@@ -1082,32 +1086,76 @@ void LightMapper::ProcessLight(int light_id, int num_rays)
 		{
 		case LLight::LT_DIRECTIONAL:
 			{
-				// use the precalculated source plane stored in the llight
-				r.o = light.dl_plane_pt;
-				r.o += light.dl_tangent * Math::random(0.0f, light.dl_tangent_range);
-				r.o += light.dl_bitangent * Math::random(0.0f, light.dl_bitangent_range);
-
-
-//				Vector3 offset;
-//				RandomUnitDir(offset);
-//				offset *= light.scale;
-//				r.o += offset;
-
-//				r.d = light.dir;
-				RandomUnitDir(r.d);
-				r.d *= light.scale;
-
-				// must point down - reverse hemisphere if pointing up
-				if (light.dir.dot(r.d) < 0.0f)
+				bool hit_bound = false;
+				while (!hit_bound)
 				{
-					r.d = -r.d;
-				}
+					hit_bound = true;
 
-				//r.d = light.dir.linear_interpolate(r.d, fract);
-				r.d += (light.dir * 2.0f);
+					// use the precalculated source plane stored in the llight
+					r.o = light.dl_plane_pt;
+					r.o += light.dl_tangent * Math::random(0.0f, light.dl_tangent_range);
+					r.o += light.dl_bitangent * Math::random(0.0f, light.dl_bitangent_range);
 
-//				r.d += (light.dir * 3.0f);
-				r.d.normalize();
+					bool direction_ok = false;
+					while (!direction_ok)
+					{
+						RandomUnitDir(r.d);
+						r.d *= light.scale;
+						// must point down - reverse hemisphere if pointing up
+						if (light.dir.dot(r.d) < 0.0f)
+						{
+							r.d = -r.d;
+						}
+
+						r.d += (light.dir * 2.0f);
+						r.d.normalize();
+
+						if (r.d.y < 0.0f)
+						{
+							direction_ok = true;
+						}
+					}
+
+					// now we are starting from destination, we must trace back to origin
+					const AABB &bb = GetTracer().GetWorldBound_expanded();
+
+					// num units to top of map
+					// plus a bit to make intersecting the world bound easier
+					float units = (bb.size.y + 1.0f) / r.d.y;
+
+					r.o += r.d * units;
+
+	//				r.o.y = 3.2f;
+
+					// hard code
+	//				r.o = Vector3(0.2, 10, 0.2);
+	//				r.d = Vector3(0, -1, 0);
+
+					// special .. for dir light .. will it hit the AABB? if not, do a wraparound
+//					Vector3 clip;
+//					if (!GetTracer().IntersectRayAABB(r, GetTracer().m_SceneWorldBound_mid, clip))
+//					{
+//						hit_bound = false;
+//					}
+
+//					Vector3 ptHit = r.o + (r.d * 2.0f);
+//					Vector3 bb_min = bb.position;
+//					Vector3 bb_max = bb.position + bb.size;
+
+//					if (ptHit.x > bb_max.x)
+//						r.o.x -= bb.size.x;
+//					if (ptHit.x < bb_min.x)
+//						r.o.x += bb.size.x;
+//					if (ptHit.z > bb_max.z)
+//						r.o.z -= bb.size.z;
+//					if (ptHit.z < bb_min.z)
+//						r.o.z += bb.size.z;
+
+					if (!GetTracer().GetWorldBound_expanded().intersects_ray(r.o, r.d))
+					{
+						hit_bound = false;
+					}
+				} // while hit bound
 			}
 			break;
 		case LLight::LT_SPOT:
@@ -1197,6 +1245,8 @@ void LightMapper::ProcessLight(int light_id, int num_rays)
 
 		//		ProcessRay(r, 0, power);
 	}
+
+	//print_line("PASSED " + itos (passed) + ", MISSED " + itos(missed));
 }
 
 } // namespace

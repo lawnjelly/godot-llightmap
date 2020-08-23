@@ -47,21 +47,25 @@ FRay * RayBank::RayBank_RequestNewRay(Ray ray, int num_rays_left, const FColor &
 		pStartVoxel = &ptStartVoxel;
 
 		// if tracing from outside, try to trace to the edge of the world bound
-		if (!GetTracer().m_SceneWorldBound.has_point(ray.o))
+		if (!GetTracer().m_SceneWorldBound_mid.has_point(ray.o))
 		{
+			// as we are testing containment mid bounding box, push the ray back well out to get a
+			// consistance penetration
+			ray.o -= ray.d * 10.0f;
+
 			Vector3 clip;
 
 			// if the ray starts outside, and doesn't hit the world, the ray is invalid
 			// must use the expanded world bound here, so we catch triangles on the edge of the world
 			// the epsilons are CRUCIAL
-			if (!GetTracer().IntersectRayAABB(ray, GetTracer().m_SceneWorldBound, clip))
+			if (!GetTracer().IntersectRayAABB(ray, GetTracer().m_SceneWorldBound_expanded, clip))
 				return 0;
 
 			// does hit the world bound
 			ray.o = clip;
 		}
 
-		const AABB &world_bound = GetTracer().m_SceneWorldBound;
+		const AABB &world_bound = GetTracer().m_SceneWorldBound_expanded;
 		const Vector3 &voxel_size = GetTracer().m_VoxelSize;
 
 		// ray origin should now be in the bound
@@ -73,6 +77,15 @@ FRay * RayBank::RayBank_RequestNewRay(Ray ray, int num_rays_left, const FColor &
 		ptStartVoxel.x = o_voxelspace.x;
 		ptStartVoxel.y = o_voxelspace.y;
 		ptStartVoxel.z = o_voxelspace.z;
+
+		// cap the start voxel .. this is important for floating point error right on the boundary
+		//GetTracer().ClampVoxelToBounds(ptStartVoxel);
+#if defined DEBUG_ENABLED && defined TOOLS_ENABLED
+		if (!GetTracer().VoxelWithinBounds(ptStartVoxel))
+		{
+			WARN_PRINT_ONCE("ptStartVoxel out of bounds");
+		}
+#endif
 	}
 
 	// check start voxel is within bound

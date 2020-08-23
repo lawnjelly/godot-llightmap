@@ -250,10 +250,44 @@ Plane LightMapper_Base::FindContainmentPlane(const Vector3 &dir, Vector3 pts[8],
 
 void LightMapper_Base::LightToPlane(LLight &light)
 {
-	AABB bb = m_Scene.m_Tracer.GetWorldBound();
+	AABB bb = m_Scene.m_Tracer.GetWorldBound_expanded();
 	Vector3 minmax[2];
 	minmax[0] = bb.position;
 	minmax[1] = bb.position + bb.size;
+
+	if (light.dir.y == 0.0f)
+		return;
+
+	// find the shift in x and z caused by y offset to top of scene
+	float units = bb.size.y / light.dir.y;
+	Vector3 offset = light.dir * -units;
+
+	// add to which side of scene
+	if (offset.x >= 0.0f)
+		minmax[1].x += offset.x;
+	else
+		minmax[0].x += offset.x;
+
+	if (offset.z >= 0.0f)
+		minmax[1].z += offset.z;
+	else
+		minmax[0].z += offset.z;
+
+
+	light.dl_plane_pt = minmax[0];
+	light.dl_tangent = Vector3(1, 0, 0);
+	light.dl_bitangent = Vector3(0, 0, 1);
+	light.dl_tangent_range = minmax[1].x - minmax[0].x;
+	light.dl_bitangent_range = minmax[1].z - minmax[0].z;
+
+	print_line("plane mins : " + String(Variant(minmax[0])));
+	print_line("plane maxs : " + String(Variant(minmax[1])));
+
+
+	return;
+
+
+
 
 	Vector3 pts[8];
 	for (int n=0; n<8; n++)
@@ -268,8 +302,24 @@ void LightMapper_Base::LightToPlane(LLight &light)
 		pts[n].z = minmax[wz].z;
 	}
 
+	// new .. don't use light direction as plane normal, always use
+	// ceiling type plane (for sky) or from below.
+	// This will deal with most common cases .. for side lights,
+	// area light is better.
+	Vector3 plane_normal = light.dir;
+	if (light.dir.y < 0.0f)
+	{
+		plane_normal = Vector3(0, -1, 0);
+	}
+	else
+	{
+		plane_normal = Vector3(0, 1, 0);
+	}
+
+	const float PLANE_PUSH = 2.0f;
+
 	float main_range;
-	Plane pl = FindContainmentPlane(light.dir, pts, main_range, 2.0f);
+	Plane pl = FindContainmentPlane(plane_normal, pts, main_range, PLANE_PUSH);
 
 	// push it back even further for safety
 	//pl.d -= 2.0f;
@@ -278,9 +328,9 @@ void LightMapper_Base::LightToPlane(LLight &light)
 
 	// find a good tangent
 	Vector3 cross[3];
-	cross[0] = light.dir.cross(Vector3(1, 0, 0));
-	cross[1] = light.dir.cross(Vector3(0, 1, 0));
-	cross[2] = light.dir.cross(Vector3(0, 0, 1));
+	cross[0] = plane_normal.cross(Vector3(1, 0, 0));
+	cross[1] = plane_normal.cross(Vector3(0, 1, 0));
+	cross[2] = plane_normal.cross(Vector3(0, 0, 1));
 
 	float lx = cross[0].length();
 	float ly = cross[1].length();
@@ -299,19 +349,25 @@ void LightMapper_Base::LightToPlane(LLight &light)
 	Vector3 tangent = cross[best_cross];
 	tangent.normalize();
 
-	Vector3 bitangent = light.dir.cross(tangent);
+	Vector3 bitangent = plane_normal.cross(tangent);
 	bitangent.normalize();
 
 	float tangent_range;
-	Plane pl_tangent = FindContainmentPlane(tangent, pts, tangent_range, 2.0f);
+	Plane pl_tangent = FindContainmentPlane(tangent, pts, tangent_range, 0.0f);
 
 	float bitangent_range;
-	Plane pl_bitangent = FindContainmentPlane(bitangent, pts, bitangent_range, 2.0f);
+	Plane pl_bitangent = FindContainmentPlane(bitangent, pts, bitangent_range, 0.0f);
 
 	// find point at mins of the planes
 	Vector3 ptPlaneMins;
 	bool res = pl.intersect_3(pl_tangent, pl_bitangent, &ptPlaneMins);
 	assert (res);
+
+	// for flat sky, adjust the point to account for the incoming light direction
+	// so as not to have part of the mesh in shadow
+//	Vector3 offset = light.dir * -PLANE_PUSH;
+//	ptPlaneMins.x += offset.x;
+//	ptPlaneMins.z += offset.z;
 
 	// we now have a point, 2 vectors (tangent and bitangent) and ranges,
 	// all that is needed for a random distribution!
@@ -327,8 +383,8 @@ void LightMapper_Base::LightToPlane(LLight &light)
 	light.dl_tangent_range = tangent_range;
 	light.dl_bitangent_range = bitangent_range;
 
+
 	// debug output the positions
-	/*
 	Vector3 pA = ptPlaneMins;
 	Vector3 pB = ptPlaneMins + (tangent * tangent_range);
 	Vector3 pC = ptPlaneMins + (tangent * tangent_range) + (bitangent * bitangent_range);
@@ -338,7 +394,7 @@ void LightMapper_Base::LightToPlane(LLight &light)
 	print_line("dir light B : " + String(Variant(pB)));
 	print_line("dir light C : " + String(Variant(pC)));
 	print_line("dir light D : " + String(Variant(pD)));
-	*/
+
 }
 
 

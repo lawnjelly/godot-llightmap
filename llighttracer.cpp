@@ -34,9 +34,9 @@ void LightTracer::Create(const LightScene &scene, int voxel_density)
 	m_VoxelBounds.resize(m_iNumVoxels);
 	m_BFTrisHit.Create(m_iNumTris);
 
-	m_VoxelSize.x = m_SceneWorldBound.size.x / m_Dims.x;
-	m_VoxelSize.y = m_SceneWorldBound.size.y / m_Dims.y;
-	m_VoxelSize.z = m_SceneWorldBound.size.z / m_Dims.z;
+	m_VoxelSize.x = m_SceneWorldBound_expanded.size.x / m_Dims.x;
+	m_VoxelSize.y = m_SceneWorldBound_expanded.size.y / m_Dims.y;
+	m_VoxelSize.z = m_SceneWorldBound_expanded.size.z / m_Dims.z;
 
 	// fill the bounds
 	AABB aabb;
@@ -44,13 +44,13 @@ void LightTracer::Create(const LightScene &scene, int voxel_density)
 	int count = 0;
 	for (int z=0; z<m_Dims.z; z++)
 	{
-		aabb.position.z = m_SceneWorldBound.position.z + (z * m_VoxelSize.z);
+		aabb.position.z = m_SceneWorldBound_expanded.position.z + (z * m_VoxelSize.z);
 		for (int y=0; y<m_Dims.y; y++)
 		{
-			aabb.position.y = m_SceneWorldBound.position.y + (y * m_VoxelSize.y);
+			aabb.position.y = m_SceneWorldBound_expanded.position.y + (y * m_VoxelSize.y);
 			for (int x=0; x<m_Dims.x; x++)
 			{
-				aabb.position.x = m_SceneWorldBound.position.x + (x * m_VoxelSize.x);
+				aabb.position.x = m_SceneWorldBound_expanded.position.x + (x * m_VoxelSize.x);
 				m_VoxelBounds[count++] = aabb;
 			} // for x
 		} // for y
@@ -62,7 +62,7 @@ void LightTracer::Create(const LightScene &scene, int voxel_density)
 void LightTracer::FindNearestVoxel(const Vector3 &ptWorld, Vec3i &ptVoxel) const
 {
 	Vector3 pt = ptWorld;
-	pt -= m_SceneWorldBound.position;
+	pt -= m_SceneWorldBound_expanded.position;
 	pt.x /= m_VoxelSize.x;
 	pt.y /= m_VoxelSize.y;
 	pt.z /= m_VoxelSize.z;
@@ -88,11 +88,11 @@ void LightTracer::GetDistanceInVoxels(float dist, Vec3i &ptVoxelDist) const
 bool LightTracer::RayTrace_Start(Ray ray, Ray &voxel_ray, Vec3i &start_voxel)
 {
 	// if tracing from outside, try to trace to the edge of the world bound
-	if (!m_SceneWorldBound.has_point(ray.o))
+	if (!m_SceneWorldBound_expanded.has_point(ray.o))
 	{
 		Vector3 clip;
 		//if (!IntersectRayAABB(ray, m_SceneWorldBound_contracted, clip))
-		if (!IntersectRayAABB(ray, m_SceneWorldBound, clip))
+		if (!IntersectRayAABB(ray, m_SceneWorldBound_expanded, clip))
 			return false;
 
 		// does hit the world bound
@@ -101,7 +101,7 @@ bool LightTracer::RayTrace_Start(Ray ray, Ray &voxel_ray, Vec3i &start_voxel)
 
 //	m_BFTrisHit.Blank();
 
-	voxel_ray.o = ray.o - m_SceneWorldBound.position;
+	voxel_ray.o = ray.o - m_SceneWorldBound_expanded.position;
 	voxel_ray.o.x /= m_VoxelSize.x;
 	voxel_ray.o.y /= m_VoxelSize.y;
 	voxel_ray.o.z /= m_VoxelSize.z;
@@ -494,7 +494,7 @@ void LightTracer::FillVoxels()
 
 void LightTracer::CalculateVoxelDims(int voxel_density)
 {
-	const AABB &aabb = m_SceneWorldBound;
+	const AABB &aabb = m_SceneWorldBound_expanded;
 	float max_length = aabb.get_longest_axis_size();
 
 	m_Dims.x = ((aabb.size.x / max_length) * voxel_density) + 0.01f;
@@ -514,7 +514,7 @@ void LightTracer::CalculateWorldBound()
 	if (!m_iNumTris)
 		return;
 
-	AABB &aabb = m_SceneWorldBound;
+	AABB &aabb = m_SceneWorldBound_expanded;
 	aabb.position = m_pScene->m_Tris[0].pos[0];
 	aabb.size = Vector3(0, 0, 0);
 
@@ -535,7 +535,10 @@ void LightTracer::CalculateWorldBound()
 	// by LightTracer::IntersectRayAABB
 	// otherwise triangles at the very edges of the world will be missed by the ray tracing.
 
-	aabb.grow_by(0.2f);
+	aabb.grow_by(LIGHTTRACER_EXPANDED_BOUND);
+
+	m_SceneWorldBound_mid = m_SceneWorldBound_contracted;
+	m_SceneWorldBound_mid.grow_by(LIGHTTRACER_HALF_EXPANSION);
 }
 
 bool LightTracer::IntersectRayAABB(const Ray &ray, const AABB &aabb, Vector3 &ptInter)
@@ -593,7 +596,7 @@ bool LightTracer::IntersectRayAABB(const Ray &ray, const AABB &aabb, Vector3 &pt
 	float nearest_length = sqrtf(nearest_hit);
 
 	// this epsilon MUST be less than the world expansion in LightTracer::CalculateWorldBound
-	ptInter = ray.o + (ray.d * (nearest_length + 0.1f));
+	ptInter = ray.o + (ray.d * (nearest_length + LIGHTTRACER_HALF_EXPANSION));
 
 	if (aabb.has_point(ptInter))
 		return true;

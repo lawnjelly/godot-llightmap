@@ -9,6 +9,9 @@
 
 //#define LIGHTTRACER_IGNORE_VOXELS
 
+#define LIGHTTRACER_EXPANDED_BOUND (0.2f)
+#define LIGHTTRACER_HALF_EXPANSION (LIGHTTRACER_EXPANDED_BOUND / 2.0f)
+
 
 namespace LM
 {
@@ -80,7 +83,15 @@ public:
 	bool m_bUseSDF;
 
 	void FindNearestVoxel(const Vector3 &ptWorld, Vec3i &ptVoxel) const;
-	const AABB &GetWorldBound() const {return m_SceneWorldBound;}
+	const AABB &GetWorldBound_expanded() const {return m_SceneWorldBound_expanded;}
+	const AABB &GetWorldBound_mid() const {return m_SceneWorldBound_mid;}
+
+//	void ClampVoxelToBounds(Vec3i &v) const
+//	{
+//		v.x = CLAMP(v.x, 0, m_Dims.x-1);
+//		v.y = CLAMP(v.y, 0, m_Dims.y-1);
+//		v.z = CLAMP(v.z, 0, m_Dims.z-1);
+//	}
 
 private:
 	void CalculateWorldBound();
@@ -114,7 +125,9 @@ private:
 	int m_iNumTris;
 
 	// slightly expanded
-	AABB m_SceneWorldBound;
+	AABB m_SceneWorldBound_expanded;
+	AABB m_SceneWorldBound_mid;
+
 	// exact
 	AABB m_SceneWorldBound_contracted;
 
