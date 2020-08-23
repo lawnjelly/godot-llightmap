@@ -1,6 +1,6 @@
 # godot-llightmap
 * Lightmap module for Godot Engine 3.2.2 or later
-* Version 0.20 (August 22nd, 2020)
+* Version 0.21 (August 23nd, 2020)
 * Lightmaps created can be used with standard Godot builds and templates, i.e. you only need the module for a preprocess
 * (work in progress, there may be bugs, especially in the uv mapping but it is usable)
 
@@ -23,11 +23,12 @@ https://www.youtube.com/watch?v=pBpF2raGA8A
 * Linear HDR exr final texture or gamma corrected normalized png
 * SSE2 (on x86 64 bit) / Multithread ray tracing
 * Albedo taken into account for bounces
-* Omnis and Spotlights, Directional lights (in forward)
+* Omnis and Spotlights, Directional lights (with forward tracing)
+* Emissive materials
 
 ### Still todo
-* More tweaks to directional light, and support for directional in backward tracing mode
-* Sky
+* and support for directional in backward tracing mode
+* Sky panorama textures
 * Roughness / metal from source textures for PBR reflections
 * Option of multiple lightmaps
 * Transparency support
@@ -149,3 +150,4 @@ I'm hoping to eventually make some builds for windows / linux x86_64 so users wo
 * In forward tracing you can scale the number of samples per light using the `indirect energy` light parameter. This is useful for directional lights which may need more samples.
 * Spotlights have position, direction and spot angle, and volume with scale.
 * When using spatial materials, the albedo texture will be found automatically. When using custom shaders, in order for LLightmap to find the texture colors for bouncing light, the uniform in the shader _must_ be called `texture_albedo`. Otherwise a plain white color will be used for bounces.
+* Directional lights must point at least slightly downward. This isn't ideal but allows more consistent lighting, and the use case is mainly skies. For side lights, or lighting from below, area lights via omnis are a better bet.
