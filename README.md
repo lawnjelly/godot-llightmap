@@ -145,6 +145,7 @@ As you only need it to create lightmaps on desktop as a preprocess, the lightmap
 I'm hoping to eventually make some builds for windows / linux x86_64 so users won't need to compile. The custom build is only needed to create the lightmaps / probe data. Once these are created they can be used in standard vanilla Godot engine (with a gdscript addon for probes, but that requires no compilation).
 
 ### Tips
+* Set overall brightness with a combination of using a multiplier in the shader (see the example shader) and using `dynamic_range/normalize_bias` in the llightmap settings to make the lightmap overbright.
 * For each light, you can control the volumetric effect (soft or hard shadows) by changing the x, y, and z scale in the node `Transform` properties.
 * Be sure to use bounces in order to get colors from textures. You can make a bounced scene darker by reducing the bounce power.
 * For each light you can scale power with the `energy` parameter, and change color.
