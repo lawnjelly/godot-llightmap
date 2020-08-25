@@ -102,7 +102,7 @@ ADD_PROPERTY(PropertyInfo(P_TYPE, LIGHTMAP_TOSTRING(P_NAME), PROPERTY_HINT_RANGE
 
 	ADD_GROUP("Dynamic Range", "");
 	LIMPL_PROPERTY(Variant::BOOL, normalize, set_normalize, get_normalize);
-	LIMPL_PROPERTY(Variant::REAL, normalize_bias, set_normalize_bias, get_normalize_bias);
+	LIMPL_PROPERTY(Variant::REAL, normalize_multiplier, set_normalize_multiplier, get_normalize_multiplier);
 	LIMPL_PROPERTY_RANGE(Variant::REAL, ao_light_ratio, set_light_ao_ratio, get_light_ao_ratio, "0.0,1.0,0.01");
 	LIMPL_PROPERTY_RANGE(Variant::REAL, gamma, set_gamma, get_gamma, "0.01,10.0,0.01");
 
@@ -189,8 +189,8 @@ float LLightmap::get_surface_bias() const {return m_LM.m_Settings_SurfaceBias;}
 void LLightmap::set_normalize(bool norm) {m_LM.m_Settings_Normalize = norm;}
 bool LLightmap::get_normalize() const {return m_LM.m_Settings_Normalize;}
 
-void LLightmap::set_normalize_bias(float bias) {m_LM.m_Settings_NormalizeBias = bias;}
-float LLightmap::get_normalize_bias() const {return m_LM.m_Settings_NormalizeBias;}
+void LLightmap::set_normalize_multiplier(float bias) {m_LM.m_Settings_NormalizeBias = bias;}
+float LLightmap::get_normalize_multiplier() const {return m_LM.m_Settings_NormalizeBias;}
 
 void LLightmap::set_light_ao_ratio(float ratio) {m_LM.m_Settings_Light_AO_Ratio = ratio;}
 float LLightmap::get_light_ao_ratio() const {return m_LM.m_Settings_Light_AO_Ratio;}

@@ -433,7 +433,9 @@ void LightMapper::ProcessTexel_Light(int light_id, const Vector3 &ptDest, const 
 	// total light hitting texel
 //	float fTotal = 0.0f;
 	color.Set(0.0f);
-	float total = 0.0f;
+//	FColor total_color;
+//	total_color.Set(0.0f);
+//	float total = 0.0f;
 
 
 	// for a spotlight, we can cull completely in a lot of cases.
@@ -516,51 +518,94 @@ void LightMapper::ProcessTexel_Light(int light_id, const Vector3 &ptDest, const 
 		}
 
 
-		// collision detect
-		float u, v, w, t;
+		Vector3 ray_origin = r.o;
+		FColor sample_color = light.color;
 
-		m_Scene.m_Tracer.m_bUseSDF = true;
-		int tri = m_Scene.FindIntersect_Ray(r, u, v, w, t, nullptr, m_iNumTests);
-		//		m_Scene.m_Tracer.m_bUseSDF = false;
-		//		int tri2 = m_Scene.IntersectRay(r, u, v, w, t, m_iNumTests);
-		//		if (tri != tri2)
-		//		{
-		//			// repeat SDF version
-		//			m_Scene.m_Tracer.m_bUseSDF = true;
-		//			int tri = m_Scene.IntersectRay(r, u, v, w, t, m_iNumTests);
-		//		}
-
-		// nothing hit
-		if ((tri == -1) || (tri == (int) tri_ignore))
+		while (true)
 		{
-			// for backward tracing, first pass, this is a special case, because we DO
-			// take account of distance to the light, and normal, in order to simulate the effects
-			// of the likelihood of 'catching' a ray. In forward tracing this happens by magic.
-			float dist = (r.o - ptDest).length();
-			float local_power = power * InverseSquareDropoff(dist);
+			// collision detect
+			float u, v, w, t;
 
-			// take into account normal
-			float dot = r.d.dot(ptNormal);
-			dot = fabs(dot);
+			m_Scene.m_Tracer.m_bUseSDF = true;
+			int tri = m_Scene.FindIntersect_Ray(r, u, v, w, t, nullptr, m_iNumTests);
+			//		m_Scene.m_Tracer.m_bUseSDF = false;
+			//		int tri2 = m_Scene.IntersectRay(r, u, v, w, t, m_iNumTests);
+			//		if (tri != tri2)
+			//		{
+			//			// repeat SDF version
+			//			m_Scene.m_Tracer.m_bUseSDF = true;
+			//			int tri = m_Scene.IntersectRay(r, u, v, w, t, m_iNumTests);
+			//		}
 
-			local_power *= dot;
 
-			// cone falloff
-			local_power *= multiplier;
+			// nothing hit
+			if ((tri == -1) || (tri == (int) tri_ignore))
+			{
+				// for backward tracing, first pass, this is a special case, because we DO
+				// take account of distance to the light, and normal, in order to simulate the effects
+				// of the likelihood of 'catching' a ray. In forward tracing this happens by magic.
+				float dist = (ray_origin - ptDest).length();
+				float local_power = power * InverseSquareDropoff(dist);
 
-			// albedo
-			total += local_power;
-//			FColor col = light.color * local_power;
+				// take into account normal
+				float dot = r.d.dot(ptNormal);
+				dot = fabs(dot);
 
-//			color += col;
-			//fTotal += local_power;
-		}
+				local_power *= dot;
+
+				// cone falloff
+				local_power *= multiplier;
+
+				// total color
+				color += sample_color * local_power;
+			}
+			else
+			{
+				// hit something, could be transparent
+
+				// back face?
+				Vector3 face_normal;
+				bool bBackFace = HitBackFace(r, tri, Vector3(u, v, w), face_normal);
+
+
+				// first get the texture details
+				Color albedo;
+				bool bTransparent;
+				m_Scene.FindPrimaryTextureColors(tri, Vector3(u, v, w), albedo, bTransparent);
+
+				if (bTransparent)
+				{
+					bool opaque = bTransparent && (albedo.a > 0.999f);
+
+					// push ray past the surface
+					if (!opaque)
+					{
+						// hard code
+//						if (albedo.a > 0.0f)
+//							albedo.a = 0.3f;
+
+						// position of potential hit
+						Vector3 pos;
+						const Tri &triangle = m_Scene.m_Tris[tri];
+						triangle.InterpolateBarycentric(pos, u, v, w);
+
+						float push = -0.001f;
+						if (bBackFace) push = -push;
+
+						r.o = pos + (face_normal * push);
+
+						// apply the color to the ray
+						CalculateTransmittance(albedo, sample_color);
+						continue;
+					}
+				}
+			}
+
+			break; // only trace once usually .. use a continue to trace again
+		} // while keep tracing
 	}
 
-
-	color = light.color * total;
-	// save in the texel
-	//return fTotal;
+	// the color is returned in color
 }
 
 

@@ -538,27 +538,24 @@ void RayBank::RayBank_ProcessRay_MT(uint32_t ray_id, int start_ray)
 		if (!pass_through && !bBackFace)
 		{
 			pass_through = Math::randf() > albedo.a;
-			//pass_through = Math::randf() > 0.5f;
-
-			// color becomes color of the surface
-			FColor falbedo;
-			falbedo.Set(albedo);
-			fray.color = fray.color * falbedo;
 		}
+
+		// if the ray is passing through, we want to calculate the color modified by the surface
+		if (pass_through)
+			CalculateTransmittance(albedo, fray.color);
 
 		// if pass through
 		if (bBackFace  || pass_through)
 		{
-			fray.bounce_color = fray.color; // bounce is same as original ray
+			fray.bounce_color = fray.color; // bounce is same as original ray, or modified color
 			fray.num_rays_left += 1; // bounce doesn't count as a hit
 
 			// push the ray origin through the hit surface
-//			fray.ray.o = pos + (fray.ray.d * 0.001f); // or should this be out along surface normal? maybe more reliable at grazing angles
+			float push = -0.001f; // 0.001
+			if (bBackFace) push = -push;
 
-			// test plane normal
 			const Vector3 &face_normal = m_Scene.m_TriPlanes[tri].normal;
-
-			fray.ray.o = pos + (face_normal * -0.001f);
+			fray.ray.o = pos + (face_normal * push);
 			return;
 		}
 

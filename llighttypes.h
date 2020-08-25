@@ -131,7 +131,15 @@ struct FColor
 	FColor operator*(float v) const {FColor s; s.r = r * v; s.g = g * v; s.b = b * v; return s;}
 	FColor operator/(float v) const {FColor s; s.r = r / v; s.g = g / v; s.b = b / v; return s;}
 	FColor &operator+=(const FColor &v) {r += v.r; g += v.g; b += v.b; return *this;}
+	FColor &operator*=(float v) {r *= v; g *= v; b *= v; return *this;}
 	FColor operator*(const FColor &o) const {FColor s; s.r = r * o.r; s.g = g * o.g; s.b = b * o.b; return s;}
+	void Lerp(const FColor &o, float f)
+	{
+		float mf = 1.0f - f;
+		r = (r * mf) + (o.r * f);
+		g = (g * mf) + (o.g * f);
+		b = (b * mf) + (o.b * f);
+	}
 };
 
 struct FRay

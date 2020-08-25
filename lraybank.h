@@ -56,6 +56,46 @@ private:
 		int m_MapWrite;
 	} m_Data_RB;
 
+protected:
+	bool HitBackFace(const Ray &r, int tri_id, const Vector3 &bary, Vector3 &face_normal) const
+	{
+		const Tri &triangle_normal = m_Scene.m_TriNormals[tri_id];
+		triangle_normal.InterpolateBarycentric(face_normal, bary);
+		face_normal.normalize(); // is this necessary as we are just checking a dot product polarity?
+
+		float dot = face_normal.dot(r.d);
+		if (dot >= 0.0f)
+		{
+			return true;
+		}
+
+		return false;
+	}
+
+	void CalculateTransmittance(const Color &albedo, FColor &ray_color)
+	{
+		// rapidly converge to the surface color
+		float surf_fraction = albedo.a * 2.0f;
+		if (surf_fraction > 1.0f)
+			surf_fraction = 1.0f;
+
+		FColor mixed_color;
+		mixed_color.Set(albedo);
+		mixed_color = mixed_color * ray_color;
+
+		ray_color.Lerp(mixed_color, surf_fraction);
+
+		// darken
+		float dark_fraction = albedo.a;
+		dark_fraction -= 0.5f;
+		dark_fraction *= 2.0f;
+
+		if (dark_fraction < 0.0f)
+			dark_fraction = 0.0f;
+
+		ray_color *= 1.0f - dark_fraction;
+	}
+
 };
 
 

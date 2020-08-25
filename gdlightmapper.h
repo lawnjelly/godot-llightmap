@@ -115,8 +115,8 @@ public:
 	void set_normalize(bool norm);
 	bool get_normalize() const;
 
-	void set_normalize_bias(float bias);
-	float get_normalize_bias() const;
+	void set_normalize_multiplier(float bias);
+	float get_normalize_multiplier() const;
 
 	void set_light_ao_ratio(float ratio);
 	float get_light_ao_ratio() const;
