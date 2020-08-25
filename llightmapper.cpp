@@ -632,7 +632,9 @@ FColor LightMapper::ProcessTexel_Bounce(int x, int y)
 			{
 				// the contribution is the luminosity at that spot and the albedo
 				Color albedo;
-				m_Scene.FindPrimaryTextureColors(tri_hit, Vector3(u, v, w), albedo);
+				bool bTransparent;
+				m_Scene.FindPrimaryTextureColors(tri_hit, Vector3(u, v, w), albedo, bTransparent);
+
 				FColor falbedo;
 				falbedo.Set(albedo);
 

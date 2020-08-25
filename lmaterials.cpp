@@ -1,6 +1,6 @@
 #include "lmaterials.h"
 
-#define LM_STRING_EMIT "_emit"
+#define LM_STRING_TRANSPARENT "_T_"
 
 namespace LM
 {
@@ -117,12 +117,11 @@ int LMaterials::FindOrCreateMaterial(const MeshInstance &mi, Ref<Mesh> rmesh, in
 		albedo_tex = shader_tex;
 
 		// check the name of the material to allow emission
-//		String szMat = src_material->get_path();
-//		if (szMat.find(LM_STRING_EMIT) != -1)
-//		{
-//			pMat->m_bEmitter = true;
-//			pMat->m_Col_Emission = Color(1, 1, 1, 1);
-//		}
+		String szMat = src_material->get_path();
+		if (szMat.find(LM_STRING_TRANSPARENT) != -1)
+		{
+			pMat->m_bTransparent = true;
+		}
 
 		FindCustom_ShaderParams(src_material, emission, emission_color);
 
@@ -351,17 +350,21 @@ void LTexture::Sample(const Vector2 &uv, Color &col) const
 }
 
 
-bool LMaterials::FindColors(int mat_id, const Vector2 &uv, Color &albedo)
+bool LMaterials::FindColors(int mat_id, const Vector2 &uv, Color &albedo, bool &bTransparent)
 {
 	// mat_id is plus one
 	if (!mat_id)
 	{
 		albedo = Color(1, 1, 1, 1);
+		bTransparent = false;
 		return false;
 	}
 
 	mat_id--;
 	const LMaterial &mat = m_Materials[mat_id];
+
+	// return whether transparent
+	bTransparent = mat.m_bTransparent;
 
 	if (!mat.pAlbedo)
 	{

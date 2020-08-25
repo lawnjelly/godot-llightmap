@@ -18,12 +18,13 @@ struct LTexture
 
 struct LMaterial
 {
-	void Create() {pAlbedo = 0; pGodotMaterial = 0; m_bEmitter = false; m_Power_Emission = 0.0f;}
+	void Create() {pAlbedo = 0; pGodotMaterial = 0; m_bEmitter = false; m_Power_Emission = 0.0f; m_bTransparent = false;}
 	void Destroy();
 
 	const Material * pGodotMaterial;
 	LTexture * pAlbedo;
 
+	bool m_bTransparent;
 	bool m_bEmitter;
 
 	float m_Power_Emission;
@@ -39,7 +40,7 @@ public:
 	void Prepare(unsigned int max_material_size) {m_uiMaxMaterialSize = max_material_size;}
 
 	int FindOrCreateMaterial(const MeshInstance &mi, Ref<Mesh> rmesh, int surf_id);
-	bool FindColors(int mat_id, const Vector2 &uv, Color &albedo);
+	bool FindColors(int mat_id, const Vector2 &uv, Color &albedo, bool &bTransparent);
 
 	const LMaterial &GetMaterial(int i) const {return m_Materials[i];}
 

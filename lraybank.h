@@ -4,6 +4,7 @@
 #include "lvector.h"
 #include "llightmapper_base.h"
 
+#define RAYBANK_USE_THREADING
 
 namespace LM
 {
@@ -33,6 +34,7 @@ private:
 	// used for below multithread routine
 	RB_Voxel * m_pCurrentThreadVoxel;
 	void RayBank_ProcessRay_MT(uint32_t ray_id, int start_ray);
+	void RayBank_ProcessRay_MT_Old(uint32_t ray_id, int start_ray);
 
 	void RayBank_FlushRay(RB_Voxel &vox, int ray_id);
 

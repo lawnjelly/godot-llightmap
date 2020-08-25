@@ -55,7 +55,7 @@ public:
 
 	//int FindTriAtUV(float x, float y, float &u, float &v, float &w) const;
 
-	bool FindPrimaryTextureColors(int tri_id, const Vector3 &bary, Color &albedo);
+	bool FindPrimaryTextureColors(int tri_id, const Vector3 &bary, Color &albedo, bool &bTransparent);
 	bool FindEmissionColor(int tri_id, const Vector3 &bary, Color &texture_col, Color &col);
 
 

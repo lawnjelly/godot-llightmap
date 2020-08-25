@@ -150,7 +150,6 @@ void RayBank::RayBank_Process()
 
 		// not worth doing multithread below a certain size
 		// because of threading overhead
-#define RAYBANK_USE_THREADING
 #ifdef RAYBANK_USE_THREADING
 		if (section_size >= 64)
 		{
@@ -268,7 +267,8 @@ void RayBank::RayBank_FlushRay(RB_Voxel &vox, int ray_id)
 
 //void RayBank::RayBank_ProcessRay(uint32_t ray_id, RB_Voxel &vox)
 
-void RayBank::RayBank_ProcessRay_MT(uint32_t ray_id, int start_ray)
+
+void RayBank::RayBank_ProcessRay_MT_Old(uint32_t ray_id, int start_ray)
 {
 	ray_id += start_ray;
 	RB_Voxel &vox = *m_pCurrentThreadVoxel;
@@ -352,16 +352,13 @@ void RayBank::RayBank_ProcessRay_MT(uint32_t ray_id, int start_ray)
 	float * pf = m_Image_L.Get(tx, ty);
 	if (!pf)
 		return;
-
 	// scale according to distance
 	t /= 10.0f;
 	t = 1.0f - t;
 	if (t < 0.0f)
 		t = 0.0f;
 	t *= 2.0f;
-
 	t = fray.power;
-
 //	if (depth > 0)
 	*pf += t;
 	*/
@@ -377,7 +374,8 @@ void RayBank::RayBank_ProcessRay_MT(uint32_t ray_id, int start_ray)
 
 		// get the albedo etc
 		Color albedo;
-		m_Scene.FindPrimaryTextureColors(tri, Vector3(u, v, w), albedo);
+		bool bTransparent;
+		m_Scene.FindPrimaryTextureColors(tri, Vector3(u, v, w), albedo, bTransparent);
 		FColor falbedo;
 		falbedo.Set(albedo);
 
@@ -442,6 +440,223 @@ void RayBank::RayBank_ProcessRay_MT(uint32_t ray_id, int start_ray)
 //		{ // if normal in same direction as ray
 //			fray.num_rays_left = 0;
 //		}
+	} // if there are bounces left
+
+//	return false;
+}
+
+void RayBank::RayBank_ProcessRay_MT(uint32_t ray_id, int start_ray)
+{
+	ray_id += start_ray;
+	RB_Voxel &vox = *m_pCurrentThreadVoxel;
+
+	FRay &fray= vox.m_Rays[ray_id];
+	Ray r = fray.ray;
+
+	// each evaluation
+	fray.num_rays_left -= 1;
+
+	// unlikely
+	if (r.d.x == 0.0f && r.d.y == 0.0f && r.d.z == 0.0f)
+	{
+		fray.num_rays_left = 0;
+		return;
+	}
+
+	r.d.normalize();
+	float u, v, w, t;
+	int tri = m_Scene.FindIntersect_Ray(r, u, v, w, t, nullptr, m_iNumTests);
+
+	// nothing hit
+	if (tri == -1)
+	{
+		fray.num_rays_left = 0;
+		return;
+	}
+
+	// hit the back of a face? if so terminate ray
+	Vector3 face_normal;
+	const Tri &triangle_normal = m_Scene.m_TriNormals[tri];
+	triangle_normal.InterpolateBarycentric(face_normal, u, v, w);
+	face_normal.normalize(); // is this necessary as we are just checking a dot product polarity?
+
+	// first get the texture details
+	Color albedo;
+	bool bTransparent;
+	m_Scene.FindPrimaryTextureColors(tri, Vector3(u, v, w), albedo, bTransparent);
+	bool pass_through = bTransparent && (albedo.a < 0.001f);
+
+	// test
+//	if (!bTransparent)
+//	{
+//		fray.num_rays_left = 0;
+//		return;
+//	}
+
+	bool bBackFace = false;
+	float dot = face_normal.dot(r.d);
+	if (dot >= 0.0f)
+	{
+		bBackFace = true;
+	}
+
+
+	// if not transparent and backface, then terminate ray
+	if (bBackFace)
+	{
+		if (!bTransparent)
+		{
+			fray.num_rays_left = 0;
+			return;
+		}
+	}
+
+	// convert barycentric to uv coords in the lightmap
+	Vector2 uv;
+	m_Scene.FindUVsBarycentric(tri, uv, u, v, w);
+
+	// texel address
+	int tx = uv.x * m_iWidth;
+	int ty = uv.y * m_iHeight;
+
+	// could be off the image
+	if (!m_Image_L.IsWithin(tx, ty))
+	{
+		fray.num_rays_left = 0;
+		return;
+	}
+
+	// position of potential hit
+	Vector3 pos;
+	const Tri &triangle = m_Scene.m_Tris[tri];
+	triangle.InterpolateBarycentric(pos, u, v, w);
+
+	// deal with tranparency
+	if (bTransparent)
+	{
+		// if not passing through, because clear, chance of pass through
+		if (!pass_through && !bBackFace)
+		{
+			pass_through = Math::randf() > albedo.a;
+			//pass_through = Math::randf() > 0.5f;
+
+			// color becomes color of the surface
+			FColor falbedo;
+			falbedo.Set(albedo);
+			fray.color = fray.color * falbedo;
+		}
+
+		// if pass through
+		if (bBackFace  || pass_through)
+		{
+			fray.bounce_color = fray.color; // bounce is same as original ray
+			fray.num_rays_left += 1; // bounce doesn't count as a hit
+
+			// push the ray origin through the hit surface
+//			fray.ray.o = pos + (fray.ray.d * 0.001f); // or should this be out along surface normal? maybe more reliable at grazing angles
+
+			// test plane normal
+			const Vector3 &face_normal = m_Scene.m_TriPlanes[tri].normal;
+
+			fray.ray.o = pos + (face_normal * -0.001f);
+			return;
+		}
+
+	} // if transparent
+
+
+	// if we got here, it is front face and either solid or no pass through,
+	// so there is a hit
+
+	// register the hit
+	FHit &hit = fray.hit;
+	hit.tx = tx;
+	hit.ty = ty;
+
+
+	// bounce and lower power
+	if (fray.num_rays_left)
+	{
+
+
+		FColor falbedo;
+		falbedo.Set(albedo);
+
+
+		// pre find the bounce color here
+//		if (!pass_through)
+//		{
+
+
+			fray.bounce_color = fray.color * falbedo * m_Settings_Forward_BouncePower;
+
+			//		fray.bounce_color = fray.color * m_Settings_Forward_BouncePower;
+
+			//		Vector3 norm;
+			//		const Tri &triangle_normal = m_Scene.m_TriNormals[tri];
+			//		triangle_normal.InterpolateBarycentric(norm, u, v, w);
+			//		face_normal.normalize();
+
+					// first dot
+			//		float dot = face_normal.dot(r.d);
+			//		if (dot <= 0.0f)
+					{
+
+						Ray new_ray;
+
+						// SLIDING
+			//			Vector3 temp = r.d.cross(norm);
+			//			new_ray.d = norm.cross(temp);
+
+						// BOUNCING - mirror
+						Vector3 mirror_dir = r.d - (2.0f * (dot * face_normal));
+
+						// random hemisphere
+						const float range = 1.0f;
+						Vector3 hemi_dir;
+						while (true)
+						{
+							hemi_dir.x = Math::random(-range, range);
+							hemi_dir.y = Math::random(-range, range);
+							hemi_dir.z = Math::random(-range, range);
+
+							float sl = hemi_dir.length_squared();
+							if (sl > 0.0001f)
+							{
+								break;
+							}
+						}
+						// compare direction to normal, if opposite, flip it
+						if (hemi_dir.dot(face_normal) < 0.0f)
+							hemi_dir = -hemi_dir;
+
+						new_ray.d = hemi_dir.linear_interpolate(mirror_dir, m_Settings_Forward_BounceDirectionality);
+
+						new_ray.o = pos + (face_normal * 0.01f);
+
+						// copy the info to the existing fray
+						fray.ray = new_ray;
+						//fray.power *= m_Settings_Forward_BouncePower;
+
+						return;
+			//			return true;
+			//			RayBank_RequestNewRay(new_ray, fray.num_rays_left, fray.power * m_Settings_Forward_BouncePower, 0);
+					} // in opposite directions
+			//		else
+			//		{ // if normal in same direction as ray
+			//			fray.num_rays_left = 0;
+			//		}
+//		}
+//		else
+//		{
+//			fray.bounce_color = fray.color; // bounce is same as original ray
+//			fray.num_rays_left += 1; // bounce doesn't count as a hit
+
+//			// reverse the hit finding
+//			hit.SetNoHit();
+//		}
+
+
 	} // if there are bounces left
 
 //	return false;
