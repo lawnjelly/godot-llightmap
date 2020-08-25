@@ -1,6 +1,6 @@
 # godot-llightmap
 * Lightmap module for Godot Engine 3.2.2 or later
-* Version 0.21 (August 23nd, 2020)
+* Version 0.22 (August 25, 2020)
 * Lightmaps created can be used with standard Godot builds and templates, i.e. you only need the module for a preprocess
 * (work in progress, there may be bugs, especially in the uv mapping but it is usable)
 
@@ -25,13 +25,13 @@ https://www.youtube.com/watch?v=pBpF2raGA8A
 * Albedo taken into account for bounces
 * Omnis and Spotlights, Directional lights (with forward tracing)
 * Emissive materials
+* Transparency (forward only)
 
 ### Still todo
-* and support for directional in backward tracing mode
+* More work on backward tracing - directional lights, transparency, bug fixing
 * Sky panorama textures
 * Roughness / metal from source textures for PBR reflections
 * Option of multiple lightmaps
-* Transparency support
 * Light probes (probably simple and compact format, and maybe read via gdscript addon so no need to compile engine)
 
 ## Instructions
@@ -148,6 +148,7 @@ I'm hoping to eventually make some builds for windows / linux x86_64 so users wo
 * For each light, you can control the volumetric effect (soft or hard shadows) by changing the x, y, and z scale in the node `Transform` properties.
 * Be sure to use bounces in order to get colors from textures. You can make a bounced scene darker by reducing the bounce power.
 * For each light you can scale power with the `energy` parameter, and change color.
+* For transparency, the material name should contain the string `_T_` (anywhere, at the end, start etc). And use a texture with alpha.
 * In forward tracing you can scale the number of samples per light using the `indirect energy` light parameter. This is useful for directional lights which may need more samples.
 * Spotlights have position, direction and spot angle, and volume with scale.
 * When using spatial materials, the albedo texture will be found automatically. When using custom shaders, in order for LLightmap to find the texture colors for bouncing light, the uniform in the shader _must_ be called `texture_albedo`. Otherwise a plain white color will be used for bounces.
