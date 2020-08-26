@@ -57,6 +57,7 @@ public:
 
 	bool FindPrimaryTextureColors(int tri_id, const Vector3 &bary, Color &albedo, bool &bTransparent);
 	bool FindEmissionColor(int tri_id, const Vector3 &bary, Color &texture_col, Color &col);
+//	void Backward_FindBounceColors(int tri_id, const Vector3 &bary, Color &surf_col, float &fTransparency) const;
 
 
 	// setup

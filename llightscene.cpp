@@ -885,6 +885,35 @@ void LightScene::CalculateTriTexelSize(int tri_id, int width, int height)
 	m_Tri_TexelSizeWorldSpace[tri_id] = texel_size;
 }
 
+//void LightScene::Backward_FindBounceColors(int tri_id, const Vector3 &bary, Color &surf_col, float &fTransparency) const
+//{
+//	Vector2 uvs;
+//	m_UVTris_Primary[tri_id].FindUVBarycentric(uvs, bary.x, bary.y, bary.z);
+
+//	int mat_id_p1 = m_Tri_LMaterialIDs[tri_id];
+
+//	// should never happen?
+//	if (!mat_id_p1)
+//	{
+//		texture_col = Color(0,0, 0, 0);
+//		col = Color(0, 0, 0, 0);
+//		return false;
+//	}
+
+//	// albedo
+//	// return whether texture found
+//	bool bTransparent;
+//	bool res = m_Materials.FindColors(mat_id_p1, uvs, texture_col, bTransparent);
+
+//	const LMaterial &mat = m_Materials.GetMaterial(mat_id_p1-1);
+//	texture_col *= mat.m_Col_Emission;
+////		power = mat.m_Power_Emission;
+
+//	col = mat.m_Col_Emission;
+//	return res;
+//}
+
+
 bool LightScene::FindEmissionColor(int tri_id, const Vector3 &bary, Color &texture_col, Color &col)
 {
 	Vector2 uvs;
@@ -900,12 +929,15 @@ bool LightScene::FindEmissionColor(int tri_id, const Vector3 &bary, Color &textu
 		return false;
 	}
 
+	const LMaterial &mat = m_Materials.GetMaterial(mat_id_p1-1);
+	if (!mat.m_bEmitter)
+		return false;
+
 	// albedo
 	// return whether texture found
 	bool bTransparent;
 	bool res = m_Materials.FindColors(mat_id_p1, uvs, texture_col, bTransparent);
 
-	const LMaterial &mat = m_Materials.GetMaterial(mat_id_p1-1);
 	texture_col *= mat.m_Col_Emission;
 //		power = mat.m_Power_Emission;
 

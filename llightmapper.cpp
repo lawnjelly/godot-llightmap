@@ -666,6 +666,9 @@ FColor LightMapper::ProcessTexel_Bounce(int x, int y)
 	triangle_normal.InterpolateBarycentric(norm, bary.x, bary.y, bary.z);
 	norm.normalize();
 
+	const Vector3 &plane_norm = m_Scene.m_TriPlanes[tri_source].normal;
+	Vector3 normal_push = plane_norm * m_Settings_SurfaceBias;
+
 	int nSamples = m_AdjustedSettings.m_Backward_NumBounceRays;
 	for (int n=0; n<nSamples; n++)
 	{
@@ -685,11 +688,11 @@ FColor LightMapper::ProcessTexel_Bounce(int x, int y)
 		RandomUnitDir(r.d);
 
 		// compare direction to normal, if opposite, flip it
-		if (r.d.dot(norm) < 0.0f)
+		if (r.d.dot(plane_norm) < 0.0f)
 			r.d = -r.d;
 
 		// add a little epsilon to prevent self intersection
-		r.o = pos + (norm * 0.01f);
+		r.o = pos + (normal_push);
 		//ProcessRay(new_ray, depth+1, power * 0.4f);
 
 		// collision detect
@@ -760,10 +763,10 @@ void LightMapper::ProcessTexel(int tx, int ty)
 //		print_line("testing");
 
 	// find triangle
-	uint32_t tri = *m_Image_ID_p1.Get(tx, ty);
-	if (!tri)
+	uint32_t tri_id = *m_Image_ID_p1.Get(tx, ty);
+	if (!tri_id)
 		return;
-	tri--; // plus one based
+	tri_id--; // plus one based
 
 	// barycentric
 	const Vector3 &bary = *m_Image_Barycentric.Get(tx, ty);
@@ -775,14 +778,14 @@ void LightMapper::ProcessTexel(int tx, int ty)
 	// At the light end this doesn't matter, but if we trace the other way
 	// we get artifacts due to precision loss due to normalized direction.
 	Vector3 pos;
-	m_Scene.m_Tris[tri].InterpolateBarycentric(pos, bary.x, bary.y, bary.z);
+	m_Scene.m_Tris[tri_id].InterpolateBarycentric(pos, bary.x, bary.y, bary.z);
 
 	// add epsilon to pos to prevent self intersection and neighbour intersection
-	const Vector3 &plane_normal = m_Scene.m_TriPlanes[tri].normal;
+	const Vector3 &plane_normal = m_Scene.m_TriPlanes[tri_id].normal;
 	pos += plane_normal * m_Settings_SurfaceBias;
 
 	Vector3 normal;
-	m_Scene.m_TriNormals[tri].InterpolateBarycentric(normal, bary.x, bary.y, bary.z);
+	m_Scene.m_TriNormals[tri_id].InterpolateBarycentric(normal, bary.x, bary.y, bary.z);
 
 
 	//Vector2i tex_uv = Vector2i(x, y);
@@ -799,6 +802,19 @@ void LightMapper::ProcessTexel(int tx, int ty)
 		*pTexel += temp;
 	}
 
+	// add emission
+	Color emission_tex_color;
+	Color emission_color;
+	if (m_Scene.FindEmissionColor(tri_id, bary, emission_tex_color, emission_color))
+	{
+		FColor femm;
+		femm.Set(emission_tex_color);
+
+
+		float power = m_Settings_Backward_RayPower * m_AdjustedSettings.m_Backward_NumRays * 128.0f;
+
+		*pTexel += femm * power;
+	}
 }
 
 void LightMapper::ProcessRay(LM::Ray r, int depth, float power, int dest_tri_id, const Vector2i * pUV)

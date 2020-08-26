@@ -23,7 +23,7 @@ public:
 	// every time we want to queue a new ray for processing
 	FRay * RayBank_RequestNewRay(Ray ray,  int num_rays_left, const FColor &col, const Vec3i * pStartVoxel = nullptr);
 
-	// can be used from several threads
+	// multithread accelerated .. do intersection tests on rays, calculate hit points and new rays
 	void RayBank_Process();
 
 	// flush ray results to the lightmap

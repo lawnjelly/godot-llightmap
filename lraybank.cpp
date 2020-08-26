@@ -113,29 +113,18 @@ FRay * RayBank::RayBank_RequestNewRay(Ray ray, int num_rays_left, const FColor &
 }
 
 
-// can be used from several threads
+// multithread accelerated .. do intersection tests on rays, calculate hit points and new rays
 void RayBank::RayBank_Process()
 {
 	// swap the write and read
 	m_Data_RB.Swap();
 
 	int nVoxels = GetTracer().m_iNumVoxels;
-
-	//thread_process_array(width, this, &VoxelLightBaker::_lightmap_bake_point, &lightmap_ptr[i * width]);
-
 	int nCores = OS::get_singleton()->get_processor_count();
 
 	for (int v=0; v<nVoxels; v++)
 	{
 		RB_Voxel & vox = m_Data_RB.GetVoxels_Read()[v];
-
-//		if (bake_step_function)
-//		{
-//			m_bCancel = bake_step_function(v, String("RayBank_Process: ") + " (" + itos(v) + ")");
-//			if (m_bCancel)
-//				return;
-//		}
-
 
 		int num_rays = vox.m_Rays.size();
 		if (!num_rays)
@@ -177,23 +166,6 @@ void RayBank::RayBank_Process()
 			RayBank_ProcessRay_MT(n, 0);
 		}
 
-
-/*
-		for (int n=0; n<vox.m_Rays.size(); n++)
-		{
-//			if ((n % 10000) == 0)
-//			{
-//				if (bake_step_function)
-//				{
-//					m_bCancel = bake_step_function(n, String("RayBank_Process: ") + " (" + itos(n) + ")");
-//					if (m_bCancel)
-//						return;
-//				}
-//			}
-
-			RayBank_ProcessRay(n, vox);
-		}
-		*/
 	}
 }
 
