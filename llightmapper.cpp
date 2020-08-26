@@ -443,6 +443,11 @@ void LightMapper::ProcessTexel_Light(int light_id, const Vector3 &ptSource, cons
 			return;
 	}
 
+	// lower power of directionals - no distance falloff
+	if (light.type == LLight::LT_DIRECTIONAL)
+	{
+		power *= 0.01f;
+	}
 
 	// each ray
 	for (int n=0; n<nSamples; n++)
@@ -573,8 +578,16 @@ void LightMapper::ProcessTexel_Light(int light_id, const Vector3 &ptSource, cons
 				// for backward tracing, first pass, this is a special case, because we DO
 				// take account of distance to the light, and normal, in order to simulate the effects
 				// of the likelihood of 'catching' a ray. In forward tracing this happens by magic.
-				float dist = (ptDest - ray_origin).length();
-				float local_power = power * InverseSquareDropoff(dist);
+				float local_power;
+
+				// no drop off for directional lights
+				if (light.type != LLight::LT_DIRECTIONAL)
+				{
+					float dist = (ptDest - ray_origin).length();
+					local_power = power * InverseSquareDropoff(dist);
+				}
+				else
+					local_power = power;
 
 				// take into account normal
 				float dot = r.d.dot(ptNormal);
