@@ -93,8 +93,8 @@ Chooses whether to bake lightmaps using forward (from the light) or backward (fr
 		<member name="normalize" type="bool" setter="set_normalize" getter="get_normalize" default="true">
 The brightness of each texel is highly dependent on the number of rays and samples that reach it. To equalize the overall brightness it is usually better to normalize the final result of the lighting, such that the brightest texel has value 1.0.
 		</member>
-		<member name="normalize_bias" type="float" setter="set_normalize_bias" getter="get_normalize_bias" default="4.0">
-In order to prevent the scene being dark, depending on how you are using the lightmap in the shader, it can be a good idea to make the scene overbright. This bias is a multiplier applied during normalization. In the case of png output, the maximum brightness is capped, so you will lose some detail.
+		<member name="normalize_multiplier" type="float" setter="set_normalize_multiplier" getter="get_normalize_multiplier" default="4.0">
+In order to prevent the scene being dark, depending on how you are using the lightmap in the shader, it can be a good idea to make the scene overbright. This multiplier is applied during normalization. In the case of png output, the maximum brightness is capped, so you will lose some detail.
 		</member>
 		<member name="surface_bias" type="float" setter="set_surface_bias" getter="get_surface_bias" default="0.005">
 In order to prevent self intersection of rays bounced from surfaces, a small bias is added to the ray start position. The default value should normally work, but just in case there are problems, this can be edited.
