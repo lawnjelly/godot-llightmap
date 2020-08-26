@@ -454,6 +454,30 @@ void LightMapper::ProcessTexel_Light(int light_id, const Vector3 &ptSource, cons
 
 		switch (light.type)
 		{
+		case LLight::LT_DIRECTIONAL:
+			{
+				r.o = ptSource;
+				//r.d = -light.dir;
+
+				// perturb direction depending on light scale
+				//Vector3 ptTarget = light.dir * -2.0f;
+
+				Vector3 offset;
+				RandomUnitDir(offset);
+				offset *= light.scale;
+
+				offset += (light.dir * -2.0f);
+				r.d = offset.normalized();
+
+				// disallow zero length (should be rare)
+				if (r.d.length_squared() < 0.00001f)
+					continue;
+
+				// don't allow from opposite direction
+				if (r.d.dot(light.dir) > 0.0f)
+					r.d = -r.d;
+			}
+			break;
 		case LLight::LT_SPOT:
 			{
 				// source
@@ -462,9 +486,9 @@ void LightMapper::ProcessTexel_Light(int light_id, const Vector3 &ptSource, cons
 				while (true)
 				{
 					Vector3 offset;
-
 					RandomUnitDir(offset);
 					offset *= light.scale;
+
 					r.o = light.pos;
 					r.o += offset;
 
