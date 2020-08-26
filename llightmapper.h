@@ -33,6 +33,7 @@ private:
 
 	void ProcessTexels_Bounce();
 	FColor ProcessTexel_Bounce(int x, int y);
+	bool ProcessTexel_Bounce_Sample(const Vector3 &plane_norm, const Vector3 &ray_origin, FColor &total_col);
 
 	void Refresh_Process_State();
 

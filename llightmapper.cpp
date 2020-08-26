@@ -130,14 +130,14 @@ bool LightMapper::lightmap_mesh(Spatial * pMeshesRoot, Spatial * pLR, Image * pI
 	m_iHeight = pIm_Combined->get_height();
 	m_iNumRays = m_AdjustedSettings.m_Forward_NumRays;
 
-		int nTexels = m_iWidth * m_iHeight;
+	int nTexels = m_iWidth * m_iHeight;
 
 	// set num rays depending on method
-		if (m_Settings_Mode == LMMODE_FORWARD)
-		{
-			// the num rays / texel. This is per light!
-			m_iNumRays *= nTexels;
-		}
+	if (m_Settings_Mode == LMMODE_FORWARD)
+	{
+		// the num rays / texel. This is per light!
+		m_iNumRays *= nTexels;
+	}
 
 
 	// do twice to test SIMD
@@ -568,7 +568,7 @@ void LightMapper::ProcessTexel_Light(int light_id, const Vector3 &ptSource, cons
 
 			// nothing hit
 			if (tri == -1)
-			//if ((tri == -1) || (tri == (int) tri_ignore))
+				//if ((tri == -1) || (tri == (int) tri_ignore))
 			{
 				// for backward tracing, first pass, this is a special case, because we DO
 				// take account of distance to the light, and normal, in order to simulate the effects
@@ -610,15 +610,15 @@ void LightMapper::ProcessTexel_Light(int light_id, const Vector3 &ptSource, cons
 					if (!opaque)
 					{
 						// hard code
-//						if (albedo.a > 0.0f)
-//							albedo.a = 0.3f;
+						//						if (albedo.a > 0.0f)
+						//							albedo.a = 0.3f;
 
 						// position of potential hit
 						Vector3 pos;
 						const Tri &triangle = m_Scene.m_Tris[tri];
 						triangle.InterpolateBarycentric(pos, u, v, w);
 
-						float push = -0.001f;
+						float push = -m_Settings_SurfaceBias;
 						if (bBackFace) push = -push;
 
 						r.o = pos + (face_normal * push);
@@ -666,12 +666,23 @@ FColor LightMapper::ProcessTexel_Bounce(int x, int y)
 	triangle_normal.InterpolateBarycentric(norm, bary.x, bary.y, bary.z);
 	norm.normalize();
 
+	// precalculate normal push and ray origin on top of the surface
 	const Vector3 &plane_norm = m_Scene.m_TriPlanes[tri_source].normal;
 	Vector3 normal_push = plane_norm * m_Settings_SurfaceBias;
+	Vector3 ray_origin = pos + normal_push;
 
 	int nSamples = m_AdjustedSettings.m_Backward_NumBounceRays;
+	int samples_counted = nSamples;
+
+
 	for (int n=0; n<nSamples; n++)
 	{
+		if (!ProcessTexel_Bounce_Sample(plane_norm, ray_origin, total))
+		{
+			samples_counted--;
+		}
+
+		/*
 		// bounce
 
 		// first dot
@@ -692,7 +703,7 @@ FColor LightMapper::ProcessTexel_Bounce(int x, int y)
 			r.d = -r.d;
 
 		// add a little epsilon to prevent self intersection
-		r.o = pos + (normal_push);
+		r.o = ray_origin;
 		//ProcessRay(new_ray, depth+1, power * 0.4f);
 
 		// collision detect
@@ -721,13 +732,137 @@ FColor LightMapper::ProcessTexel_Bounce(int x, int y)
 				FColor falbedo;
 				falbedo.Set(albedo);
 
-				total += (m_Image_L.GetItem(dx, dy) * falbedo);
+				// see through has no effect on colour
+				if (bTransparent && (albedo.a < 0.5f))
+				{
+					if (albedo.a > 0.5f)
+					{
+						falbedo *= albedo.a;
+						total += (m_Image_L.GetItem(dx, dy) * falbedo);
+					}
+					else
+					{
+						// this sample does not count
+						samples_counted--;
+					}
+				}
+				else
+				{
+					total += (m_Image_L.GetItem(dx, dy) * falbedo);
+				}
 			}
 
 		}
+		*/
 	}
 
-	return total / nSamples;
+	// some samples may have been missed due to transparency
+	if (samples_counted)
+		return total / samples_counted;
+
+	return total;
+}
+
+bool LightMapper::ProcessTexel_Bounce_Sample(const Vector3 &plane_norm, const Vector3 &ray_origin, FColor &total_col)
+{
+	// first dot
+	Ray r;
+	r.o = ray_origin;
+
+	// SLIDING
+	//			Vector3 temp = r.d.cross(norm);
+	//			new_ray.d = norm.cross(temp);
+
+	// BOUNCING - mirror
+	//new_ray.d = r.d - (2.0f * (dot * norm));
+
+	// random hemisphere
+	RandomUnitDir(r.d);
+
+	// compare direction to normal, if opposite, flip it
+	if (r.d.dot(plane_norm) < 0.0f)
+		r.d = -r.d;
+
+	// loop here just in case transparent
+	while (true)
+	{
+
+		// collision detect
+		Vector3 bary;
+		float t;
+		int tri_hit = m_Scene.FindIntersect_Ray(r, bary, t, nullptr, m_iNumTests);
+
+		// nothing hit
+		//	if ((tri_hit != -1) && (tri_hit != (int) tri_source))
+		if (tri_hit != -1)
+		{
+			// look up the UV of the tri hit
+			Vector2 uvs;
+			m_Scene.FindUVsBarycentric(tri_hit, uvs, bary);
+
+			// find texel
+			int dx = (uvs.x * m_iWidth); // round?
+			int dy = (uvs.y * m_iHeight);
+
+			// texel not on the UV map
+			if (!m_Image_L.IsWithin(dx, dy))
+				return true;
+
+			// back face?
+			Vector3 face_normal;
+			bool bBackFace = HitBackFace(r, tri_hit, bary, face_normal);
+
+
+			// the contribution is the luminosity at that spot and the albedo
+			Color albedo;
+			bool bTransparent;
+			m_Scene.FindPrimaryTextureColors(tri_hit, bary, albedo, bTransparent);
+
+			FColor falbedo;
+			falbedo.Set(albedo);
+
+			bool opaque = !(bTransparent && (albedo.a < 0.5f));
+
+			// if the surface transparent we may want to downgrade the influence a little
+			if (bTransparent)
+				falbedo *= albedo.a;
+
+			// see through has no effect on colour
+			if (!opaque || (bBackFace && bTransparent))
+			{
+				// if it is front facing, still apply the 'haze' from the colour
+				// (this all counts as 1 sample, so could get super light in theory, if passing through several hazes...)
+				if (!bBackFace)
+					total_col += (m_Image_L.GetItem(dx, dy) * falbedo);
+
+				// move the ray origin and do again
+				// position of potential hit
+				Vector3 pos;
+				const Tri &triangle = m_Scene.m_Tris[tri_hit];
+				triangle.InterpolateBarycentric(pos, bary);
+
+				float push = -m_Settings_SurfaceBias;
+				if (bBackFace) push = -push;
+
+				r.o = pos + (face_normal * push);
+
+				// and repeat the loop
+			}
+			else
+			{
+				total_col += (m_Image_L.GetItem(dx, dy) * falbedo);
+				break;
+			}
+		}
+		else
+		{
+			// nothing hit, exit loop
+			break;
+		}
+
+	} // while true (loop while transparent)
+
+	return true;
 }
 
 
@@ -759,8 +894,8 @@ FColor LightMapper::ProcessTexel_Bounce(int x, int y)
 
 void LightMapper::ProcessTexel(int tx, int ty)
 {
-//	if ((tx == 134) && (ty == 90))
-//		print_line("testing");
+	//	if ((tx == 134) && (ty == 90))
+	//		print_line("testing");
 
 	// find triangle
 	uint32_t tri_id = *m_Image_ID_p1.Get(tx, ty);
@@ -963,16 +1098,16 @@ void LightMapper::ProcessEmissionTris()
 	} // for section
 
 	// left over
-//	{
-//		int num_leftover = m_iNumRays - (num_sections * m_iRaysPerSection);
-//		ProcessLight(n, num_leftover);
+	//	{
+	//		int num_leftover = m_iNumRays - (num_sections * m_iRaysPerSection);
+	//		ProcessLight(n, num_leftover);
 
-//		for (int b=0; b<m_AdjustedSettings.m_Forward_NumBounces+1; b++)
-//		{
-//			RayBank_Process();
-//			RayBank_Flush();
-//		} // for bounce
-//	}
+	//		for (int b=0; b<m_AdjustedSettings.m_Forward_NumBounces+1; b++)
+	//		{
+	//			RayBank_Process();
+	//			RayBank_Flush();
+	//		} // for bounce
+	//	}
 
 
 	if (bake_end_function) {
@@ -1057,7 +1192,7 @@ void LightMapper::ProcessEmissionTri(int etri_id, float fraction_of_total)
 
 		FColor * pTexelCol = m_Image_L.Get(tx, ty);
 
-//		fcol.Set(emission_color * 0.5f);
+		//		fcol.Set(emission_color * 0.5f);
 		*pTexelCol += fcol;
 
 	}
@@ -1140,16 +1275,16 @@ void LightMapper::ProcessLight(int light_id, int num_rays)
 
 	// the power should depend on the volume, with 1x1x1 being normal power
 	//	float power = light.scale.x * light.scale.y * light.scale.z;
-//	float power = light.energy;
-//	power *= m_Settings_Forward_RayPower;
+	//	float power = light.energy;
+	//	power *= m_Settings_Forward_RayPower;
 
-//	light_color.r = power;
-//	light_color.g = power;
-//	light_color.b = power;
+	//	light_color.r = power;
+	//	light_color.g = power;
+	//	light_color.b = power;
 
 	// each ray
 
-//	num_rays = 1; // debug
+	//	num_rays = 1; // debug
 
 
 
@@ -1166,8 +1301,8 @@ void LightMapper::ProcessLight(int light_id, int num_rays)
 	if (light.type == LLight::LT_DIRECTIONAL)
 	{
 		num_rays *= 2;
-//		float area = light.dl_tangent_range * light.dl_bitangent_range;
-//		num_rays = num_rays * area;
+		//		float area = light.dl_tangent_range * light.dl_bitangent_range;
+		//		num_rays = num_rays * area;
 		// we will increase the power as well, because daylight more powerful than light bulbs typically.
 		power *= 4.0f;
 
@@ -1236,31 +1371,31 @@ void LightMapper::ProcessLight(int light_id, int num_rays)
 
 					r.o += r.d * units;
 
-	//				r.o.y = 3.2f;
+					//				r.o.y = 3.2f;
 
 					// hard code
-	//				r.o = Vector3(0.2, 10, 0.2);
-	//				r.d = Vector3(0, -1, 0);
+					//				r.o = Vector3(0.2, 10, 0.2);
+					//				r.d = Vector3(0, -1, 0);
 
 					// special .. for dir light .. will it hit the AABB? if not, do a wraparound
-//					Vector3 clip;
-//					if (!GetTracer().IntersectRayAABB(r, GetTracer().m_SceneWorldBound_mid, clip))
-//					{
-//						hit_bound = false;
-//					}
+					//					Vector3 clip;
+					//					if (!GetTracer().IntersectRayAABB(r, GetTracer().m_SceneWorldBound_mid, clip))
+					//					{
+					//						hit_bound = false;
+					//					}
 
-//					Vector3 ptHit = r.o + (r.d * 2.0f);
-//					Vector3 bb_min = bb.position;
-//					Vector3 bb_max = bb.position + bb.size;
+					//					Vector3 ptHit = r.o + (r.d * 2.0f);
+					//					Vector3 bb_min = bb.position;
+					//					Vector3 bb_max = bb.position + bb.size;
 
-//					if (ptHit.x > bb_max.x)
-//						r.o.x -= bb.size.x;
-//					if (ptHit.x < bb_min.x)
-//						r.o.x += bb.size.x;
-//					if (ptHit.z > bb_max.z)
-//						r.o.z -= bb.size.z;
-//					if (ptHit.z < bb_min.z)
-//						r.o.z += bb.size.z;
+					//					if (ptHit.x > bb_max.x)
+					//						r.o.x -= bb.size.x;
+					//					if (ptHit.x < bb_min.x)
+					//						r.o.x += bb.size.x;
+					//					if (ptHit.z > bb_max.z)
+					//						r.o.z -= bb.size.z;
+					//					if (ptHit.z < bb_min.z)
+					//						r.o.z += bb.size.z;
 
 					if (!GetTracer().GetWorldBound_expanded().intersects_ray(r.o, r.d))
 					{
@@ -1311,14 +1446,14 @@ void LightMapper::ProcessLight(int light_id, int num_rays)
 					a *= ang_falloff;
 				}
 
-//				if (angle > ang_falloff)
-//				{
-//					// in the falloff zone, use different math.
-//					float r = Math::random(0.0f, 1.0f);
-//					r = r*r;
-//					r *= ang_falloff_range;
-//					angle = ang_falloff + r;
-//				}
+				//				if (angle > ang_falloff)
+				//				{
+				//					// in the falloff zone, use different math.
+				//					float r = Math::random(0.0f, 1.0f);
+				//					r = r*r;
+				//					r *= ang_falloff_range;
+				//					angle = ang_falloff + r;
+				//				}
 
 
 				Quat rot;
@@ -1328,15 +1463,15 @@ void LightMapper::ProcessLight(int light_id, int num_rays)
 				r.d = rot.xform(r.d);
 
 				// this is the radius of the cone at distance 1
-//				float radius_at_dist_one = Math::tan(Math::deg2rad(light.spot_angle));
+				//				float radius_at_dist_one = Math::tan(Math::deg2rad(light.spot_angle));
 
-//				float spot_ball_size = radius_at_dist_one;
+				//				float spot_ball_size = radius_at_dist_one;
 
-//				Vector3 ball;
-//				RandomSphereDir(ball, spot_ball_size);
+				//				Vector3 ball;
+				//				RandomSphereDir(ball, spot_ball_size);
 
-//				r.d += ball;
-//				r.d.normalize();
+				//				r.d += ball;
+				//				r.d.normalize();
 			}
 			break;
 		default:

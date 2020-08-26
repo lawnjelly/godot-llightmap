@@ -36,6 +36,10 @@ public:
 
 	// returns triangle ID (or -1) and barycentric coords
 	int FindIntersect_Ray(const Ray &ray, float &u, float &v, float &w, float &nearest_t, const Vec3i * pVoxelRange, int &num_tests);//, int ignore_tri_p1 = 0);
+	int FindIntersect_Ray(const Ray &ray, Vector3 &bary, float &nearest_t, const Vec3i * pVoxelRange, int &num_tests)
+	{
+		return FindIntersect_Ray(ray, bary.x, bary.y, bary.z, nearest_t, pVoxelRange, num_tests);
+	}
 
 	// simple test returns true if any collision
 	bool TestIntersect_Ray(const Ray &ray, float max_dist, const Vec3i &voxel_range, bool bCullBackFaces = false);
