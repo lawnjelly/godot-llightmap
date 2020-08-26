@@ -23,7 +23,7 @@ LightMapper_Base::LightMapper_Base()
 	m_Settings_Backward_NumRays = 128;
 	m_Settings_Backward_NumBounceRays = 128;
 	m_Settings_Backward_NumBounces = 0;
-	m_Settings_Backward_RayPower = 0.01f;
+	m_Settings_Backward_RayPower = 1.0f;
 	m_Settings_Backward_BouncePower = 0.5f;
 
 	m_Settings_AO_Range = 2.0f;

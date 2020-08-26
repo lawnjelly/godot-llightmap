@@ -413,36 +413,25 @@ void LightMapper::ProcessTexels()
 }
 
 
-void LightMapper::ProcessTexel_Light(int light_id, const Vector3 &ptDest, const Vector3 &ptNormal, FColor &color, uint32_t tri_ignore)
+void LightMapper::ProcessTexel_Light(int light_id, const Vector3 &ptSource, const Vector3 &ptNormal, FColor &color)//, uint32_t tri_ignore)
 {
 	const LLight &light = m_Lights[light_id];
 
 	Ray r;
-	//	r.o = Vector3(0, 5, 0);
 
-	//	float range = light.scale.x;
-	//	const float range = 2.0f;
-
-	// the power should depend on the volume, with 1x1x1 being normal power
-	//	float power = light.scale.x * light.scale.y * light.scale.z;
 	float power = light.energy;
 	power *= m_Settings_Backward_RayPower;
 
 	int nSamples = m_AdjustedSettings.m_Backward_NumRays;
 
 	// total light hitting texel
-//	float fTotal = 0.0f;
 	color.Set(0.0f);
-//	FColor total_color;
-//	total_color.Set(0.0f);
-//	float total = 0.0f;
-
 
 	// for a spotlight, we can cull completely in a lot of cases.
 	if (light.type == LLight::LT_SPOT)
 	{
 		r.o = light.spot_emanation_point;
-		r.d = ptDest - r.o;
+		r.d = ptSource - r.o;
 		r.d.normalize();
 		float dot = r.d.dot(light.dir);
 		//float angle = safe_acosf(dot);
@@ -458,7 +447,7 @@ void LightMapper::ProcessTexel_Light(int light_id, const Vector3 &ptDest, const 
 	// each ray
 	for (int n=0; n<nSamples; n++)
 	{
-		r.o = light.pos;
+		Vector3 ptDest = light.pos;
 
 		// allow falloff for cones
 		float multiplier = 1.0f;
@@ -468,23 +457,35 @@ void LightMapper::ProcessTexel_Light(int light_id, const Vector3 &ptDest, const 
 		case LLight::LT_SPOT:
 			{
 				// source
-				Vector3 offset;
-				RandomUnitDir(offset);
-				offset *= light.scale;
-				r.o += offset;
+				float dot;
 
-				// offset from origin to destination texel
-				r.d = ptDest - r.o;
-				r.d.normalize();
+				while (true)
+				{
+					Vector3 offset;
 
-				float dot = r.d.dot(light.dir);
-				//float angle = safe_acosf(dot);
-				//if (angle >= light.spot_angle_radians)
+					RandomUnitDir(offset);
+					offset *= light.scale;
+					r.o = light.pos;
+					r.o += offset;
 
-				dot -= light.spot_dot_max;
+					// offset from origin to destination texel
+					r.d = ptSource - r.o;
+					r.d.normalize();
 
-				if (dot <= 0.0f)
-					continue;
+					dot = r.d.dot(light.dir);
+					//float angle = safe_acosf(dot);
+					//if (angle >= light.spot_angle_radians)
+
+					dot -= light.spot_dot_max;
+
+					// if within cone, it is ok
+					if (dot > 0.0f)
+						break;
+				}
+
+				// reverse ray for precision reasons
+				r.d = -r.d;
+				r.o = ptSource;
 
 				dot *= 1.0f / (1.0f - light.spot_dot_max);
 				multiplier = dot * dot;
@@ -507,9 +508,10 @@ void LightMapper::ProcessTexel_Light(int light_id, const Vector3 &ptDest, const 
 				Vector3 offset;
 				RandomUnitDir(offset);
 				offset *= light.scale;
-				r.o += offset;
+				ptDest += offset;
 
 				// offset from origin to destination texel
+				r.o = ptSource;
 				r.d = ptDest - r.o;
 				r.d.normalize();
 
@@ -520,6 +522,8 @@ void LightMapper::ProcessTexel_Light(int light_id, const Vector3 &ptDest, const 
 
 		Vector3 ray_origin = r.o;
 		FColor sample_color = light.color;
+
+		int panic_count = 32;
 
 		while (true)
 		{
@@ -539,12 +543,13 @@ void LightMapper::ProcessTexel_Light(int light_id, const Vector3 &ptDest, const 
 
 
 			// nothing hit
-			if ((tri == -1) || (tri == (int) tri_ignore))
+			if (tri == -1)
+			//if ((tri == -1) || (tri == (int) tri_ignore))
 			{
 				// for backward tracing, first pass, this is a special case, because we DO
 				// take account of distance to the light, and normal, in order to simulate the effects
 				// of the likelihood of 'catching' a ray. In forward tracing this happens by magic.
-				float dist = (ray_origin - ptDest).length();
+				float dist = (ptDest - ray_origin).length();
 				float local_power = power * InverseSquareDropoff(dist);
 
 				// take into account normal
@@ -596,6 +601,12 @@ void LightMapper::ProcessTexel_Light(int light_id, const Vector3 &ptDest, const 
 
 						// apply the color to the ray
 						CalculateTransmittance(albedo, sample_color);
+
+						// this shouldn't happen, but if it did we'd get an infinite loop if we didn't break out
+						panic_count--;
+						if (!panic_count)
+							break;
+
 						continue;
 					}
 				}
@@ -721,6 +732,9 @@ FColor LightMapper::ProcessTexel_Bounce(int x, int y)
 
 void LightMapper::ProcessTexel(int tx, int ty)
 {
+//	if ((tx == 134) && (ty == 90))
+//		print_line("testing");
+
 	// find triangle
 	uint32_t tri = *m_Image_ID_p1.Get(tx, ty);
 	if (!tri)
@@ -730,8 +744,18 @@ void LightMapper::ProcessTexel(int tx, int ty)
 	// barycentric
 	const Vector3 &bary = *m_Image_Barycentric.Get(tx, ty);
 
+	// we will trace
+	// FROM THE SURFACE TO THE LIGHT!!
+	// this is very important, because the ray is origin and direction,
+	// and there will be precision errors at the destination.
+	// At the light end this doesn't matter, but if we trace the other way
+	// we get artifacts due to precision loss due to normalized direction.
 	Vector3 pos;
 	m_Scene.m_Tris[tri].InterpolateBarycentric(pos, bary.x, bary.y, bary.z);
+
+	// add epsilon to pos to prevent self intersection and neighbour intersection
+	const Vector3 &plane_normal = m_Scene.m_TriPlanes[tri].normal;
+	pos += plane_normal * m_Settings_SurfaceBias;
 
 	Vector3 normal;
 	m_Scene.m_TriNormals[tri].InterpolateBarycentric(normal, bary.x, bary.y, bary.z);
@@ -747,7 +771,7 @@ void LightMapper::ProcessTexel(int tx, int ty)
 	FColor temp;
 	for (int l=0; l<m_Lights.size(); l++)
 	{
-		ProcessTexel_Light(l, pos, normal, temp, tri);
+		ProcessTexel_Light(l, pos, normal, temp);
 		*pTexel += temp;
 	}
 

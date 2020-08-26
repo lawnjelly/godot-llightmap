@@ -27,7 +27,9 @@ private:
 
 	void ProcessTexels();
 	void ProcessTexel(int tx, int ty);
-	void ProcessTexel_Light(int light_id, const Vector3 &ptDest, const Vector3 &ptNormal, FColor &color, uint32_t tri_ignore);
+
+	// trace from the poly TO the light, not the other way round, to avoid precision errors
+	void ProcessTexel_Light(int light_id, const Vector3 &ptSource, const Vector3 &ptNormal, FColor &color); //, uint32_t tri_ignore);
 
 	void ProcessTexels_Bounce();
 	FColor ProcessTexel_Bounce(int x, int y);
