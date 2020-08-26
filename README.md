@@ -1,6 +1,6 @@
 # godot-llightmap
 * Lightmap module for Godot Engine 3.2.2 or later
-* Version 0.24 (August 26, 2020)
+* Version 0.25 (August 26, 2020)
 * Lightmaps created can be used with standard Godot builds and templates, i.e. you only need the module for a preprocess
 * (work in progress, there may be bugs, especially in the uv mapping but it is usable)
 
@@ -23,12 +23,12 @@ https://www.youtube.com/watch?v=pBpF2raGA8A
 * Linear HDR exr final texture or gamma corrected normalized png
 * SSE2 (on x86 64 bit) / Multithread ray tracing
 * Albedo taken into account for bounces
-* Omnis and Spotlights, Directional lights (with forward tracing)
+* Omnis, Spotlights, Directional lights
 * Emissive materials
 * Transparency
 
 ### Still todo
-* More work on backward tracing - directional lights, emission
+* More work on backward tracing - emission
 * Sky panorama textures
 * Roughness / metal from source textures for PBR reflections
 * Option of multiple lightmaps
