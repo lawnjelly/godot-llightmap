@@ -3,6 +3,7 @@
 * Version 0.27 (August 26, 2020)
 * Lightmaps created can be used with standard Godot builds and templates, i.e. you only need the module for a preprocess
 * (work in progress, there may be bugs, especially in the uv mapping but it is usable)
+* See https://github.com/lawnjelly/godot-titan for pre-compiled builds
 
 <img src="/pics/llightmap_01screen.png" alt="screenshot" width="400"/>
 
