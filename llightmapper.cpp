@@ -937,7 +937,8 @@ void LightMapper::ProcessEmissionTris()
 
 		ProcessEmissionTris_Section(fraction);
 
-		for (int b=0; b<m_AdjustedSettings.m_Forward_NumBounces+1; b++)
+		while (!RayBank_AreVoxelsClear())
+		//for (int b=0; b<m_AdjustedSettings.m_Forward_NumBounces+1; b++)
 		{
 			RayBank_Process();
 			RayBank_Flush();
@@ -1083,11 +1084,17 @@ void LightMapper::ProcessLights()
 
 			ProcessLight(n, m_iRaysPerSection);
 
-			for (int b=0; b<m_AdjustedSettings.m_Forward_NumBounces+1; b++)
+			while (!RayBank_AreVoxelsClear())
+			//for (int b=0; b<m_AdjustedSettings.m_Forward_NumBounces+1; b++)
 			{
 				RayBank_Process();
 				RayBank_Flush();
 			} // for bounce
+
+			// if everything went correctly,
+			// all the raybank should be empty
+			//RayBank_AreVoxelsClear();
+
 		} // for section
 
 
@@ -1097,7 +1104,8 @@ void LightMapper::ProcessLights()
 			int num_leftover = m_iNumRays - (num_sections * m_iRaysPerSection);
 			ProcessLight(n, num_leftover);
 
-			for (int b=0; b<m_AdjustedSettings.m_Forward_NumBounces+1; b++)
+			while (!RayBank_AreVoxelsClear())
+			//for (int b=0; b<m_AdjustedSettings.m_Forward_NumBounces+1; b++)
 			{
 				RayBank_Process();
 				RayBank_Flush();

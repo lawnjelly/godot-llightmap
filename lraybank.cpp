@@ -169,9 +169,9 @@ void RayBank::RayBank_Process()
 	}
 }
 
-void RayBank::RayBank_CheckVoxelsClear()
+bool RayBank::RayBank_AreVoxelsClear()
 {
-#ifdef DEBUG_ENABLED
+//#ifdef DEBUG_ENABLED
 	int nVoxels = GetTracer().m_iNumVoxels;
 	LVector<RB_Voxel> &voxelsr = m_Data_RB.GetVoxels_Read();
 	LVector<RB_Voxel> &voxelsw = m_Data_RB.GetVoxels_Write();
@@ -179,11 +179,12 @@ void RayBank::RayBank_CheckVoxelsClear()
 	for (int v=0; v<nVoxels; v++)
 	{
 		RB_Voxel & voxr = voxelsr[v];
-		assert (voxr.m_Rays.size() == 0);
+		if (voxr.m_Rays.size()) return false;
 		RB_Voxel & voxw = voxelsw[v];
-		assert (voxw.m_Rays.size() == 0);
+		if (voxw.m_Rays.size()) return false;
 	}
-#endif
+//#endif
+	return true;
 }
 
 // flush ray results to the lightmap
@@ -191,6 +192,8 @@ void RayBank::RayBank_Flush()
 {
 	int nVoxels = GetTracer().m_iNumVoxels;
 	LVector<RB_Voxel> &voxels = m_Data_RB.GetVoxels_Read();
+
+	//RayBank_DebugCheckVoxelsEmpty(m_Data_RB.m_MapWrite);
 
 	for (int v=0; v<nVoxels; v++)
 	{
@@ -210,6 +213,7 @@ void RayBank::RayBank_Flush()
 	// swap the write and read
 //	m_Data_RB.Swap();
 }
+
 
 
 void RayBank::RayBank_FlushRay(RB_Voxel &vox, int ray_id)

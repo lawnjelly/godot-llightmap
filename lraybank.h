@@ -29,7 +29,7 @@ public:
 	// flush ray results to the lightmap
 	void RayBank_Flush();
 
-	void RayBank_CheckVoxelsClear();
+	bool RayBank_AreVoxelsClear();
 private:
 	// used for below multithread routine
 	RB_Voxel * m_pCurrentThreadVoxel;
@@ -40,6 +40,7 @@ private:
 
 	RB_Voxel &RayBank_GetVoxelWrite(const Vec3i &pt) {int n = GetTracer().GetVoxelNum(pt); return m_Data_RB.GetVoxels_Write()[n];}
 	RB_Voxel &RayBank_GetVoxelRead(const Vec3i &pt) {int n = GetTracer().GetVoxelNum(pt); return m_Data_RB.GetVoxels_Read()[n];}
+
 
 public:
 	LightTracer &GetTracer() {return m_Scene.m_Tracer;}

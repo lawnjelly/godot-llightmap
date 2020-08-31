@@ -349,7 +349,6 @@ bool LLightmap::lightmap_bake()
 		image_combined->save_png(m_LM.m_Settings_CombinedFilename);
 	}
 
-	// TEST TES TEST
 	ResourceLoader::import(m_LM.m_Settings_CombinedFilename);
 
 	return true;
