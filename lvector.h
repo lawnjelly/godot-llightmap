@@ -55,6 +55,12 @@ public:
 			compact();
 	}
 
+	void blank()
+	{
+		if (!m_Vec.size()) return;
+		memset(&m_Vec[0], 0, sizeof (T) * m_Vec.size());
+	}
+
 	void compact()
 	{
 		m_Vec.resize(m_iSize);

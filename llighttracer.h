@@ -85,6 +85,7 @@ public:
 	void FindNearestVoxel(const Vector3 &ptWorld, Vec3i &ptVoxel) const;
 	const AABB &GetWorldBound_expanded() const {return m_SceneWorldBound_expanded;}
 	const AABB &GetWorldBound_mid() const {return m_SceneWorldBound_mid;}
+	const AABB &GetWorldBound_contracted() const {return m_SceneWorldBound_contracted;}
 
 //	void ClampVoxelToBounds(Vec3i &v) const
 //	{

@@ -377,7 +377,7 @@ bool LightScene::TestIntersect_Ray(const Ray &ray, float max_dist, const Vec3i &
 }
 
 
-int LightScene::FindIntersect_Ray(const Ray &ray, float &u, float &v, float &w, float &nearest_t, const Vec3i * pVoxelRange, int &num_tests)//, int ignore_tri_p1)
+int LightScene::FindIntersect_Ray(const Ray &ray, float &u, float &v, float &w, float &nearest_t, const Vec3i * pVoxelRange)//, int ignore_tri_p1)
 {
 	nearest_t = FLT_MAX;
 	int nearest_tri = -1;
@@ -415,8 +415,8 @@ int LightScene::FindIntersect_Ray(const Ray &ray, float &u, float &v, float &w, 
 		ProcessVoxelHits(ray, pray, *pVoxel, nearest_t, nearest_tri);
 
 		// count number of tests for stats
-				int nHits = m_Tracer.m_TriHits.size();
-				num_tests += nHits;
+				//int nHits = m_Tracer.m_TriHits.size();
+				//num_tests += nHits;
 
 
 		// if there is a nearest hit, calculate the voxel in which the hit occurs.
@@ -1159,8 +1159,7 @@ bool LightScene::FindCuts_TangentTrace(LightMapper_Base &base, int tx, int ty, R
 
 	// relies on the tracing all being setup, so findcuts should be run AFTER setting everything else up.
 	float u, v, w, t;
-	int num_tests = 0;
-	int tri_id = FindIntersect_Ray(r, u, v, w, t, 0, num_tests);
+	int tri_id = FindIntersect_Ray(r, u, v, w, t);
 
 	if (tri_id == -1)
 		return false;

@@ -35,10 +35,10 @@ public:
 	bool Create(Spatial * pMeshesRoot, int width, int height, int voxel_density, int max_material_size, float emission_density);
 
 	// returns triangle ID (or -1) and barycentric coords
-	int FindIntersect_Ray(const Ray &ray, float &u, float &v, float &w, float &nearest_t, const Vec3i * pVoxelRange, int &num_tests);//, int ignore_tri_p1 = 0);
-	int FindIntersect_Ray(const Ray &ray, Vector3 &bary, float &nearest_t, const Vec3i * pVoxelRange, int &num_tests)
+	int FindIntersect_Ray(const Ray &ray, float &u, float &v, float &w, float &nearest_t, const Vec3i * pVoxelRange = nullptr);//, int ignore_tri_p1 = 0);
+	int FindIntersect_Ray(const Ray &ray, Vector3 &bary, float &nearest_t, const Vec3i * pVoxelRange = nullptr)
 	{
-		return FindIntersect_Ray(ray, bary.x, bary.y, bary.z, nearest_t, pVoxelRange, num_tests);
+		return FindIntersect_Ray(ray, bary.x, bary.y, bary.z, nearest_t, pVoxelRange);
 	}
 
 	// simple test returns true if any collision

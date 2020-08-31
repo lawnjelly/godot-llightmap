@@ -11,6 +11,7 @@
 #include "llighttracer.cpp"
 #include "llightmapper_editor_plugin.cpp"
 #include "llighttests_simd.cpp"
+#include "llightprobe.cpp"
 #include "lraybank.cpp"
 #include "lqmc.cpp"
 #include "lambient_occlusion.cpp"

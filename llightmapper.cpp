@@ -5,6 +5,7 @@
 #include "lscene_saver.h"
 #include "scene/resources/packed_scene.h"
 #include "llightscene.h"
+#include "llightprobe.h"
 
 
 namespace LM {
@@ -283,6 +284,11 @@ bool LightMapper::LightmapMesh(Spatial * pMeshesRoot, const Spatial &light_root,
 			}
 			after = OS::get_singleton()->get_ticks_msec();
 			print_line("ProcessTexels took " + itos(after -before) + " ms");
+
+			// calculate probes
+			print_line("ProcessProbes");
+			ProcessLightProbes();
+
 		}
 
 		if (m_bCancel)
@@ -304,6 +310,8 @@ bool LightMapper::LightmapMesh(Spatial * pMeshesRoot, const Spatial &light_root,
 	Merge_AndWriteOutputImage_Combined(out_image_combined);
 	//	after = OS::get_singleton()->get_ticks_msec();
 	//	print_line("WriteOutputImage took " + itos(after -before) + " ms");
+
+
 
 	// clear everything out of ram as no longer needed
 	Reset();
@@ -413,6 +421,7 @@ void LightMapper::ProcessTexels()
 }
 
 
+// trace from the poly TO the light, not the other way round, to avoid precision errors
 void LightMapper::ProcessTexel_Light(int light_id, const Vector3 &ptSource, const Vector3 &ptNormal, FColor &color)//, uint32_t tri_ignore)
 {
 	const LLight &light = m_Lights[light_id];
@@ -560,7 +569,7 @@ void LightMapper::ProcessTexel_Light(int light_id, const Vector3 &ptSource, cons
 			float u, v, w, t;
 
 			m_Scene.m_Tracer.m_bUseSDF = true;
-			int tri = m_Scene.FindIntersect_Ray(r, u, v, w, t, nullptr, m_iNumTests);
+			int tri = m_Scene.FindIntersect_Ray(r, u, v, w, t);
 			//		m_Scene.m_Tracer.m_bUseSDF = false;
 			//		int tri2 = m_Scene.IntersectRay(r, u, v, w, t, m_iNumTests);
 			//		if (tri != tri2)
@@ -581,13 +590,8 @@ void LightMapper::ProcessTexel_Light(int light_id, const Vector3 &ptSource, cons
 				float local_power;
 
 				// no drop off for directional lights
-				if (light.type != LLight::LT_DIRECTIONAL)
-				{
-					float dist = (ptDest - ray_origin).length();
-					local_power = power * InverseSquareDropoff(dist);
-				}
-				else
-					local_power = power;
+				float dist = (ptDest - ray_origin).length();
+				local_power = LightDistanceDropoff(dist, light, power);
 
 				// take into account normal
 				float dot = r.d.dot(ptNormal);
@@ -656,6 +660,14 @@ void LightMapper::ProcessTexel_Light(int light_id, const Vector3 &ptSource, cons
 	// the color is returned in color
 }
 
+void LightMapper::ProcessLightProbes()
+{
+	LightProbes probes;
+	probes.Create(*this);
+
+
+
+}
 
 FColor LightMapper::ProcessTexel_Bounce(int x, int y)
 {
@@ -695,78 +707,6 @@ FColor LightMapper::ProcessTexel_Bounce(int x, int y)
 			samples_counted--;
 		}
 
-		/*
-		// bounce
-
-		// first dot
-		Ray r;
-
-		// SLIDING
-		//			Vector3 temp = r.d.cross(norm);
-		//			new_ray.d = norm.cross(temp);
-
-		// BOUNCING - mirror
-		//new_ray.d = r.d - (2.0f * (dot * norm));
-
-		// random hemisphere
-		RandomUnitDir(r.d);
-
-		// compare direction to normal, if opposite, flip it
-		if (r.d.dot(plane_norm) < 0.0f)
-			r.d = -r.d;
-
-		// add a little epsilon to prevent self intersection
-		r.o = ray_origin;
-		//ProcessRay(new_ray, depth+1, power * 0.4f);
-
-		// collision detect
-		//r.d.normalize();
-		float u, v, w, t;
-		int tri_hit = m_Scene.FindIntersect_Ray(r, u, v, w, t, nullptr, m_iNumTests);
-
-		// nothing hit
-		if ((tri_hit != -1) && (tri_hit != (int) tri_source))
-		{
-			// look up the UV of the tri hit
-			Vector2 uvs;
-			m_Scene.FindUVsBarycentric(tri_hit, uvs, u, v, w);
-
-			// find texel
-			int dx = (uvs.x * m_iWidth); // round?
-			int dy = (uvs.y * m_iHeight);
-
-			if (m_Image_L.IsWithin(dx, dy))
-			{
-				// the contribution is the luminosity at that spot and the albedo
-				Color albedo;
-				bool bTransparent;
-				m_Scene.FindPrimaryTextureColors(tri_hit, Vector3(u, v, w), albedo, bTransparent);
-
-				FColor falbedo;
-				falbedo.Set(albedo);
-
-				// see through has no effect on colour
-				if (bTransparent && (albedo.a < 0.5f))
-				{
-					if (albedo.a > 0.5f)
-					{
-						falbedo *= albedo.a;
-						total += (m_Image_L.GetItem(dx, dy) * falbedo);
-					}
-					else
-					{
-						// this sample does not count
-						samples_counted--;
-					}
-				}
-				else
-				{
-					total += (m_Image_L.GetItem(dx, dy) * falbedo);
-				}
-			}
-
-		}
-		*/
 	}
 
 	// some samples may have been missed due to transparency
@@ -803,7 +743,7 @@ bool LightMapper::ProcessTexel_Bounce_Sample(const Vector3 &plane_norm, const Ve
 		// collision detect
 		Vector3 bary;
 		float t;
-		int tri_hit = m_Scene.FindIntersect_Ray(r, bary, t, nullptr, m_iNumTests);
+		int tri_hit = m_Scene.FindIntersect_Ray(r, bary, t);
 
 		// nothing hit
 		//	if ((tri_hit != -1) && (tri_hit != (int) tri_source))
@@ -965,112 +905,6 @@ void LightMapper::ProcessTexel(int tx, int ty)
 	}
 }
 
-void LightMapper::ProcessRay(LM::Ray r, int depth, float power, int dest_tri_id, const Vector2i * pUV)
-{
-	// unlikely
-	if (r.d.x == 0.0f && r.d.y == 0.0f && r.d.z == 0.0f)
-		return;
-
-	// test
-	//	r.d = Vector3(0, -1, 0);
-	//	r.d = Vector3(-2.87, -5.0 + 0.226, 4.076);
-
-	r.d.normalize();
-	float u, v, w, t;
-	int tri = m_Scene.FindIntersect_Ray(r, u, v, w, t, nullptr, m_iNumTests);
-
-	// nothing hit
-	if (tri == -1)
-		return;
-
-	// convert barycentric to uv coords in the lightmap
-	Vector2 uv;
-	m_Scene.FindUVsBarycentric(tri, uv, u, v, w);
-	//	m_UVTris[tri].FindUVBarycentric(uvs, u, v, w);
-
-	// texel address
-	int tx = uv.x * m_iWidth;
-	int ty = uv.y * m_iHeight;
-
-	// override?
-	if (pUV && tri == dest_tri_id)
-	{
-		tx = pUV->x;
-		ty = pUV->y;
-	}
-
-	// could be off the image
-	float * pf = &m_Image_L.Get(tx, ty)->r;
-	if (!pf)
-		return;
-
-	// scale according to distance
-	t /= 10.0f;
-	t = 1.0f - t;
-	if (t < 0.0f)
-		t = 0.0f;
-	t *= 2.0f;
-
-	t = power;
-	//	if (t > *pf)
-
-	//	if (depth > 0)
-	*pf += t;
-
-	// bounce and lower power
-
-	if (depth < m_Settings_Forward_NumBounces)
-	{
-		Vector3 pos;
-		const Tri &triangle = m_Scene.m_Tris[tri];
-		triangle.InterpolateBarycentric(pos, u, v, w);
-
-		Vector3 norm;
-		const Tri &triangle_normal = m_Scene.m_TriNormals[tri];
-		triangle_normal.InterpolateBarycentric(norm, u, v, w);
-		norm.normalize();
-
-		// first dot
-		float dot = norm.dot(r.d);
-		if (dot <= 0.0f)
-		{
-
-			Ray new_ray;
-
-			// SLIDING
-			//			Vector3 temp = r.d.cross(norm);
-			//			new_ray.d = norm.cross(temp);
-
-			// BOUNCING - mirror
-			Vector3 mirror_dir = r.d - (2.0f * (dot * norm));
-
-			// random hemisphere
-			const float range = 1.0f;
-			Vector3 hemi_dir;
-			while (true)
-			{
-				hemi_dir.x = Math::random(-range, range);
-				hemi_dir.y = Math::random(-range, range);
-				hemi_dir.z = Math::random(-range, range);
-
-				float sl = hemi_dir.length_squared();
-				if (sl > 0.0001f)
-				{
-					break;
-				}
-			}
-			// compare direction to normal, if opposite, flip it
-			if (hemi_dir.dot(norm) < 0.0f)
-				hemi_dir = -hemi_dir;
-
-			new_ray.d = hemi_dir.linear_interpolate(mirror_dir, m_Settings_Forward_BounceDirectionality);
-
-			new_ray.o = pos + (norm * 0.01f);
-			ProcessRay(new_ray, depth+1, power * m_Settings_Forward_BouncePower);
-		} // in opposite directions
-	}
-
-}
 
 void LightMapper::ProcessEmissionTris()
 {
@@ -1255,6 +1089,8 @@ void LightMapper::ProcessLights()
 				RayBank_Flush();
 			} // for bounce
 		} // for section
+
+
 
 		// left over
 		{

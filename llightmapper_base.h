@@ -12,6 +12,7 @@ namespace LM {
 class LightMapper_Base
 {
 	friend class LightScene;
+	friend class LightProbes;
 
 protected:
 	class LLight
@@ -225,6 +226,20 @@ public:
 	LightMapper_Base();
 protected:
 //	static void _bind_methods();
+
+	float LightDistanceDropoff(float dist, const LLight &light, float power) const
+	{
+		float local_power;
+
+		if (light.type != LLight::LT_DIRECTIONAL)
+		{
+			local_power = power * InverseSquareDropoff(dist);
+		}
+		else
+			local_power = power;
+
+		return local_power;
+	}
 
 	float InverseSquareDropoff(float dist) const
 	{
