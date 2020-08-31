@@ -145,7 +145,6 @@ struct FColor
 struct FRay
 {
 	Ray ray;
-	int num_rays_left;
 
 	// the color of the ray at the moment
 	FColor color;
@@ -153,6 +152,7 @@ struct FRay
 	// the color of the ray that is reflected after hitting a surface
 	FColor bounce_color;
 
+	int num_rays_left;
 	// hit texel
 	FHit hit;
 };

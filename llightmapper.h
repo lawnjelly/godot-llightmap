@@ -27,10 +27,12 @@ private:
 
 	// backward tracing
 	void ProcessTexels();
+	void ProcessTexel_Line_MT(uint32_t offset_y, int start_y);
 	void ProcessTexel(int tx, int ty);
 	void ProcessTexel_Light(int light_id, const Vector3 &ptSource, const Vector3 &ptNormal, FColor &color); //, uint32_t tri_ignore);
 
-	void ProcessTexels_Bounce();
+	void ProcessTexels_Bounce(int section_size, int num_sections);
+	void ProcessTexels_Bounce_Line_MT(uint32_t offset_y, int start_y);
 	FColor ProcessTexel_Bounce(int x, int y);
 	bool ProcessTexel_Bounce_Sample(const Vector3 &plane_norm, const Vector3 &ray_origin, FColor &total_col);
 

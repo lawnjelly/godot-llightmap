@@ -17,7 +17,7 @@ struct RB_Voxel
 class RayBank : public LightMapper_Base
 {
 public:
-	void RayBank_Reset();
+	void RayBank_Reset(bool recreate = false);
 	void RayBank_Create();
 
 	// every time we want to queue a new ray for processing

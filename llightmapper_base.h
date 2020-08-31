@@ -122,7 +122,7 @@ protected:
 
 	// just in case of overlapping triangles, for anti aliasing we will maintain 2 lists of triangles per pixel
 	LightImage<uint32_t> m_Image_ID_p1;
-	LightImage<uint32_t> m_Image_ID2_p1;
+	//LightImage<uint32_t> m_Image_ID2_p1;
 
 	// store multiple triangles per texel
 	LightImage<MiniList> m_Image_TriIDs;
@@ -131,7 +131,7 @@ protected:
 	LightImage<Vector3> m_Image_Barycentric;
 
 	// triangles that cut texels (prevent shadow leaks)
-	LightImage<uint8_t> m_Image_Cuts;
+	//LightImage<uint8_t> m_Image_Cuts;
 
 	int m_iWidth;
 	int m_iHeight;

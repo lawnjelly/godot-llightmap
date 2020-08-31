@@ -214,7 +214,19 @@ bool LightMapper::LightmapMesh(Spatial * pMeshesRoot, const Spatial &light_root,
 	// create stuff used by everything
 	m_Image_L.Create(m_iWidth, m_iHeight);
 	m_Image_L_mirror.Create(m_iWidth, m_iHeight);
-	m_Image_AO.Create(m_iWidth, m_iHeight);
+
+	// whether we need storage
+	switch (m_Settings_BakeMode)
+	{
+	case LMBAKEMODE_LIGHTMAP:
+	case LMBAKEMODE_UVMAP:
+		break;
+	default:
+		{
+			m_Image_AO.Create(m_iWidth, m_iHeight);
+		}
+		break;
+	}
 
 	if (m_Settings_BakeMode != LMBAKEMODE_MERGE)
 	{
@@ -227,14 +239,17 @@ bool LightMapper::LightmapMesh(Spatial * pMeshesRoot, const Spatial &light_root,
 
 
 		m_Image_ID_p1.Create(m_iWidth, m_iHeight);
-		m_Image_ID2_p1.Create(m_iWidth, m_iHeight);
+		//m_Image_ID2_p1.Create(m_iWidth, m_iHeight);
 
-		m_Image_TriIDs.Create(m_iWidth, m_iHeight);
-		m_TriIDs.clear(true);
+		if (m_Settings_Process_AO)
+		{
+			m_Image_TriIDs.Create(m_iWidth, m_iHeight);
+			m_TriIDs.clear(true);
+		}
 
 		m_Image_Barycentric.Create(m_iWidth, m_iHeight);
 
-		m_Image_Cuts.Create(m_iWidth, m_iHeight);
+		//m_Image_Cuts.Create(m_iWidth, m_iHeight);
 		//m_CuttingTris.clear(true);
 
 		print_line("Scene Create");
@@ -319,12 +334,51 @@ bool LightMapper::LightmapMesh(Spatial * pMeshesRoot, const Spatial &light_root,
 	return true;
 }
 
-void LightMapper::ProcessTexels_Bounce()
+void LightMapper::ProcessTexels_Bounce_Line_MT(uint32_t offset_y, int start_y)
+{
+	int y = offset_y + start_y;
+
+	for (int x=0; x<m_iWidth; x++)
+	{
+		FColor power = ProcessTexel_Bounce(x, y);
+
+		// save the incoming light power in the mirror image (as the source is still being used)
+		m_Image_L_mirror.GetItem(x, y) = power;
+	}
+
+}
+
+
+void LightMapper::ProcessTexels_Bounce(int section_size, int num_sections)
 {
 	m_Image_L_mirror.Blank();
 
+	for (int s=0; s<num_sections; s++)
+	{
+		int section_start = s * section_size;
 
-	for (int y=0; y<m_iHeight; y++)
+		if (bake_step_function) {
+			m_bCancel = bake_step_function(section_start, String("Process TexelsBounce: ") + " (" + itos(section_start) + ")");
+			if (m_bCancel)
+			{
+				if (bake_end_function)
+					bake_end_function();
+				return;
+			}
+		}
+
+		thread_process_array(section_size, this, &LightMapper::ProcessTexels_Bounce_Line_MT, section_start);
+
+//		for (int n=0; n<section_size; n++)
+//		{
+//			ProcessTexel_Line_MT(n, section_start);
+//		}
+	}
+
+	int leftover_start = num_sections * section_size;
+
+
+	for (int y=leftover_start; y<m_iHeight; y++)
 	{
 		if ((y % 10) == 0)
 		{
@@ -338,13 +392,14 @@ void LightMapper::ProcessTexels_Bounce()
 			}
 		}
 
-		for (int x=0; x<m_iWidth; x++)
-		{
-			FColor power = ProcessTexel_Bounce(x, y);
+		ProcessTexels_Bounce_Line_MT(y, 0);
+//		for (int x=0; x<m_iWidth; x++)
+//		{
+//			FColor power = ProcessTexel_Bounce(x, y);
 
-			// save the incoming light power in the mirror image (as the source is still being used)
-			m_Image_L_mirror.GetItem(x, y) = power;
-		}
+//			// save the incoming light power in the mirror image (as the source is still being used)
+//			m_Image_L_mirror.GetItem(x, y) = power;
+//		}
 	}
 
 	// merge the 2 luminosity maps
@@ -365,13 +420,12 @@ void LightMapper::ProcessTexels_Bounce()
 
 void LightMapper::ProcessTexels()
 {
-	// set num rays depending on method
-	//	if (m_Settings_Mode == LMMODE_FORWARD)
-	//	{
-	//		// the num rays / texel. This is per light!
-	//		m_iNumRays *= nTexels;
-	//		progress_range = m_iNumRays / m_iRaysPerSection;
-	//	}
+	int nCores = OS::get_singleton()->get_processor_count();
+
+	int section_size = m_iHeight / 64; //nCores;
+	int num_sections = m_iHeight / section_size;
+	int leftover_start = 0;
+
 
 	if (bake_begin_function) {
 		int progress_range = m_iHeight;
@@ -381,7 +435,33 @@ void LightMapper::ProcessTexels()
 
 	m_iNumTests = 0;
 
-	for (int y=0; y<m_iHeight; y++)
+	for (int s=0; s<num_sections; s++)
+	{
+		int section_start = s * section_size;
+
+		if (bake_step_function) {
+			m_bCancel = bake_step_function(section_start, String("Process Texels: ") + " (" + itos(section_start) + ")");
+			if (m_bCancel)
+			{
+				if (bake_end_function)
+					bake_end_function();
+				return;
+			}
+		}
+
+		thread_process_array(section_size, this, &LightMapper::ProcessTexel_Line_MT, section_start);
+
+//		for (int n=0; n<section_size; n++)
+//		{
+//			ProcessTexel_Line_MT(n, section_start);
+//		}
+	}
+
+	leftover_start = num_sections * section_size;
+
+
+
+	for (int y=leftover_start; y<m_iHeight; y++)
 	{
 		if ((y % 10) == 0)
 		{
@@ -399,10 +479,7 @@ void LightMapper::ProcessTexels()
 			}
 		}
 
-		for (int x=0; x<m_iWidth; x++)
-		{
-			ProcessTexel(x, y);
-		}
+		ProcessTexel_Line_MT(y, 0);
 	}
 
 
@@ -412,11 +489,21 @@ void LightMapper::ProcessTexels()
 
 	for (int b=0; b<m_AdjustedSettings.m_Backward_NumBounces; b++)
 	{
-		ProcessTexels_Bounce();
+		ProcessTexels_Bounce(section_size, num_sections);
 	}
 
 	if (bake_end_function) {
 		bake_end_function();
+	}
+}
+
+void LightMapper::ProcessTexel_Line_MT(uint32_t offset_y, int start_y)
+{
+	int y = offset_y + start_y;
+
+	for (int x=0; x<m_iWidth; x++)
+	{
+		ProcessTexel(x, y);
 	}
 }
 
@@ -1112,6 +1199,8 @@ void LightMapper::ProcessLights()
 			} // for bounce
 		}
 
+		// this is not really required, but is a protection against memory leaks
+		RayBank_Reset(true);
 	} // for light
 
 	if (bake_end_function) {

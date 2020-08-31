@@ -8,6 +8,13 @@ namespace LM
 template <class T> class LightImage
 {
 public:
+	LightImage()
+	{
+		m_uiWidth = 0;
+		m_uiHeight = 0;
+		m_uiNumPixels = 0;
+	}
+
 	void Create(uint32_t width, uint32_t height, bool blank = true)
 	{
 		m_uiWidth = width;

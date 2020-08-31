@@ -53,6 +53,9 @@ void LLightmapEditorPlugin::bake_func_begin(int p_steps) {
 bool LLightmapEditorPlugin::bake_func_step(int p_step, const String &p_description) {
 
 	ERR_FAIL_COND_V(tmp_progress == NULL, false);
+
+	OS::get_singleton()->delay_usec(1000);
+
 	return tmp_progress->step(p_description, p_step, false);
 }
 

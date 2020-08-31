@@ -20,11 +20,15 @@ void RayBank::RayBank_Data::Swap()
 }
 
 
-void RayBank::RayBank_Reset()
+void RayBank::RayBank_Reset(bool recreate)
 {
 	m_Data_RB.m_Voxels[0].clear(true);
 	m_Data_RB.m_Voxels[1].clear(true);
 
+	if (recreate)
+	{
+		RayBank_Create();
+	}
 }
 
 void RayBank::RayBank_Create()
@@ -223,7 +227,6 @@ void RayBank::RayBank_FlushRay(RB_Voxel &vox, int ray_id)
 	// bounces first
 	if (fray.num_rays_left)
 	{
-//		RayBank_RequestNewRay(fray.ray, fray.num_rays_left, fray.color * m_Settings_Forward_BouncePower, 0);
 		RayBank_RequestNewRay(fray.ray, fray.num_rays_left, fray.bounce_color, 0);
 	}
 

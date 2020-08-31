@@ -401,10 +401,11 @@ void LightMapper_Base::LightToPlane(LLight &light)
 void LightMapper_Base::PrepareImageMaps()
 {
 	m_Image_ID_p1.Blank();
-	m_Image_ID2_p1.Blank();
+	//m_Image_ID2_p1.Blank();
 
 	// rasterize each triangle in turn
-	m_Scene.RasterizeTriangleIDs(*this, m_Image_ID_p1, m_Image_ID2_p1, m_Image_Barycentric);
+	//m_Scene.RasterizeTriangleIDs(*this, m_Image_ID_p1, m_Image_ID2_p1, m_Image_Barycentric);
+	m_Scene.RasterizeTriangleIDs(*this, m_Image_ID_p1, m_Image_Barycentric);
 
 	/*
 	// go through each texel
@@ -564,7 +565,11 @@ void LightMapper_Base::Merge_AndWriteOutputImage_Combined(Image &image)
 	{
 		for (int x=0; x<m_iWidth; x++)
 		{
-			float ao = m_Image_AO.GetItem(x, y);
+			float ao = 0.0f;
+
+			if (m_Image_AO.GetNumPixels())
+				ao = m_Image_AO.GetItem(x, y);
+
 			FColor lum = m_Image_L.GetItem(x, y);
 
 			// combined
@@ -625,6 +630,9 @@ void LightMapper_Base::Merge_AndWriteOutputImage_Combined(Image &image)
 
 void LightMapper_Base::WriteOutputImage_AO(Image &image)
 {
+	if (!m_Image_AO.GetNumPixels())
+		return;
+
 	Dilate<float> dilate;
 	dilate.DilateImage(m_Image_AO, m_Image_ID_p1, 256);
 

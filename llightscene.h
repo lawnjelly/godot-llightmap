@@ -31,7 +31,6 @@ public:
 	};
 
 	void Reset();
-//	bool Create(Spatial * pMeshesRoot, int width, int height, const Vec3i &voxel_dims);
 	bool Create(Spatial * pMeshesRoot, int width, int height, int voxel_density, int max_material_size, float emission_density);
 
 	// returns triangle ID (or -1) and barycentric coords
@@ -44,10 +43,6 @@ public:
 	// simple test returns true if any collision
 	bool TestIntersect_Ray(const Ray &ray, float max_dist, const Vec3i &voxel_range, bool bCullBackFaces = false);
 
-
-	int IntersectRay_old(const Ray &ray, float &u, float &v, float &w, float &nearest_t) const;
-
-
 	void FindUVsBarycentric(int tri, Vector2 &uvs, float u, float v, float w) const
 	{
 		m_UVTris[tri].FindUVBarycentric(uvs, u, v, w);
@@ -57,21 +52,15 @@ public:
 		m_UVTris[tri].FindUVBarycentric(uvs, bary);
 	}
 
-	//int FindTriAtUV(float x, float y, float &u, float &v, float &w) const;
-
 	bool FindPrimaryTextureColors(int tri_id, const Vector3 &bary, Color &albedo, bool &bTransparent);
 	bool FindEmissionColor(int tri_id, const Vector3 &bary, Color &texture_col, Color &col);
-//	void Backward_FindBounceColors(int tri_id, const Vector3 &bary, Color &surf_col, float &fTransparency) const;
 
 
 	// setup
-	void RasterizeTriangleIDs(LightMapper_Base &base, LightImage<uint32_t> &im_p1, LightImage<uint32_t> &im2_p1, LightImage<Vector3> &im_bary);
+	void RasterizeTriangleIDs(LightMapper_Base &base, LightImage<uint32_t> &im_p1, LightImage<Vector3> &im_bary);
 	int GetNumTris() const {return m_UVTris.size();}
 
 private:
-	void FindCuts(LightMapper_Base &base);
-	void FindCuts_Texel(LightMapper_Base &base, int tx, int ty, int tri_id, const Vector3 &bary);
-	bool FindCuts_TangentTrace(LightMapper_Base &base, int tx, int ty, Ray r, float max_dist);
 	void FindMeshes(Spatial * pNode);
 
 	bool Create_FromMesh(int mesh_id, int width, int height);
