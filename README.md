@@ -1,9 +1,9 @@
 # godot-llightmap
 * Lightmap module for Godot Engine 3.2.2 or later
 * Version 0.30 (August 31, 2020)
+* Releases (pre-compiled) are available here: https://github.com/lawnjelly/godot-titan
 * Lightmaps created can be used with standard Godot builds and templates, i.e. you only need the module for a preprocess
 * (work in progress, there may be bugs, especially in the uv mapping but it is usable)
-* See https://github.com/lawnjelly/godot-titan for pre-compiled builds
 
 <img src="/pics/llightmap_01screen.png" alt="screenshot" width="400"/>
 
