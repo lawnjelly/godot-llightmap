@@ -65,6 +65,10 @@ These need to be passed to the material shader as uniforms:
 	mat.set_shader_param("light_indirect", sample.light_indirect)
 ```
 
+2) The shader performs the magic, by calculating diffuse, ambient and specular lighting from this sample.
+
+I will provide some example shaders, which can be used 'as is', but feel free to modify these to get the effect you are after in your particular game.
+
 
 
 
