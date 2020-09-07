@@ -1,6 +1,6 @@
 # godot-llightmap
 * Lightmap module for Godot Engine 3.2.2 or later
-* Version 0.30 (August 31, 2020)
+* Version 0.31 (September 7th, 2020)
 * Lightmaps created can be used with standard Godot builds and templates, i.e. you only need the module for a preprocess
 * (work in progress, there may be bugs, especially in the uv mapping but it is usable)
 
@@ -30,12 +30,12 @@ https://www.youtube.com/watch?v=pBpF2raGA8A
 * Omnis, Spotlights, Directional lights
 * Emissive materials
 * Transparency
+* Light Probes for realtime lighting of dynamic objects
 
 ### Still todo
 * Sky panorama textures
 * Roughness / metal from source textures for PBR reflections
 * Option of multiple lightmaps
-* Light probes (probably simple and compact format, and maybe read via gdscript addon so no need to compile engine)
 
 ## Instructions
 ### Shader
@@ -129,6 +129,9 @@ Merging is much faster than baking lights, or AO. This is because baking require
 * You also don't need the intermediate lights and ao exr files. These should be deleted to reduce the export size of your game.
 * Instead of using the final png, you can alternatively use an exr file for your lightmap (it will contain more accurate colors, with higher dynamic range). For mobile use png is still recommended.
 * At the moment it is recommended to run noise reduction on the final lightmap with an image editing program (e.g. gimp, photoshop). Soon OpenImageDenoise will be in core and I will add a hook to use that as soon as available, which will make this more user friendly.
+
+## Realtime lighting (Light probes)
+See [LIGHT_PROBES.md](LIGHT_PROBES.md) for full information on using light probes
 
 ## Installation
 * Get the latest godot engine 3.2 source, NOT 3.2 stable, it should be 3.2.2 or later as there has been a change to xatlas since then (commit 1bd5188 specifically, June 4th 2020):
