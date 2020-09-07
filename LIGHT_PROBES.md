@@ -52,7 +52,7 @@ At runtime there are two main areas that need to be dealt with:
 Ideally the light data would be sampled at runtime using fast c++ code, however this requires either a specially compiled version of the engine (and all templates for export platforms), or gdnative. For ease of distribution and compatibility I have therefore written an addon to load and sample the lightprobe data in gdscript. Later I will also make available a similar c++ module for those needing ultimate speed and prepared to compile templates.
 
 ### Using the gdscript LightProbes addon
-The light probe functionality is contained within a single file, `lightprobes.gd`. You don't need to install this, just include it somewhere within your project.
+The light probe functionality is contained within a single file, [lightprobes.gd](runtime/lightprobes.gd). You don't need to install this, just include it somewhere within your project.
 
 Once `lightprobes.gd` is part of the project, you will be able to create a LightProbes object to handle the runtime tasks.
 
