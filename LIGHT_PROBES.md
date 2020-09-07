@@ -34,6 +34,15 @@ Unlike much of Godot, LLightmap is designed from the get go for high performance
 
 My aim is to produce level probe data files that when compressed come to around 50kb or less. This should allow a typical 20 level game to use 1 meg for light probe data.
 
+## Baking Probes
+* Simply create your lightmap as usual, making sure the output exr file is present for the lightmap (the AO is not used).
+* Once you are happy with the lightmap, change the bake mode to `Light Probes`.
+* Click `bake`.
+* The data file (needed at runtime) will be output to the exact same folder / filename as your combined filename, except the extension will be changed to `.probe`. You might want to keep your combined lightmap (e.g. PNG) and the probe file together for each level.
+* When baking probes, there are some settings in the `Light Probes` rollout in the inspector for the LLightmap node.
+* Probe density determines how many probes are used. More probes gives more resolution, but larger data file sizes. You may need higher density on larger maps, but note that the number of probes is roughly the cube of this value, so data sizes / bake times may increase exponentially. 
+* Probe samples. This determines how many samples are taken for indirect lighting, and against each light. The default should be fine, however you can reduce it for rough versions.
+
 ## Runtime
 At runtime there are two main areas that need to be dealt with:
 
