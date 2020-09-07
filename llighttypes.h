@@ -140,6 +140,23 @@ struct FColor
 		g = (g * mf) + (o.g * f);
 		b = (b * mf) + (o.b * f);
 	}
+	void To_u8(uint8_t &rr, uint8_t &gg, uint8_t &bb, float m) const
+	{
+		rr = _FloatToU8(r, m);
+		gg = _FloatToU8(g, m);
+		bb = _FloatToU8(b, m);
+	}
+	void To(Color &col) const {col.r = r; col.g = g; col.b = b; col.a = 1.0f;}
+private:
+	uint8_t _FloatToU8(float f, float m) const
+	{
+		f *= m;
+		f *= 255.0f;
+
+		int i = f;
+		i = CLAMP(i, 0, 255);
+		return i;
+	}
 };
 
 struct FRay

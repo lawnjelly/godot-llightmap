@@ -62,6 +62,7 @@ public:
 		LMBAKEMODE_LIGHTMAP,
 		LMBAKEMODE_AO,
 		LMBAKEMODE_MERGE,
+		LMBAKEMODE_PROBES,
 		LMBAKEMODE_COMBINED,
 	};
 
@@ -83,6 +84,8 @@ public:
 	static BakeEndFunc bake_end_function;
 
 protected:
+	void Base_Reset();
+
 	void FindLights_Recursive(const Node * pNode);
 	void FindLight(const Node * pNode);
 	void PrepareLights();
@@ -94,7 +97,7 @@ protected:
 	void WriteOutputImage_Lightmap(Image &image);
 	void WriteOutputImage_AO(Image &image);
 
-	void LoadLightmap(Image &image);
+	bool LoadLightmap(Image &image);
 	void LoadAO(Image &image);
 
 	void Merge_AndWriteOutputImage_Combined(Image &image);
@@ -220,8 +223,17 @@ public:
 	String m_Settings_UVFilename;
 	int m_Settings_UVPadding;
 
-	bool m_Settings_Process_Lightmap;
-	bool m_Settings_Process_AO;
+	String m_Settings_ProbeFilename;
+	int m_Settings_ProbeDensity; // number of units on largest axis
+	int m_Settings_ProbeSamples;
+
+	// some internal logic based on the bake state
+	bool m_Logic_Process_Lightmap;
+	bool m_Logic_Process_AO;
+	bool m_Logic_Process_Probes;
+
+	bool m_Logic_Reserve_AO;
+	bool m_Logic_Output_Final;
 
 	LightMapper_Base();
 protected:

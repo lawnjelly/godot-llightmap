@@ -15,6 +15,11 @@ public:
 		m_uiNumPixels = 0;
 	}
 
+	void Reset()
+	{
+		Create(0, 0);
+	}
+
 	void Create(uint32_t width, uint32_t height, bool blank = true)
 	{
 		m_uiWidth = width;

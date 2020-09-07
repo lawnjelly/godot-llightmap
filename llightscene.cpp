@@ -910,7 +910,7 @@ void LightScene::RasterizeTriangleIDs(LightMapper_Base &base, LightImage<uint32_
 	// create a temporary image of vectors to store the triangles per texel
 	LightImage<Vector<uint32_t> > temp_image_tris;
 
-	if (base.m_Settings_Process_AO)
+	if (base.m_Logic_Process_AO)
 		temp_image_tris.Create(width, height, false);
 
 	for (int n=0; n<m_UVTris.size(); n++)
@@ -949,7 +949,7 @@ void LightScene::RasterizeTriangleIDs(LightMapper_Base &base, LightImage<uint32_
 				if (tri.ContainsPoint(Vector2(s, t)))
 				//if (tri.ContainsTexel(x, y, width , height))
 				{
-					if (base.m_Settings_Process_AO)
+					if (base.m_Logic_Process_AO)
 						temp_image_tris.GetItem(x, y).push_back(n);
 
 					uint32_t &id_p1 = im_p1.GetItem(x, y);
@@ -982,7 +982,7 @@ void LightScene::RasterizeTriangleIDs(LightMapper_Base &base, LightImage<uint32_
 	} // for tri
 
 
-	if (base.m_Settings_Process_AO)
+	if (base.m_Logic_Process_AO)
 	{
 		// translate temporary image vectors into mini lists
 		for (int y=0; y<height; y++)

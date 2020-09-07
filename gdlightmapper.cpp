@@ -13,6 +13,7 @@ void LLightmap::_bind_methods()
 	BIND_ENUM_CONSTANT(LLightmap::BAKEMODE_LIGHTMAP);
 	BIND_ENUM_CONSTANT(LLightmap::BAKEMODE_AO);
 	BIND_ENUM_CONSTANT(LLightmap::BAKEMODE_MERGE);
+	BIND_ENUM_CONSTANT(LLightmap::BAKEMODE_PROBES);
 	BIND_ENUM_CONSTANT(LLightmap::BAKEMODE_COMBINED);
 
 	BIND_ENUM_CONSTANT(LLightmap::QUALITY_LOW);
@@ -44,6 +45,9 @@ void LLightmap::_bind_methods()
 	ClassDB::bind_method(D_METHOD("set_uv_filename", "uv_filename"), &LLightmap::set_uv_filename);
 	ClassDB::bind_method(D_METHOD("get_uv_filename"), &LLightmap::get_uv_filename);
 
+//	ClassDB::bind_method(D_METHOD("set_probe_filename", "probe_filename"), &LLightmap::set_probe_filename);
+//	ClassDB::bind_method(D_METHOD("get_probe_filename"), &LLightmap::get_probe_filename);
+
 
 #define LIMPL_PROPERTY(P_TYPE, P_NAME, P_SET, P_GET) ClassDB::bind_method(D_METHOD(LIGHTMAP_TOSTRING(P_SET), LIGHTMAP_TOSTRING(P_NAME)), &LLightmap::P_SET);\
 ClassDB::bind_method(D_METHOD(LIGHTMAP_TOSTRING(P_GET)), &LLightmap::P_GET);\
@@ -58,7 +62,7 @@ ADD_PROPERTY(PropertyInfo(P_TYPE, LIGHTMAP_TOSTRING(P_NAME), PROPERTY_HINT_RANGE
 
 
 	ADD_GROUP("Main", "");
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "bake_mode", PROPERTY_HINT_ENUM, "UVMap,Lightmap,AO,Merge,Combined"), "set_bake_mode", "get_bake_mode");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "bake_mode", PROPERTY_HINT_ENUM, "UVMap,Lightmap,AO,Merge,LightProbes,Combined"), "set_bake_mode", "get_bake_mode");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "mode", PROPERTY_HINT_ENUM, "Forward,Backward"), "set_mode", "get_mode");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "quality", PROPERTY_HINT_ENUM, "Low,Medium,High,Final"), "set_quality", "get_quality");
 	LIMPL_PROPERTY(Variant::NODE_PATH, meshes, set_mesh_path, get_mesh_path);
@@ -105,6 +109,11 @@ ADD_PROPERTY(PropertyInfo(P_TYPE, LIGHTMAP_TOSTRING(P_NAME), PROPERTY_HINT_RANGE
 	LIMPL_PROPERTY(Variant::REAL, normalize_multiplier, set_normalize_multiplier, get_normalize_multiplier);
 	LIMPL_PROPERTY_RANGE(Variant::REAL, ao_light_ratio, set_light_ao_ratio, get_light_ao_ratio, "0.0,1.0,0.01");
 	LIMPL_PROPERTY_RANGE(Variant::REAL, gamma, set_gamma, get_gamma, "0.01,10.0,0.01");
+
+	ADD_GROUP("Light Probes", "");
+	LIMPL_PROPERTY_RANGE(Variant::INT, probe_density, set_probe_density, get_probe_density, "1,512,1");
+	LIMPL_PROPERTY_RANGE(Variant::INT, probe_samples, set_probe_samples, get_probe_samples, "512,4096*8,512");
+//	ADD_PROPERTY(PropertyInfo(Variant::STRING, "probe_filename", PROPERTY_HINT_SAVE_FILE, "*.probe"), "set_probe_filename", "get_probe_filename");
 
 	ADD_GROUP("UV Unwrap", "");
 	LIMPL_PROPERTY_RANGE(Variant::INT, uv_padding, set_uv_padding, get_uv_padding, "0,256,1");
@@ -183,6 +192,7 @@ int LLightmap::get_material_size() const {return m_LM.m_Settings_Max_Material_Si
 void LLightmap::set_voxel_density(int density) {m_LM.m_Settings_VoxelDensity = density;}
 int LLightmap::get_voxel_density() const {return m_LM.m_Settings_VoxelDensity;}
 
+
 void LLightmap::set_surface_bias(float bias) {m_LM.m_Settings_SurfaceBias = bias;}
 float LLightmap::get_surface_bias() const {return m_LM.m_Settings_SurfaceBias;}
 
@@ -203,6 +213,16 @@ String LLightmap::get_uv_filename() const {return m_LM.m_Settings_UVFilename;}
 
 void LLightmap::set_uv_padding(int pad) {m_LM.m_Settings_UVPadding = pad;}
 int LLightmap::get_uv_padding() const {return m_LM.m_Settings_UVPadding;}
+
+// probes
+void LLightmap::set_probe_density(int density) {m_LM.m_Settings_ProbeDensity = density;}
+int LLightmap::get_probe_density() const {return m_LM.m_Settings_ProbeDensity;}
+
+void LLightmap::set_probe_samples(int samples) {m_LM.m_Settings_ProbeSamples = samples;}
+int LLightmap::get_probe_samples() const {return m_LM.m_Settings_ProbeSamples;}
+
+//void LLightmap::set_probe_filename(const String &p_filename) {m_LM.m_Settings_ProbeFilename = p_filename;}
+//String LLightmap::get_probe_filename() const {return m_LM.m_Settings_ProbeFilename;}
 
 #define LLIGHTMAP_IMPLEMENT_SETGET_FILENAME(SET_FUNC_NAME, GET_FUNC_NAME, SETTING, SETTING_HDR) void LLightmap::SET_FUNC_NAME(const String &p_filename)\
 {\
@@ -313,7 +333,7 @@ bool LLightmap::lightmap_bake()
 	lightmap_bake_to_image(image_lightmap.ptr(), image_ao.ptr(), image_combined.ptr());
 
 	// save the images, png or exr
-	if (m_LM.m_Settings_Process_Lightmap)
+	if (m_LM.m_Logic_Process_Lightmap)
 	{
 		if (m_LM.m_Settings_LightmapIsHDR)
 		{
@@ -326,7 +346,7 @@ bool LLightmap::lightmap_bake()
 		}
 	}
 
-	if (m_LM.m_Settings_Process_AO)
+	if (m_LM.m_Logic_Process_AO)
 	{
 		if (m_LM.m_Settings_AmbientIsHDR)
 		{
@@ -339,17 +359,21 @@ bool LLightmap::lightmap_bake()
 		}
 	}
 
-	if (m_LM.m_Settings_CombinedIsHDR)
+	// only if making final output
+	if (m_LM.m_Logic_Output_Final)
 	{
-		String szGlobalPath = ProjectSettings::get_singleton()->globalize_path(m_LM.m_Settings_CombinedFilename);
-		image_combined->save_exr(szGlobalPath, false);
-	}
-	else
-	{
-		image_combined->save_png(m_LM.m_Settings_CombinedFilename);
-	}
+		if (m_LM.m_Settings_CombinedIsHDR)
+		{
+			String szGlobalPath = ProjectSettings::get_singleton()->globalize_path(m_LM.m_Settings_CombinedFilename);
+			image_combined->save_exr(szGlobalPath, false);
+		}
+		else
+		{
+			image_combined->save_png(m_LM.m_Settings_CombinedFilename);
+		}
 
-	ResourceLoader::import(m_LM.m_Settings_CombinedFilename);
+		ResourceLoader::import(m_LM.m_Settings_CombinedFilename);
+	}
 
 	return true;
 }

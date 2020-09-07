@@ -159,35 +159,56 @@ void LightMapper::Reset()
 	m_Lights.clear(true);
 	m_Scene.Reset();
 	RayBank_Reset();
+	Base_Reset();
 }
 
 void LightMapper::Refresh_Process_State()
 {
+	// defaults
+	m_Logic_Process_Lightmap = true;
+	m_Logic_Process_AO = true;
+	m_Logic_Reserve_AO = true;
+	m_Logic_Process_Probes = false;
+	m_Logic_Output_Final = true;
+
 	// process states
 	switch (m_Settings_BakeMode)
 	{
+	case LMBAKEMODE_PROBES:
+		{
+			m_Logic_Process_Probes = true;
+			m_Logic_Process_Lightmap = false;
+			m_Logic_Process_AO = false;
+			m_Logic_Output_Final = false;
+		}
+		break;
 	case LMBAKEMODE_LIGHTMAP:
 		{
-			m_Settings_Process_Lightmap = true;
-			m_Settings_Process_AO = false;
+			m_Logic_Process_AO = false;
+			m_Logic_Reserve_AO = false;
 		}
 		break;
 	case LMBAKEMODE_AO:
 		{
-			m_Settings_Process_Lightmap = false;
-			m_Settings_Process_AO = true;
+			m_Logic_Process_Lightmap = false;
 		}
 		break;
 	case LMBAKEMODE_MERGE:
 		{
-			m_Settings_Process_Lightmap = false;
-			m_Settings_Process_AO = false;
+			m_Logic_Process_Lightmap = false;
+			m_Logic_Process_AO = false;
+		}
+		break;
+	case LMBAKEMODE_UVMAP:
+		{
+			m_Logic_Process_Lightmap = false;
+			m_Logic_Process_AO = false;
+			m_Logic_Reserve_AO = false;
+			m_Logic_Output_Final = false;
 		}
 		break;
 	default:
 		{
-			m_Settings_Process_Lightmap = true;
-			m_Settings_Process_AO = true;
 		}
 		break;
 	}
@@ -216,22 +237,13 @@ bool LightMapper::LightmapMesh(Spatial * pMeshesRoot, const Spatial &light_root,
 	m_Image_L_mirror.Create(m_iWidth, m_iHeight);
 
 	// whether we need storage
-	switch (m_Settings_BakeMode)
-	{
-	case LMBAKEMODE_LIGHTMAP:
-	case LMBAKEMODE_UVMAP:
-		break;
-	default:
-		{
-			m_Image_AO.Create(m_iWidth, m_iHeight);
-		}
-		break;
-	}
+	if (m_Logic_Reserve_AO)
+		m_Image_AO.Create(m_iWidth, m_iHeight);
 
 	if (m_Settings_BakeMode != LMBAKEMODE_MERGE)
 	{
-
-		m_QMC.Create(m_AdjustedSettings.m_AO_Samples);
+		if (m_Logic_Process_AO)
+			m_QMC.Create(m_AdjustedSettings.m_AO_Samples);
 
 		uint32_t before, after;
 		FindLights_Recursive(&light_root);
@@ -241,7 +253,7 @@ bool LightMapper::LightmapMesh(Spatial * pMeshesRoot, const Spatial &light_root,
 		m_Image_ID_p1.Create(m_iWidth, m_iHeight);
 		//m_Image_ID2_p1.Create(m_iWidth, m_iHeight);
 
-		if (m_Settings_Process_AO)
+		if (m_Logic_Process_AO)
 		{
 			m_Image_TriIDs.Create(m_iWidth, m_iHeight);
 			m_TriIDs.clear(true);
@@ -276,7 +288,7 @@ bool LightMapper::LightmapMesh(Spatial * pMeshesRoot, const Spatial &light_root,
 		if (m_bCancel)
 			return false;
 
-		if (m_Settings_Process_AO)
+		if (m_Logic_Process_AO)
 		{
 			print_line("ProcessAO");
 			before = OS::get_singleton()->get_ticks_msec();
@@ -286,7 +298,7 @@ bool LightMapper::LightmapMesh(Spatial * pMeshesRoot, const Spatial &light_root,
 		}
 
 
-		if (m_Settings_Process_Lightmap)
+		if (m_Logic_Process_Lightmap)
 		{
 			print_line("ProcessTexels");
 			before = OS::get_singleton()->get_ticks_msec();
@@ -299,18 +311,26 @@ bool LightMapper::LightmapMesh(Spatial * pMeshesRoot, const Spatial &light_root,
 			}
 			after = OS::get_singleton()->get_ticks_msec();
 			print_line("ProcessTexels took " + itos(after -before) + " ms");
+		}
 
+		if (m_Logic_Process_Probes)
+		{
 			// calculate probes
 			print_line("ProcessProbes");
-			ProcessLightProbes();
-
+			if (LoadLightmap(out_image_lightmap))
+			{
+				ProcessLightProbes();
+			}
 		}
 
 		if (m_bCancel)
 			return false;
 
-		WriteOutputImage_Lightmap(out_image_lightmap);
-		WriteOutputImage_AO(out_image_ao);
+		if (!m_Logic_Process_Probes)
+		{
+			WriteOutputImage_Lightmap(out_image_lightmap);
+			WriteOutputImage_AO(out_image_ao);
+		}
 
 	} // if not just merging
 	else
@@ -322,7 +342,8 @@ bool LightMapper::LightmapMesh(Spatial * pMeshesRoot, const Spatial &light_root,
 
 	//	print_line("WriteOutputImage");
 	//	before = OS::get_singleton()->get_ticks_msec();
-	Merge_AndWriteOutputImage_Combined(out_image_combined);
+	if (m_Logic_Output_Final)
+		Merge_AndWriteOutputImage_Combined(out_image_combined);
 	//	after = OS::get_singleton()->get_ticks_msec();
 	//	print_line("WriteOutputImage took " + itos(after -before) + " ms");
 
@@ -420,7 +441,7 @@ void LightMapper::ProcessTexels_Bounce(int section_size, int num_sections)
 
 void LightMapper::ProcessTexels()
 {
-	int nCores = OS::get_singleton()->get_processor_count();
+	//int nCores = OS::get_singleton()->get_processor_count();
 
 	int section_size = m_iHeight / 64; //nCores;
 	int num_sections = m_iHeight / section_size;
@@ -750,9 +771,33 @@ void LightMapper::ProcessTexel_Light(int light_id, const Vector3 &ptSource, cons
 void LightMapper::ProcessLightProbes()
 {
 	LightProbes probes;
-	probes.Create(*this);
+	int stages = probes.Create(*this);
+	if (stages != -1)
+	{
+		if (bake_begin_function) {
+			bake_begin_function(stages);
+		}
 
 
+		for (int n=0; n<stages; n++)
+		{
+			if (bake_step_function)
+			{
+				m_bCancel = bake_step_function(n, String("Process LightProbes: ") + " (" + itos(n) + ")");
+				if (m_bCancel)
+					break;
+			}
+
+			probes.Process(n);
+		}
+
+		if (!m_bCancel)
+			probes.Save();
+
+		if (bake_end_function) {
+			bake_end_function();
+		}
+	}
 
 }
 
@@ -802,6 +847,39 @@ FColor LightMapper::ProcessTexel_Bounce(int x, int y)
 
 	return total;
 }
+
+FColor LightMapper::Probe_CalculateIndirectLight(const Vector3 &pos)
+{
+	FColor total;
+	total.Set(0.0f);
+
+	// we will reuse the same routine from texel bounce
+	int nSamples = m_Settings_ProbeSamples;
+	int samples_counted = nSamples;
+
+	Vector3 ray_origin = pos;
+
+	for (int n=0; n<nSamples; n++)
+	{
+		// random normal
+		Vector3 norm;
+		RandomUnitDir(norm);
+
+		if (!ProcessTexel_Bounce_Sample(norm, ray_origin, total))
+		{
+			samples_counted--;
+		}
+
+	}
+
+	// some samples may have been missed due to transparency
+	if (samples_counted)
+		return total / samples_counted;
+
+
+	return total;
+}
+
 
 bool LightMapper::ProcessTexel_Bounce_Sample(const Vector3 &plane_norm, const Vector3 &ray_origin, FColor &total_col)
 {

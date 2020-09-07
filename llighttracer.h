@@ -94,6 +94,7 @@ public:
 //		v.z = CLAMP(v.z, 0, m_Dims.z-1);
 //	}
 
+	Vec3i EstimateVoxelDims(int voxel_density);
 private:
 	void CalculateWorldBound();
 	void CalculateVoxelDims(int voxel_density);

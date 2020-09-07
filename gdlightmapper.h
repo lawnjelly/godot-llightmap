@@ -20,6 +20,7 @@ public:
 		BAKEMODE_LIGHTMAP  = LM::LightMapper::LMBAKEMODE_LIGHTMAP,
 		BAKEMODE_AO = LM::LightMapper::LMBAKEMODE_AO,
 		BAKEMODE_MERGE = LM::LightMapper::LMBAKEMODE_MERGE,
+		BAKEMODE_PROBES = LM::LightMapper::LMBAKEMODE_PROBES,
 		BAKEMODE_COMBINED = LM::LightMapper::LMBAKEMODE_COMBINED,
 	};
 
@@ -139,6 +140,16 @@ public:
 
 	void set_uv_padding(int pad);
 	int get_uv_padding() const;
+
+	// Probes
+	void set_probe_density(int density);
+	int get_probe_density() const;
+
+	void set_probe_samples(int samples);
+	int get_probe_samples() const;
+
+//	void set_probe_filename(const String &p_filename);
+//	String get_probe_filename() const;
 
 private:
 	LM::LightMapper m_LM;
