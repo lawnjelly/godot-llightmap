@@ -51,6 +51,38 @@ At runtime there are two main areas that need to be dealt with:
 
 Ideally the light data would be sampled at runtime using fast c++ code, however this requires either a specially compiled version of the engine (and all templates for export platforms), or gdnative. For ease of distribution and compatibility I have therefore written an addon to load and sample the lightprobe data in gdscript. Later I will also make available a similar c++ module for those needing ultimate speed and prepared to compile templates.
 
+### Using the gdscript LightProbes addon
+The light probe functionality is contained within a single file, `lightprobes.gd`. You don't need to install this, just include it somewhere within your project.
+
+Once `lightprobes.gd` is part of the project, you will be able to create a LightProbes object to handle the runtime tasks.
+
+e.g. 
+```
+var m_Probes : LightProbes = LightProbes.new()
+
+func _ready():
+	m_Probes.load_file("res://Lightmaps/LightMap.probe")
+
+func _process(delta):
+	# where are we going to sample? roughly the middle of the dynamic object
+	# so I add a bit of height for the player feet
+	var sample_pos = m_MyObject.translation + Vector3(0, 0.5, 0)
+	
+	# make the sample - this returns a SampleResult structure
+	var sample = m_Probes.sample(sample_pos)
+	
+	# get the material from our mesh, we need this to set the shader uniforms
+	var mat : Material = m_Mesh.get_surface_material(0)
+
+	mat.set_shader_param("light_pos", sample.light_pos)
+	mat.set_shader_param("light_color", sample.light_color)
+	mat.set_shader_param("light_indirect", sample.light_color_indirect)
+```
+
+The above basically shows the workflow. You create a LightProbes object over the lifetime of your game, load the corresponding `probe` file when loading a level, then for each dynamic object you make a sample, then pass the information in the sample to the shader so it can render the lighting correctly.
+
+You may need to make the material unique for each object so that the uniforms are unique for each object (I'm not sure on this yet, this is untested).
+
 ### Shaders
 Although the shaders for the lightmaps are usually quite simple, the shaders for dynamic objects are a bit more complex. This is because they need to bypass the existing Godot lighting, and we do the lighting ourselves in the shader.
 
