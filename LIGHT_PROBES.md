@@ -70,6 +70,107 @@ These need to be passed to the material shader as uniforms:
 I will provide some example shaders, which can be used 'as is', but feel free to modify these to get the effect you are after in your particular game.
 
 
+## Appendix
 
+### Medium Quality
+Vertex lighting, using faux roughness term from blue channel in fragment shader
 
+```
+shader_type spatial;
+render_mode unshaded;
 
+uniform sampler2D texture_albedo : hint_albedo;
+uniform vec3 light_pos;
+uniform vec4 light_color;
+uniform vec4 light_indirect;
+
+varying vec3 v_specular;
+
+void vertex() {
+	// get view pos from camera matrix
+	vec4 view_pos = vec4(0, 0, 0, 1);
+	view_pos = CAMERA_MATRIX * view_pos;
+	
+	// absolute pain but there's a bug in the core shaders .. if skinning is applied
+	// then using world_vertex_coords breaks the skinning. So we have to do the world
+	// transform TWICE!! Once here, and once in the core shader.
+	
+	// get the vertex in world space
+	vec4 vert_world = WORLD_MATRIX * vec4(VERTEX, 1.0);
+	
+	// normal also needs to be transformed to world space
+	vec3 normal = normalize((WORLD_MATRIX * vec4(NORMAL, 0.0)).xyz);
+	
+	// view direction
+	vec3 vdir = vert_world.xyz - view_pos.xyz;
+	vdir = normalize(vdir);
+	
+	// light direction
+	vec3 ldir = (light_pos) - vert_world.xyz;
+
+	// normalize light direction and get distance to light at same time
+	float dist = length(ldir);
+
+	// could divide by zero but I don't think this should cause GPU to freak out
+	// GLES spec says divide by zero gives unspecified result, but mustn't interrupt shader
+	ldir *= (1.0 / dist);
+	
+	// the surface normal dot the light direction gives us our diffuse lighting
+	float d = dot(normal, ldir);
+	
+	// use dot product to calculate reflection direction of the light ray on the surface
+	vec3 rdir = ldir - (d * 2.0 * normal);
+	
+	// specular light blob depends on dot reflection direction to view dir
+	float dot_refl = dot(vdir, rdir);
+	
+	// don't want negative specular values
+	float specular = max(0.0, dot_refl);
+
+	// optional, apply a power operator to the specular highlight to get a finer blob	
+	//spec = pow(spec, 4);
+	
+	// diffuse light, should be none from behind the surface
+	d = max(0.0, d);
+	
+	// magic falloff, prevents divide by zero and more linear that just inverse square
+	dist += 10.0;
+	float falloff = 1.0 / (0.01 * (dist * dist));
+	falloff = max (0.0, falloff);
+	
+	d *= falloff;
+	specular *= falloff;
+	
+	// scale diffuse
+	d *= 0.8;
+	
+	// to test just the indirect lighting, set these both to zero
+	// d = 0.0;
+	// specular = 0.0f;
+	
+	// the diffuse + ambient color.
+	// we are letting the indirect light have some influence on the diffuse light here -
+	// this isn't necessary but is artistic licence.
+	COLOR = vec4(((light_color.rgb + light_indirect.rgb) * d) + light_indirect.rgb, 1);
+	
+	// the specular depends on the angles and the light color
+	v_specular = specular * light_color.rgb;
+}
+
+void fragment() {
+	// albedo color
+	vec4 albedo_tex = texture(texture_albedo,UV);
+	
+	// whole point of sending specular separately is we can apply some
+	// 'faux' roughness. We are just using part of the albedo for roughness,
+	// however this could be sent as a separate channel (e.g. alpha), however
+	// alpha is not present in some compressed formats.
+	vec3 spec = v_specular * (1.0 - albedo_tex.b);
+	
+	// the separate specular could be avoided on low power mobile, as the shader
+	// will run faster without roughness.
+	
+	// (diffuse + ambient + specular) * the albedo	
+	ALBEDO = (COLOR.rgb + spec) * albedo_tex.rgb;
+}
+```
