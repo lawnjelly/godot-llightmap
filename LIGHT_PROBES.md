@@ -72,7 +72,7 @@ func _process(delta):
 	var sample = m_Probes.sample(sample_pos)
 	
 	# get the material from our mesh, we need this to set the shader uniforms
-	var mat : Material = m_Mesh.get_surface_material(0)
+	var mat : Material = m_MeshInstance.get_surface_material(0)
 
 	mat.set_shader_param("light_pos", sample.light_pos)
 	mat.set_shader_param("light_color", sample.light_color)
@@ -82,6 +82,8 @@ func _process(delta):
 The above basically shows the workflow. You create a LightProbes object over the lifetime of your game, load the corresponding `probe` file when loading a level, then for each dynamic object you make a sample, then pass the information in the sample to the shader so it can render the lighting correctly.
 
 You may need to make the material unique for each object so that the uniforms are unique for each object (I'm not sure on this yet, this is untested).
+
+`m_MyObject` and `m_MeshInstance` refer to e.g. a spatial holding the object and the mesh instance. Or they could be the same. Make the best choice over whether to use global_transform or translation (which is a local translate) for your sample point - this will depend on your game.
 
 ### Shaders
 Although the shaders for the lightmaps are usually quite simple, the shaders for dynamic objects are a bit more complex. This is because they need to bypass the existing Godot lighting, and we do the lighting ourselves in the shader.
