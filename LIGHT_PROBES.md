@@ -78,23 +78,33 @@ I will provide some example shaders, which can be used 'as is', but feel free to
 
 ```
 shader_type spatial;
+
+// we will be doing all the lighting ourself
 render_mode unshaded;
 
+// this is your opportunity to set the model texture
 uniform sampler2D texture_albedo : hint_albedo;
+
+// for lighting to work, you must update these uniforms each frame
+// see the light probes documentation
 uniform vec3 light_pos;
 uniform vec4 light_color;
 uniform vec4 light_indirect;
 
+// specular is interpolated separately to diffuse + ambient in this shader
 varying vec3 v_specular;
 
 void vertex() {
-	// get view pos from camera matrix
+	// Get the camera position in world space
+	// by transforming a point at the origin by the camera matrix
 	vec4 view_pos = vec4(0, 0, 0, 1);
 	view_pos = CAMERA_MATRIX * view_pos;
 	
 	// absolute pain but there's a bug in the core shaders .. if skinning is applied
 	// then using world_vertex_coords breaks the skinning. So we have to do the world
 	// transform TWICE!! Once here, and once in the core shader.
+	// Note that this step can potentially be avoided in non-skinned models
+	// for better performance.
 	
 	// get the vertex in world space
 	vec4 vert_world = WORLD_MATRIX * vec4(VERTEX, 1.0);
