@@ -27,3 +27,45 @@ This approach can work very well, although it doesn't deal with dynamic shadows.
 * No dynamic shadows (but can help with schemes for dynamic shadows)
 * Require some thought to shaders to make use of them
 
+## Priorities
+There are a number of tradeoffs involved in the size of the lightprobe data, the information stored, the speed at runtime and the final quality of the result.
+
+Unlike much of Godot, LLightmap is designed from the get go for high performance on low powered hardware, especially mobiles. As such the primary lightprobes are designed to take up very little data (for small download sizes), and to run as fast as possible. It is possible that I may add an optional higher quality lightprobe system at a later date.
+
+My aim is to produce level probe data files that when compressed come to around 50kb or less. This should allow a typical 20 level game to use 1 meg for light probe data.
+
+## Runtime
+At runtime there are two main areas that need to be dealt with:
+
+1) Loading and sampling the light data
+2) Shaders that turn these samples into lighting that looks good
+
+Ideally the light data would be sampled at runtime using fast c++ code, however this requires either a specially compiled version of the engine (and all templates for export platforms), or gdnative. For ease of distribution and compatibility I have therefore written an addon to load and sample the lightprobe data in gdscript. Later I will also make available a similar c++ module for those needing ultimate speed and prepared to compile templates.
+
+### Shaders
+Although the shaders for the lightmaps are usually quite simple, the shaders for dynamic objects are a bit more complex. This is because they need to bypass the existing Godot lighting, and we do the lighting ourselves in the shader.
+
+The process is as follows, for an example player:
+
+1) Sample the lightdata at a point roughly in the centre of the player. This will provide us:
+
+* Ambient indirect light color
+* Primary light position
+* Primary light color
+
+These need to be passed to the material shader as uniforms:
+
+```
+	var sample = m_Probes.sample(sample_pos)
+
+	var mat : Material = mesh_instance.get_surface_material(0)
+
+	mat.set_shader_param("light_pos", sample.light_pos)
+	mat.set_shader_param("light_color", sample.light_color)
+	mat.set_shader_param("light_indirect", sample.light_indirect)
+```
+
+
+
+
+
