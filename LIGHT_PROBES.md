@@ -73,7 +73,8 @@ I will provide some example shaders, which can be used 'as is', but feel free to
 ## Appendix
 
 ### Medium Quality
-Vertex lighting, using faux roughness term from blue channel in fragment shader
+* Vertex lighting, using faux roughness term from blue channel in fragment shader
+* Suitable for skinned or non-animated models
 
 ```
 shader_type spatial;
