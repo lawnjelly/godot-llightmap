@@ -49,7 +49,7 @@ shader_type spatial;
 render_mode unshaded;
 
 // these 2 are optional, and although unused in the shader,
-// allow us to set materials to emit light
+// allow us to set materials to emit light in the lightmapping stage
 uniform float emission;
 uniform vec4 emission_color : hint_color;
 
