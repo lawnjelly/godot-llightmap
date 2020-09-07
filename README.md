@@ -152,7 +152,7 @@ I'm hoping to eventually make some builds for windows / linux x86_64 so users wo
 
 ### Tips
 * Set overall brightness with a combination of using a multiplier in the shader (see the example shader) and using `dynamic_range/normalize_bias` in the llightmap settings to make the lightmap overbright.
-* For each light, you can control the volumetric effect (soft or hard shadows) by changing the x, y, and z scale in the node `Transform` properties. Note that due to a bug / feature in Godot, light scales get reset every time you move them in the editor, which can be annoying.
+* For each light, you can control the volumetric effect (soft or hard shadows) by changing the x, y, and z scale in the node `Transform` properties. Note that due to a bug / feature in Godot, light scales get reset every time you move the light in the editor, which can be annoying.
 * Be sure to use bounces in order to get colors from textures. You can make a bounced scene darker by reducing the bounce power.
 * For each light you can scale power with the `energy` parameter, and change color.
 * For transparency, the material name should contain the string `_T_` (anywhere, at the end, start etc). And use a texture with alpha.
