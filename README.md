@@ -8,7 +8,7 @@
 * Go to https://github.com/lawnjelly/godot-titan
 * Click the releases and get the latest version
 
-<img src="/pics/llightmap_01screen.png" alt="screenshot" width="400"/>
+<img src="/pics/lightmap_02_screen.jpg" alt="screenshot" width="400"/>
 
 ## About
 While JFons is finishing off the new official core lightmapper for 3.2, I've spent some time playing making this toy lightmapper. It works so well I'm now going to be using it to replace the lightmapping functionality in my other module, lportal.
