@@ -292,6 +292,24 @@ float Triangle_CalculateTwiceAreaSquared(const Vector3 &a, const Vector3 &b, con
 	return vec.length_squared();
 }
 
+bool Triangle_IsDegenerate(const Vector3 &a, const Vector3 &b, const Vector3 &c, float epsilon)
+{
+	// not interested in the actual area, but numerical stability
+	Vector3 edge1 = b-a;
+	Vector3 edge2 = c - a;
+
+	edge1 *= 1024.0f;
+	edge2 *= 1024.0f;
+
+	Vector3 vec = edge1.cross(edge2);
+	float sl = vec.length_squared();
+
+	if (sl <= epsilon)
+		return true;
+
+	return false;
+}
+
 
 // check for invalid tris, or make a list of the valid triangles, depending on whether pOutputInds is set
 bool CheckForValidIndices(const PoolVector<int> &inds, const PoolVector<Vector3> &verts, LVector<int> * pOutputInds)
@@ -322,10 +340,9 @@ bool CheckForValidIndices(const PoolVector<int> &inds, const PoolVector<Vector3>
 			const Vector3 &p2 = verts[i2];
 
 			// if the area is zero, the triangle is invalid (will crash xatlas)
-			float area = Triangle_CalculateTwiceAreaSquared(p0, p1, p2);
-			if (area < 0.00001f)
+			if (Triangle_IsDegenerate(p0, p1, p2, 0.00001f))
 			{
-				//print_line("\t\tdetected zero area triangle, ignoring");
+				print_line("\t\tdetected zero area triangle, ignoring");
 				ok = false;
 			}
 		}

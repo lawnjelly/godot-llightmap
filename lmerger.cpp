@@ -147,6 +147,9 @@ void Merger::Merge_MeshInstance(const MeshInstance &mi, PoolVector<Vector3> &ver
 	PoolVector<int> p_indices = arrays[VS::ARRAY_INDEX];
 	//PoolVector<int>::Read ir = mesh_indices.read();
 
+	// NEW .. the checking for valid triangles should be on WORLD SPACE vertices,
+	// NOT model space
+
 	// special case, if no indices, create some
 	int num_indices_before = p_indices.size();
 	if (!EnsureIndicesValid(p_indices, p_vertices))
