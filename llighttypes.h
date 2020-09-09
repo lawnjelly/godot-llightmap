@@ -293,13 +293,13 @@ float Triangle_CalculateTwiceAreaSquared(const Vector3 &a, const Vector3 &b, con
 }
 
 
-void CheckForInvalidIndices(LVector<int> &r_invalid_tris, const PoolVector<int> &inds, const PoolVector<Vector3> &verts)
+// check for invalid tris, or make a list of the valid triangles, depending on whether pOutputInds is set
+bool CheckForValidIndices(const PoolVector<int> &inds, const PoolVector<Vector3> &verts, LVector<int> * pOutputInds)
 {
-	// check for invalid tris
-//	bool res = true;
-
-	int nTris = inds.size() / 3;
+	int nTris = inds.size();
+	nTris /= 3;
 	int indCount = 0;
+
 	for (int t=0; t<nTris; t++)
 	{
 		int i0 = inds[indCount++];
@@ -307,6 +307,8 @@ void CheckForInvalidIndices(LVector<int> &r_invalid_tris, const PoolVector<int> 
 		int i2 = inds[indCount++];
 
 		bool ok = true;
+
+		// if the indices are the same, the triangle is invalid
 		if (i0 == i1) ok = false;
 		if (i1 == i2) ok = false;
 		if (i0 == i2) ok = false;
@@ -319,36 +321,35 @@ void CheckForInvalidIndices(LVector<int> &r_invalid_tris, const PoolVector<int> 
 			const Vector3 &p1 = verts[i1];
 			const Vector3 &p2 = verts[i2];
 
+			// if the area is zero, the triangle is invalid (will crash xatlas)
 			float area = Triangle_CalculateTwiceAreaSquared(p0, p1, p2);
 			if (area < 0.00001f)
 			{
-				print_line("\t\tdetected zero area triangle, ignoring");
+				//print_line("\t\tdetected zero area triangle, ignoring");
 				ok = false;
 			}
 		}
 
 		if (ok)
 		{
-			//copy.push_back(i0); copy.push_back(i1); copy.push_back(i2);
+			// if the triangle is ok, we will output it if we are outputting
+			if (pOutputInds)
+			{
+				pOutputInds->push_back(i0);
+				pOutputInds->push_back(i1);
+				pOutputInds->push_back(i2);
+			}
 		}
 		else
 		{
-			r_invalid_tris.push_back(t);
-			//res = false;
+			// if triangle not ok, return failed check if we are not outputting
+			if (!pOutputInds)
+				return false;
 		}
+
 	}
 
-	// if any were invalid, copy the new list
-//	if (!res)
-//	{
-//		indices.resize(copy.size());
-//		for (int n=0; n<copy.size(); n++)
-//		{
-//			indices.set(n, copy[n]);
-//		}
-//	}
-
-//	return res;
+	return true;
 }
 
 bool EnsureIndicesValid(PoolVector<int> &indices, const PoolVector<Vector3> &verts)
@@ -361,6 +362,7 @@ bool EnsureIndicesValid(PoolVector<int> &indices, const PoolVector<Vector3> &ver
 		PoolVector<int>::Write write = indices.write();
 		int * pi = write.ptr();
 
+		// this is assuming each triangle vertex is unique
 		for (int n=0; n<verts.size(); n++)
 		{
 			*pi = n;
@@ -368,57 +370,25 @@ bool EnsureIndicesValid(PoolVector<int> &indices, const PoolVector<Vector3> &ver
 		}
 	}
 
-	LVector<int> invalid_tris;
-	CheckForInvalidIndices(invalid_tris, indices, verts);
-
-	if (!invalid_tris.size())
-		return true;
-
-	// we have found invalid tris.
-
-	// check for duplicated inds in a triangle.
-	LVector<int> copy;
-	copy.reserve(indices.size());
-
-	int nTris = indices.size() / 3;
-	int indCount = 0;
-
-	int invalid_count = 0;
-	int next_invalid_id = invalid_tris[0];
-
-	for (int t=0; t<nTris; t++)
+	if (!CheckForValidIndices(indices, verts, nullptr))
 	{
-		// is this tri invalid?
-		if (t == next_invalid_id)
-		{
-			invalid_count++;
-			if (invalid_count < invalid_tris.size())
-			{
-				next_invalid_id = invalid_tris[invalid_count];
-			}
-			continue;
-		}
+		LVector<int> new_inds;
+		CheckForValidIndices(indices, verts, &new_inds);
 
-
-		int i0 = indices[indCount++];
-		int i1 = indices[indCount++];
-		int i2 = indices[indCount++];
-		copy.push_back(i0); copy.push_back(i1); copy.push_back(i2);
-	}
-
-	// copy the new list
-	indices.resize(copy.size());
-	{
+		// copy the new indices
+		indices.resize(new_inds.size());
 		PoolVector<int>::Write write = indices.write();
 		int * pi = write.ptr();
 
-		for (int n=0; n<copy.size(); n++)
+		for (int n=0; n<new_inds.size(); n++)
 		{
-			pi[n] = copy[n];
+			pi[n] = new_inds[n];
 		}
+
+		return false;
 	}
 
-	return false;
+	return true;
 }
 
 

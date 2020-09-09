@@ -36,6 +36,12 @@ private:
 	FColor ProcessTexel_Bounce(int x, int y);
 	bool ProcessTexel_Bounce_Sample(const Vector3 &plane_norm, const Vector3 &ray_origin, FColor &total_col);
 
+	// new backward tracing experiment, by triangle
+	void Backward_TraceTriangles();
+	void Backward_TraceTriangle(int tri_id);
+	void Backward_TraceSample(int tri_id);
+
+
 	// light probes
 	void ProcessLightProbes();
 public:

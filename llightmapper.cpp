@@ -439,6 +439,35 @@ void LightMapper::ProcessTexels_Bounce(int section_size, int num_sections)
 }
 
 
+void LightMapper::Backward_TraceTriangles()
+{
+	for (int n=0; n<m_Scene.m_Tris.size(); n++)
+	{
+		Backward_TraceTriangle(n);
+	}
+}
+
+void LightMapper::Backward_TraceTriangle(int tri_id)
+{
+
+	const UVTri &tri = m_Scene.m_UVTris[tri_id];
+
+	float area = tri.CalculateTwiceArea();
+	if (area < 0.0f) area = -area;
+
+	int nSamples = area * 10.0f;
+
+	for (int n=0; n<nSamples; n++)
+	{
+		Backward_TraceSample(tri_id);
+	}
+}
+
+void LightMapper::Backward_TraceSample(int tri_id)
+{
+
+}
+
 void LightMapper::ProcessTexels()
 {
 	//int nCores = OS::get_singleton()->get_processor_count();

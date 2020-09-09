@@ -241,7 +241,7 @@ void LightProbes::CalculateProbe(const Vec3i &pt)
 			//pCont->power = CalculatePower(light, dist_to_light, pos);
 			pCont->power = (float) fClear / (float) (nSamples);
 
-			//print_line("\tprobe " + pt.ToString() + " light " + itos (l) + " power " + String(Variant(pCont->power)));
+			// print_line("\tprobe " + pt.ToString() + " light " + itos (l) + " power " + String(Variant(pCont->power)));
 		}
 
 	}

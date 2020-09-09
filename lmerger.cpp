@@ -148,9 +148,10 @@ void Merger::Merge_MeshInstance(const MeshInstance &mi, PoolVector<Vector3> &ver
 	//PoolVector<int>::Read ir = mesh_indices.read();
 
 	// special case, if no indices, create some
+	int num_indices_before = p_indices.size();
 	if (!EnsureIndicesValid(p_indices, p_vertices))
 	{
-		print_line("\tignoring INVALID TRIANGLES (duplicate indices) detected in " + mi.get_name() + ", num inds left " + itos(p_indices.size()));
+		print_line("\tignoring INVALID TRIANGLES (duplicate indices or zero area triangle) detected in " + mi.get_name() + ", num inds before / after " + itos (num_indices_before) + " / " + itos(p_indices.size()));
 	}
 
 	// no normals, can't do
