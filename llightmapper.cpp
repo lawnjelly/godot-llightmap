@@ -374,6 +374,9 @@ void LightMapper::ProcessTexels_Bounce(int section_size, int num_sections)
 {
 	m_Image_L_mirror.Blank();
 
+	// disable multithread
+	//num_sections = 0;
+
 	for (int s=0; s<num_sections; s++)
 	{
 		int section_start = s * section_size;
@@ -430,7 +433,13 @@ void LightMapper::ProcessTexels_Bounce(int section_size, int num_sections)
 		{
 			FColor col = m_Image_L.GetItem(x, y);
 
-			col += (m_Image_L_mirror.GetItem(x, y) * m_Settings_Backward_BouncePower);
+			FColor col_add = m_Image_L_mirror.GetItem(x, y) * m_Settings_Backward_BouncePower;
+
+//			assert (col_add.r >= 0.0f);
+//			assert (col_add.g >= 0.0f);
+//			assert (col_add.b >= 0.0f);
+
+			col += col_add;
 
 			m_Image_L.GetItem(x, y) = col;
 		}
@@ -689,6 +698,9 @@ void LightMapper::ProcessTexel_Light(int light_id, const Vector3 &ptSource, cons
 				r.o = ptSource;
 				r.d = ptDest - r.o;
 				r.d.normalize();
+
+				// safety
+				//assert (r.d.length() > 0.0f);
 
 			}
 			break;
@@ -998,6 +1010,8 @@ bool LightMapper::ProcessTexel_Bounce_Sample(const Vector3 &plane_norm, const Ve
 			else
 			{
 				total_col += (m_Image_L.GetItem(dx, dy) * falbedo);
+
+				//assert (total_col.r >= 0.0f);
 				break;
 			}
 		}

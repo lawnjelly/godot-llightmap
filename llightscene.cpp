@@ -972,7 +972,14 @@ void LightScene::RasterizeTriangleIDs(LightMapper_Base &base, LightImage<uint32_
 
 					// find barycentric coords
 					float u,v,w;
+
+					// note this returns NAN for degenerate triangles!
 					tri.FindBarycentricCoords(Vector2(s, t), u, v, w);
+
+//					assert (!isnan(u));
+//					assert (!isnan(v));
+//					assert (!isnan(w));
+
 					Vector3 &bary = im_bary.GetItem(x, y);
 					bary =Vector3(u,v,w);
 				}
