@@ -97,7 +97,7 @@ You can uv map scenes in a third party modelling program such as blender, but th
 5) This does a number of things by magic. First it merges all the marked geometry into a single mesh, then it unwraps the mesh, then it 'unmerges' the wrapped mesh back to the original objects. This is quite a complex process and can result in added vertices. Finally it saves the new uvmapped scene into the file we specified.
 6) As the mesh data has been altered, the original level mesh is deleted, and you should load in its place the UVmapped level that was exported. It is *highly recommended* to restart Godot IDE before loading in the UVmapped level (or at least close the main scene and reopen it) due to referencing bugs in Godot core.
 
-A backup of the original branch is saved to `uvmap_backup.tscn` in your project folder, just in case. You are highly recommended to keep a backup of your original level before uvmapping, for further editing etc.
+> A backup of the original branch is saved to `uvmap_backup.tscn` in your project folder, just in case. You are highly recommended to keep a backup of your original level before uvmapping, for further editing etc. You may also see a `merged_proxy.tscn` file in your project file. This is only saved for debugging purposes while LLightmap is in alpha version, you may safely delete it. _The proxy is the geometry that is used for UV mapping with xatlas before 'unmerging' back to the original meshes._
 
 #### Baking
 Once the scene is uvmapped, we can move onto the fun stage, baking some lightmaps.
