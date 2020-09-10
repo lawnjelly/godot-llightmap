@@ -10,6 +10,8 @@
 
 <img src="/pics/lightmap_02_screen.jpg" alt="screenshot" width="400"/>
 
+* My first lightmap tutorial: https://www.youtube.com/watch?v=QfNuHoRUwUo
+
 ## About
 While JFons is finishing off the new official core lightmapper for 3.2, I've spent some time playing making this toy lightmapper. It works so well I'm now going to be using it to replace the lightmapping functionality in my other module, lportal.
 
