@@ -529,15 +529,22 @@ void LightMapper_Base::Normalize()
 
 bool LightMapper_Base::LoadLightmap(Image &image)
 {
-	assert (image.get_width() == m_iWidth);
-	assert (image.get_height() == m_iHeight);
+//	assert (image.get_width() == m_iWidth);
+//	assert (image.get_height() == m_iHeight);
 
 	Error res = image.load(m_Settings_LightmapFilename);
 	if (res != OK)
 	{
-		WARN_PRINT_ONCE("LoadLightmap failed")
+		ShowWarning("Loading lights EXR failed.\n\n" + m_Settings_LightmapFilename);
 		return false;
 	}
+
+	if ((image.get_width() != m_iWidth) || (image.get_height() != m_iHeight))
+	{
+		ShowWarning("Loaded Lights texture file dimensions do not match project, ignoring.");
+		return false;
+	}
+
 
 	image.lock();
 	for (int y=0; y<m_iHeight; y++)
@@ -552,16 +559,22 @@ bool LightMapper_Base::LoadLightmap(Image &image)
 	return true;
 }
 
-void LightMapper_Base::LoadAO(Image &image)
+bool LightMapper_Base::LoadAO(Image &image)
 {
-	assert (image.get_width() == m_iWidth);
-	assert (image.get_height() == m_iHeight);
+//	assert (image.get_width() == m_iWidth);
+//	assert (image.get_height() == m_iHeight);
 
 	Error res = image.load(m_Settings_AmbientFilename);
 	if (res != OK)
 	{
-		WARN_PRINT_ONCE("LoadAO failed")
-		return;
+		ShowWarning("Loading AO EXR failed.\n\n" + m_Settings_AmbientFilename);
+		return false;
+	}
+
+	if ((image.get_width() != m_iWidth) || (image.get_height() != m_iHeight))
+	{
+		ShowWarning("Loaded AO texture file dimensions do not match project, ignoring.");
+		return false;
 	}
 
 	image.lock();
@@ -573,6 +586,8 @@ void LightMapper_Base::LoadAO(Image &image)
 		}
 	}
 	image.unlock();
+
+	return true;
 }
 
 
@@ -700,6 +715,19 @@ void LightMapper_Base::WriteOutputImage_AO(Image &image)
 	image.unlock();
 }
 
+
+void LightMapper_Base::ShowWarning(String sz, bool bAlert)
+{
+#ifdef TOOLS_ENABLED
+	EditorNode::get_singleton()->show_warning(TTR(sz));
+	WARN_PRINT(sz);
+
+//	if (bAlert)
+//		OS::get_singleton()->alert(sz, "WARNING");
+#else
+	WARN_PRINT(sz);
+#endif
+}
 
 
 void LightMapper_Base::WriteOutputImage_Lightmap(Image &image)

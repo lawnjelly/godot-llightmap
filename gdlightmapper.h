@@ -154,7 +154,7 @@ public:
 private:
 	LM::LightMapper m_LM;
 
-	void ShowWarning(String sz);
+	void ShowWarning(String sz, bool bAlert = true) {m_LM.ShowWarning(sz, bAlert);}
 
 protected:
 	static void _bind_methods();

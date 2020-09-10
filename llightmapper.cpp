@@ -13,6 +13,12 @@ namespace LM {
 
 bool LightMapper::uv_map_meshes(Spatial * pRoot)
 {
+	if (m_Settings_UVFilename == "")
+	{
+		ShowWarning("UV Filename is not set, aborting.");
+		return false;
+	}
+
 	CalculateQualityAdjustedSettings();
 
 	bool replace_mesh_scene = false;
@@ -72,7 +78,10 @@ bool LightMapper::uv_map_meshes(Spatial * pRoot)
 	{
 		Node * pOrigOwner = pRoot->get_owner();
 
-		saver.SaveScene(pRoot, m_Settings_UVFilename, true);
+		if (!saver.SaveScene(pRoot, m_Settings_UVFilename, true))
+		{
+			ShowWarning("Error saving UV mapped scene. Does the folder exist?\n\n" + m_Settings_UVFilename);
+		}
 
 		if (replace_mesh_scene)
 		{

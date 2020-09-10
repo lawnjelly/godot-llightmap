@@ -57,7 +57,7 @@ bool SceneSaver::SaveScene(Node * pNode, String szFilename, bool reset_filenames
 	ps->pack(pNode);
 
 	ResourceSaver rs;
-	rs.save(szFilename, ps);
+	Error err = rs.save(szFilename, ps);
 
 	// set back previous owner
 	SetOwnerRecursive(pNode, pPreviousOwner);
@@ -65,7 +65,7 @@ bool SceneSaver::SaveScene(Node * pNode, String szFilename, bool reset_filenames
 	// reimport
 //	ResourceLoader::import(szFilename);
 
-	return true;
+	return err == OK;
 }
 
 } // namespace

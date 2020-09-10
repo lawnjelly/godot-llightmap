@@ -83,6 +83,8 @@ public:
 	static BakeStepFunc bake_step_function;
 	static BakeEndFunc bake_end_function;
 
+	void ShowWarning(String sz, bool bAlert = true);
+
 protected:
 	void Base_Reset();
 
@@ -98,7 +100,7 @@ protected:
 	void WriteOutputImage_AO(Image &image);
 
 	bool LoadLightmap(Image &image);
-	void LoadAO(Image &image);
+	bool LoadAO(Image &image);
 
 	void Merge_AndWriteOutputImage_Combined(Image &image);
 

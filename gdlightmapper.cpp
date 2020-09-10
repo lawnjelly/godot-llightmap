@@ -72,6 +72,7 @@ ADD_PROPERTY(PropertyInfo(P_TYPE, LIGHTMAP_TOSTRING(P_NAME), PROPERTY_HINT_RANGE
 	ADD_PROPERTY(PropertyInfo(Variant::STRING, "lightmap_filename", PROPERTY_HINT_SAVE_FILE, "*.exr"), "set_lightmap_filename", "get_lightmap_filename");
 	ADD_PROPERTY(PropertyInfo(Variant::STRING, "ao_filename", PROPERTY_HINT_SAVE_FILE, "*.exr"), "set_ao_filename", "get_ao_filename");
 	ADD_PROPERTY(PropertyInfo(Variant::STRING, "combined_filename", PROPERTY_HINT_SAVE_FILE, "*.png,*.exr"), "set_combined_filename", "get_combined_filename");
+	ADD_PROPERTY(PropertyInfo(Variant::STRING, "uv_filename", PROPERTY_HINT_SAVE_FILE, "*.tscn"), "set_uv_filename", "get_uv_filename");
 
 
 	ADD_GROUP("Size", "");
@@ -93,9 +94,9 @@ ADD_PROPERTY(PropertyInfo(P_TYPE, LIGHTMAP_TOSTRING(P_NAME), PROPERTY_HINT_RANGE
 
 	ADD_GROUP("Backward Parameters", "");
 	LIMPL_PROPERTY(Variant::INT, b_initial_rays, set_backward_num_rays, get_backward_num_rays);
-	LIMPL_PROPERTY(Variant::REAL, b_ray_power, set_backward_ray_power, get_backward_ray_power);
 	LIMPL_PROPERTY(Variant::INT, b_bounce_rays, set_backward_num_bounce_rays, get_backward_num_bounce_rays);
 	LIMPL_PROPERTY_RANGE(Variant::INT, b_bounces, set_backward_num_bounces, get_backward_num_bounces, "0,16,1");
+	LIMPL_PROPERTY(Variant::REAL, b_ray_power, set_backward_ray_power, get_backward_ray_power);
 	LIMPL_PROPERTY(Variant::REAL, b_bounce_power, set_backward_bounce_power, get_backward_bounce_power);
 
 	ADD_GROUP("Ambient Occlusion", "");
@@ -117,7 +118,6 @@ ADD_PROPERTY(PropertyInfo(P_TYPE, LIGHTMAP_TOSTRING(P_NAME), PROPERTY_HINT_RANGE
 
 	ADD_GROUP("UV Unwrap", "");
 	LIMPL_PROPERTY_RANGE(Variant::INT, uv_padding, set_uv_padding, get_uv_padding, "0,256,1");
-	ADD_PROPERTY(PropertyInfo(Variant::STRING, "uv_filename", PROPERTY_HINT_SAVE_FILE, "*.tscn"), "set_uv_filename", "get_uv_filename");
 }
 
 void LLightmap::set_mode(LLightmap::eMode p_mode) {m_LM.m_Settings_Mode = (LM::LightMapper::eLMMode) p_mode;}
@@ -237,19 +237,45 @@ String LLightmap::GET_FUNC_NAME() const {return m_LM.SETTING;}
 
 LLIGHTMAP_IMPLEMENT_SETGET_FILENAME(set_lightmap_filename, get_lightmap_filename, m_Settings_LightmapFilename, m_Settings_LightmapIsHDR)
 LLIGHTMAP_IMPLEMENT_SETGET_FILENAME(set_ao_filename, get_ao_filename, m_Settings_AmbientFilename, m_Settings_AmbientIsHDR)
-LLIGHTMAP_IMPLEMENT_SETGET_FILENAME(set_combined_filename, get_combined_filename, m_Settings_CombinedFilename, m_Settings_CombinedIsHDR)
+//LLIGHTMAP_IMPLEMENT_SETGET_FILENAME(set_combined_filename, get_combined_filename, m_Settings_CombinedFilename, m_Settings_CombinedIsHDR)
+
+
+void LLightmap::set_combined_filename(const String &p_filename)
+{
+	String new_filename = p_filename;
+	String ext = new_filename.get_extension();
+
+	// no extension? default to png
+	if (ext == "")
+		new_filename += ".png";
+
+	m_LM.m_Settings_CombinedFilename = new_filename;
+
+	if (ext == "exr")
+		{m_LM.m_Settings_CombinedIsHDR = true;}
+	else
+		{m_LM.m_Settings_CombinedIsHDR = false;}
+}
+
+String LLightmap::get_combined_filename() const
+{
+	return m_LM.m_Settings_CombinedFilename;
+}
 
 
 #undef LLIGHTMAP_IMPLEMENT_SETGET_FILENAME
 
-void LLightmap::ShowWarning(String sz)
-{
-#ifdef TOOLS_ENABLED
-	EditorNode::get_singleton()->show_warning(TTR(sz));
-#else
-	WARN_PRINT(sz);
-#endif
-}
+//void LLightmap::ShowWarning(String sz, bool bAlert)
+//{
+//#ifdef TOOLS_ENABLED
+//	EditorNode::get_singleton()->show_warning(TTR(sz));
+
+//	if (bAlert)
+//		OS::get_singleton()->alert(sz, "WARNING");
+//#else
+//	WARN_PRINT(sz);
+//#endif
+//}
 
 
 bool LLightmap::uvmap()
@@ -338,7 +364,11 @@ bool LLightmap::lightmap_bake()
 		if (m_LM.m_Settings_LightmapIsHDR)
 		{
 			String szGlobalPath = ProjectSettings::get_singleton()->globalize_path(m_LM.m_Settings_LightmapFilename);
-			image_lightmap->save_exr(szGlobalPath, false);
+			print_line("saving lights EXR .. global path : " + szGlobalPath);
+			Error err = image_lightmap->save_exr(szGlobalPath, false);
+
+			if (err != OK)
+				OS::get_singleton()->alert("Error writing EXR file. Does this folder exist?\n\n" + m_LM.m_Settings_LightmapFilename, "WARNING");
 		}
 		else
 		{
@@ -351,7 +381,11 @@ bool LLightmap::lightmap_bake()
 		if (m_LM.m_Settings_AmbientIsHDR)
 		{
 			String szGlobalPath = ProjectSettings::get_singleton()->globalize_path(m_LM.m_Settings_AmbientFilename);
-			image_ao->save_exr(szGlobalPath, false);
+			print_line("saving ao EXR .. global path : " + szGlobalPath);
+			Error err = image_ao->save_exr(szGlobalPath, false);
+
+			if (err != OK)
+				OS::get_singleton()->alert("Error writing EXR file. Does this folder exist?\n\n" + m_LM.m_Settings_AmbientFilename, "WARNING");
 		}
 		else
 		{
@@ -362,17 +396,22 @@ bool LLightmap::lightmap_bake()
 	// only if making final output
 	if (m_LM.m_Logic_Output_Final)
 	{
+		Error err;
+
 		if (m_LM.m_Settings_CombinedIsHDR)
 		{
 			String szGlobalPath = ProjectSettings::get_singleton()->globalize_path(m_LM.m_Settings_CombinedFilename);
-			image_combined->save_exr(szGlobalPath, false);
+			err = image_combined->save_exr(szGlobalPath, false);
 		}
 		else
 		{
-			image_combined->save_png(m_LM.m_Settings_CombinedFilename);
+			err = image_combined->save_png(m_LM.m_Settings_CombinedFilename);
 		}
 
-		ResourceLoader::import(m_LM.m_Settings_CombinedFilename);
+		if (err == OK)
+			ResourceLoader::import(m_LM.m_Settings_CombinedFilename);
+		else
+			OS::get_singleton()->alert("Error writing combined file. Does this folder exist?\n\n" + m_LM.m_Settings_CombinedFilename, "WARNING");
 	}
 
 	return true;
