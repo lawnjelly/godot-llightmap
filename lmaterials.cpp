@@ -334,6 +334,12 @@ void LTexture::Sample(const Vector2 &uv, Color &col) const
 	float x = fmodf(uv.x, 1.0f);
 	float y = fmodf(uv.y, 1.0f);
 
+	// we need these because fmod can produce negative results
+	if (x < 0.0f)
+		x = 1.0f + x;
+	if (y < 0.0f)
+		y = 1.0f + y;
+
 	x *= width;
 	y *= height;
 
