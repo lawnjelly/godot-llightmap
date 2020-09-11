@@ -29,7 +29,7 @@ private:
 	void ProcessTexels();
 	void ProcessTexel_Line_MT(uint32_t offset_y, int start_y);
 	void ProcessTexel(int tx, int ty);
-	void ProcessTexel_Light(int light_id, const Vector3 &ptSource, const Vector3 &ptNormal, FColor &color); //, uint32_t tri_ignore);
+	void ProcessTexel_Light(int light_id, const Vector3 &ptSource, const Vector3 &ptNormal, FColor &color, int nSamples); //, uint32_t tri_ignore);
 
 	void ProcessTexels_Bounce(int section_size, int num_sections);
 	void ProcessTexels_Bounce_Line_MT(uint32_t offset_y, int start_y);

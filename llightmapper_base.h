@@ -255,6 +255,14 @@ protected:
 		return local_power;
 	}
 
+	float NormalizeAndFindLength(Vector3 &v) const
+	{
+		float l = v.length();
+		if (l > 0.0f)
+			v /= l;
+		return l;
+	}
+
 	float InverseSquareDropoff(float dist) const
 	{
 		dist *= 0.2f;

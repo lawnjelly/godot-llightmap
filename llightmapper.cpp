@@ -459,10 +459,38 @@ void LightMapper::ProcessTexels_Bounce(int section_size, int num_sections)
 
 void LightMapper::Backward_TraceTriangles()
 {
-	for (int n=0; n<m_Scene.m_Tris.size(); n++)
+	int nTris = m_Scene.m_Tris.size();
+
+	if (bake_begin_function) {
+		int progress_range = nTris;
+		bake_begin_function(progress_range);
+	}
+
+
+	for (int n=0; n<nTris; n++)
 	{
+
+		if ((n % 128) == 0)
+		{
+			if (bake_step_function) {
+				m_bCancel = bake_step_function(n, String("Process Backward Tris: ") + " (" + itos(n) + ")");
+				if (m_bCancel)
+				{
+					if (bake_end_function)
+						bake_end_function();
+					return;
+				}
+			}
+		}
+
+
 		Backward_TraceTriangle(n);
 	}
+
+	if (bake_end_function) {
+		bake_end_function();
+	}
+
 }
 
 void LightMapper::Backward_TraceTriangle(int tri_id)
@@ -473,7 +501,7 @@ void LightMapper::Backward_TraceTriangle(int tri_id)
 	float area = tri.CalculateTwiceArea();
 	if (area < 0.0f) area = -area;
 
-	int nSamples = area * 10.0f;
+	int nSamples = area * 400000.0f * m_AdjustedSettings.m_Backward_NumRays;
 
 	for (int n=0; n<nSamples; n++)
 	{
@@ -483,11 +511,79 @@ void LightMapper::Backward_TraceTriangle(int tri_id)
 
 void LightMapper::Backward_TraceSample(int tri_id)
 {
+	const UVTri &uv_tri = m_Scene.m_UVTris[tri_id];
+	const Tri &tri = m_Scene.m_Tris[tri_id];
 
+	// choose random point on triangle
+	Vector3 bary;
+	RandomBarycentric(bary);
+
+	// test, clamp the barycentric
+//	bary *= 0.998f;
+//	bary += Vector3(0.001f, 0.001f, 0.001f);
+
+
+	// get position in world space
+	Vector3 pos;
+	tri.InterpolateBarycentric(pos, bary);
+
+	// test, pull in a little
+	//pos = pos.linear_interpolate(tri.GetCentre(), 0.001f);
+
+	// get uv / texel position
+	Vector2 uv;
+	uv_tri.FindUVBarycentric(uv, bary);
+	uv.x *= m_iWidth;
+	uv.y *= m_iHeight;
+
+	// round?
+	int tx = uv.x;
+	int ty = uv.y;
+//	int tx = Math::round(uv.x);
+//	int ty = Math::round(uv.y);
+
+	// could be off the image
+	FColor * pTexel = m_Image_L.Get(tx, ty);
+	if (!pTexel)
+		return;
+
+	// apply bias
+	// add epsilon to pos to prevent self intersection and neighbour intersection
+	const Vector3 &plane_normal = m_Scene.m_TriPlanes[tri_id].normal;
+	pos += plane_normal * m_Settings_SurfaceBias;
+
+	// interpolated normal
+	Vector3 normal;
+	m_Scene.m_TriNormals[tri_id].InterpolateBarycentric(normal, bary.x, bary.y, bary.z);
+
+	FColor temp;
+	for (int l=0; l<m_Lights.size(); l++)
+	{
+		ProcessTexel_Light(l, pos, normal, temp, 1);
+		*pTexel += temp;
+	}
+
+	// add emission
+	Color emission_tex_color;
+	Color emission_color;
+	if (m_Scene.FindEmissionColor(tri_id, bary, emission_tex_color, emission_color))
+	{
+		FColor femm;
+		femm.Set(emission_tex_color);
+
+
+//		float power = m_Settings_Backward_RayPower * m_AdjustedSettings.m_Backward_NumRays * 128.0f;
+		float power = m_Settings_Backward_RayPower * 128.0f;
+
+		*pTexel += femm * power;
+	}
 }
 
 void LightMapper::ProcessTexels()
 {
+	//Backward_TraceTriangles();
+	//return;
+
 	//int nCores = OS::get_singleton()->get_processor_count();
 
 	int section_size = m_iHeight / 64; //nCores;
@@ -502,6 +598,9 @@ void LightMapper::ProcessTexels()
 
 
 	m_iNumTests = 0;
+
+	// prevent multithread
+	//num_sections = 0;
 
 	for (int s=0; s<num_sections; s++)
 	{
@@ -577,7 +676,7 @@ void LightMapper::ProcessTexel_Line_MT(uint32_t offset_y, int start_y)
 
 
 // trace from the poly TO the light, not the other way round, to avoid precision errors
-void LightMapper::ProcessTexel_Light(int light_id, const Vector3 &ptSource, const Vector3 &ptNormal, FColor &color)//, uint32_t tri_ignore)
+void LightMapper::ProcessTexel_Light(int light_id, const Vector3 &ptSource, const Vector3 &ptNormal, FColor &color, int nSamples)//, uint32_t tri_ignore)
 {
 	const LLight &light = m_Lights[light_id];
 
@@ -586,7 +685,7 @@ void LightMapper::ProcessTexel_Light(int light_id, const Vector3 &ptSource, cons
 	float power = light.energy;
 	power *= m_Settings_Backward_RayPower;
 
-	int nSamples = m_AdjustedSettings.m_Backward_NumRays;
+	//int nSamples = m_AdjustedSettings.m_Backward_NumRays;
 
 	// total light hitting texel
 	color.Set(0.0f);
@@ -621,10 +720,17 @@ void LightMapper::ProcessTexel_Light(int light_id, const Vector3 &ptSource, cons
 		// allow falloff for cones
 		float multiplier = 1.0f;
 
+		// if the hit point is further that the distance to the light, then it doesn't count
+		// must be set by the light type
+		float ray_length;
+
 		switch (light.type)
 		{
 		case LLight::LT_DIRECTIONAL:
 			{
+				// we set this to maximum, better not to check at all but makes code simpler
+				ray_length = FLT_MAX;
+
 				r.o = ptSource;
 				//r.d = -light.dir;
 
@@ -663,7 +769,9 @@ void LightMapper::ProcessTexel_Light(int light_id, const Vector3 &ptSource, cons
 
 					// offset from origin to destination texel
 					r.d = ptSource - r.o;
-					r.d.normalize();
+
+					// normalize and find length
+					ray_length = NormalizeAndFindLength(r.d);
 
 					dot = r.d.dot(light.dir);
 					//float angle = safe_acosf(dot);
@@ -706,7 +814,9 @@ void LightMapper::ProcessTexel_Light(int light_id, const Vector3 &ptSource, cons
 				// offset from origin to destination texel
 				r.o = ptSource;
 				r.d = ptDest - r.o;
-				r.d.normalize();
+
+				// normalize and find length
+				ray_length = NormalizeAndFindLength(r.d);
 
 				// safety
 				//assert (r.d.length() > 0.0f);
@@ -716,9 +826,13 @@ void LightMapper::ProcessTexel_Light(int light_id, const Vector3 &ptSource, cons
 		}
 
 
-		Vector3 ray_origin = r.o;
-		FColor sample_color = light.color;
+		// only bother tracing if the light is in front of the surface normal
+		float dot_light_surf = ptNormal.dot(r.d);
+		if (dot_light_surf <= 0.0f)
+			continue;
 
+		//Vector3 ray_origin = r.o;
+		FColor sample_color = light.color;
 		int panic_count = 32;
 
 		while (true)
@@ -737,6 +851,12 @@ void LightMapper::ProcessTexel_Light(int light_id, const Vector3 &ptSource, cons
 			//			int tri = m_Scene.IntersectRay(r, u, v, w, t, m_iNumTests);
 			//		}
 
+			// further away than the destination?
+			if (tri != -1)
+			{
+				if (t > ray_length)
+					tri = -1;
+			}
 
 			// nothing hit
 			if (tri == -1)
@@ -748,7 +868,8 @@ void LightMapper::ProcessTexel_Light(int light_id, const Vector3 &ptSource, cons
 				float local_power;
 
 				// no drop off for directional lights
-				float dist = (ptDest - ray_origin).length();
+				//float dist = (ptDest - ray_origin).length();
+				float dist = ray_length;
 				local_power = LightDistanceDropoff(dist, light, power);
 
 				// take into account normal
@@ -1064,8 +1185,8 @@ bool LightMapper::ProcessTexel_Bounce_Sample(const Vector3 &plane_norm, const Ve
 
 void LightMapper::ProcessTexel(int tx, int ty)
 {
-	//	if ((tx == 134) && (ty == 90))
-	//		print_line("testing");
+//		if ((tx == 13) && (ty == 284))
+//			print_line("testing");
 
 	// find triangle
 	uint32_t tri_id = *m_Image_ID_p1.Get(tx, ty);
@@ -1075,6 +1196,16 @@ void LightMapper::ProcessTexel(int tx, int ty)
 
 	// barycentric
 	const Vector3 &bary = *m_Image_Barycentric.Get(tx, ty);
+	Vector3 bary_clamped;// = bary;
+
+	// new .. cap the barycentric to prevent edge artifacts
+	const float clamp_margin = 0.0001f;
+	const float clamp_margin_high = 1.0f - clamp_margin;
+
+	bary_clamped.x = CLAMP(bary.x, clamp_margin, clamp_margin_high);
+	bary_clamped.y = CLAMP(bary.y, clamp_margin, clamp_margin_high);
+	bary_clamped.z = CLAMP(bary.z, clamp_margin, clamp_margin_high);
+
 
 	// we will trace
 	// FROM THE SURFACE TO THE LIGHT!!
@@ -1083,7 +1214,7 @@ void LightMapper::ProcessTexel(int tx, int ty)
 	// At the light end this doesn't matter, but if we trace the other way
 	// we get artifacts due to precision loss due to normalized direction.
 	Vector3 pos;
-	m_Scene.m_Tris[tri_id].InterpolateBarycentric(pos, bary.x, bary.y, bary.z);
+	m_Scene.m_Tris[tri_id].InterpolateBarycentric(pos, bary_clamped);
 
 	// add epsilon to pos to prevent self intersection and neighbour intersection
 	const Vector3 &plane_normal = m_Scene.m_TriPlanes[tri_id].normal;
@@ -1100,10 +1231,11 @@ void LightMapper::ProcessTexel(int tx, int ty)
 	if (!pTexel)
 		return;
 
+	int nSamples = m_AdjustedSettings.m_Backward_NumRays;
 	FColor temp;
 	for (int l=0; l<m_Lights.size(); l++)
 	{
-		ProcessTexel_Light(l, pos, normal, temp);
+		ProcessTexel_Light(l, pos, normal, temp, nSamples);
 		*pTexel += temp;
 	}
 

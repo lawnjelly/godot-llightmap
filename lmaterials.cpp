@@ -347,8 +347,8 @@ void LTexture::Sample(const Vector2 &uv, Color &col) const
 	int tx = x;
 	int ty = y;
 
-	tx = MIN(tx, width);
-	ty = MIN(ty, height);
+	tx = MIN(tx, width-1);
+	ty = MIN(ty, height-1);
 
 	int i = (ty * width) + tx;
 

@@ -53,6 +53,7 @@ class Tri
 public:
 	Vector3 pos[3];
 
+	Vector3 GetCentre() const {return (pos[0] + pos[1] + pos[2]) / 3.0f;}
 	void FlipWinding() {Vector3 temp = pos[0]; pos[0] = pos[2]; pos[2] = temp;}
 	void FindBarycentric(const Vector3 &pt, float &u, float &v, float &w) const;
 	void InterpolateBarycentric(Vector3 &pt, const Vector3 &bary) const {InterpolateBarycentric(pt, bary.x, bary.y, bary.z);}
