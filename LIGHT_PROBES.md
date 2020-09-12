@@ -57,22 +57,43 @@ The light probe functionality is contained within a single file, [lightprobes.gd
 Once `lightprobes.gd` is part of the project, you will be able to create a LightProbes object to handle the runtime tasks.
 
 e.g. 
+
+Usually a player scene would take the form:
 ```
+Spatial (player_node)
+    MeshInstance (player_mesh)
+```
+or something similar. You might be using a skeleton to animate the mesh, but there should be a mesh instance somewhere (or possibly multiple, although this is not so recommended for performance reasons).
+
+```
+# your lightprobes object could e.g. be a global like this
 var m_Probes : LightProbes = LightProbes.new()
 
+var m_Player : Spatial
+var m_PlayerMesh : MeshInstance
+
 func _ready():
+        # load a new probe file whenever you load a level
+	# (doesn't have to be in a _ready function)
 	m_Probes.load_file("res://Lightmaps/LightMap.probe")
+	
+	# the relative paths depend on your project and scene tree
+	m_Player = $player_node
+	m_PlayerMesh = $player_node/player_mesh
 
 func _process(delta):
+	# where the node holding my player is called player_node
+	# and the MeshInstance of the player is called player_mesh 
+
 	# where are we going to sample? roughly the middle of the dynamic object
 	# so I add a bit of height for the player feet
-	var sample_pos = m_MyObject.translation + Vector3(0, 0.5, 0)
+	var sample_pos = m_Player.translation + Vector3(0, 0.5, 0)
 	
 	# make the sample - this returns a SampleResult structure
 	var sample = m_Probes.sample(sample_pos)
 	
 	# get the material from our mesh, we need this to set the shader uniforms
-	var mat : Material = m_MeshInstance.get_surface_material(0)
+	var mat : Material = m_PlayerMesh.get_surface_material(0)
 
 	mat.set_shader_param("light_pos", sample.light_pos)
 	mat.set_shader_param("light_color", sample.light_color)
@@ -83,7 +104,7 @@ The above basically shows the workflow. You create a LightProbes object over the
 
 You may need to make the material unique for each object so that the uniforms are unique for each object (I'm not sure on this yet, this is untested).
 
-`m_MyObject` and `m_MeshInstance` refer to e.g. a spatial holding the object and the mesh instance. Or they could be the same. Make the best choice over whether to use global_transform or translation (which is a local translate) for your sample point - this will depend on your game.
+`player_node` and `player_mesh` refer to e.g. a spatial holding the object and the mesh instance. Or they could be the same. Make the best choice over whether to use global_transform or translation (which is a local translate) for your sample point - this will depend on your game.
 
 ### Shaders
 Although the shaders for the lightmaps are usually quite simple, the shaders for dynamic objects are a bit more complex. This is because they need to bypass the existing Godot lighting, and we do the lighting ourselves in the shader.
