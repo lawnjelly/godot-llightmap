@@ -54,7 +54,20 @@ Ideally the light data would be sampled at runtime using fast c++ code, however 
 ### Using the gdscript LightProbes addon
 The light probe functionality is contained within a single file, [lightprobes.gd](runtime/lightprobes.gd). You don't need to install this, just include it somewhere within your project.
 
-Once `lightprobes.gd` is part of the project, you will be able to create a LightProbes object to handle the runtime tasks.
+Once `lightprobes.gd` is part of the project, you will be able to create a LightProbes object to handle the runtime tasks. You can consider `lightprobes.gd` to be a black box, and you only need to concern yourself with calling two functions:
+
+* LightProbes::load_file(var filename)
+* SampleResult LightProbes::sample(var position : Vector3)
+
+You can see the SampleResult structure by looking in the `lightprobes.gd` file if you are interested. It is quite simple and contains light position, color, and indirect light color.
+
+In order to call and make use of the SampleResult we need to consider some aspects of your game. Your game object has a position (xyz Vector3) and also should have a MeshInstance node which is used to display the object. These could be one and the same (a MeshInstance is derived from Spatial and also contains a position).
+
+We need a position in order to know where on the map the lighting should be sampled. And we need the mesh instance in order to gain access to the `Material`. Materials are used in Godot to determine the color, texture and lighting of objects. We need to pass the lighting information from the SampleResult to the material being used by that particular object. We do this by using `shader parameters`. See the Godot docs for more info, but it should be quite easy to understand.
+
+https://docs.godotengine.org/en/stable/classes/class_shadermaterial.html#class-shadermaterial-method-set-shader-param
+
+You should pass the lighting info to the material every frame, using the `_process` function, then after the `_process` functions have run, the engine renders the objects. Now they have the correct lighting information available to the shader, the lighting should look correct.
 
 e.g. 
 
