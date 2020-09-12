@@ -1,5 +1,12 @@
 # Light Probes
 
+## Prerequisites
+The use of lightprobes does assume some familiarization with the use of Godot and gdscript, particularly the use of ShaderMaterials, and using `set_shader_param` to set shader parameters from gdscript. If you are unfamiliar with this area, it is highly recommended you read the documentation for ShaderMaterials and follow some tutorials to learn how setting shader parameters works.
+
+https://docs.godotengine.org/en/stable/classes/class_shadermaterial.html
+https://kidscancode.org/godot_recipes/shaders/intro/
+https://godotengine.org/qa/5416/using-variables-from-gdscript-in-shader
+
 ## About
 Although lightmaps are great for producing high quality static lighting, they won't provide realtime lighting on dynamic objects. There are various approaches to combine lightmaps with realtime lighting. We could simply include our lights and have them only affect our dynamic objects. This is fairly easy to do - the example lightmap shaders are marked as `unshaded`, so will not be affected by realtime lights.
 
