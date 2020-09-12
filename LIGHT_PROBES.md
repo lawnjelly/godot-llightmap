@@ -3,8 +3,8 @@
 ## Prerequisites
 The use of lightprobes does assume some familiarization with the use of Godot and gdscript, particularly the use of ShaderMaterials, and using `set_shader_param` to set shader parameters from gdscript. If you are unfamiliar with this area, it is highly recommended you read the documentation for ShaderMaterials and follow some tutorials to learn how setting shader parameters works.
 
-https://docs.godotengine.org/en/stable/classes/class_shadermaterial.html
-https://kidscancode.org/godot_recipes/shaders/intro/
+https://docs.godotengine.org/en/stable/classes/class_shadermaterial.html \
+https://kidscancode.org/godot_recipes/shaders/intro/ \
 https://godotengine.org/qa/5416/using-variables-from-gdscript-in-shader
 
 ## About
