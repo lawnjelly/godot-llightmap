@@ -363,7 +363,7 @@ void RayBank::RayBank_ProcessRay_MT_Old(uint32_t ray_id, int start_ray)
 		//fray.color = falbedo;
 
 		// pre find the bounce color here
-		fray.bounce_color = fray.color * falbedo * m_Settings_Forward_BouncePower;
+		fray.bounce_color = fray.color * falbedo * m_Settings_DirectionalBouncePower;
 //		fray.bounce_color = fray.color * m_Settings_Forward_BouncePower;
 
 //		Vector3 norm;
@@ -404,7 +404,7 @@ void RayBank::RayBank_ProcessRay_MT_Old(uint32_t ray_id, int start_ray)
 			if (hemi_dir.dot(face_normal) < 0.0f)
 				hemi_dir = -hemi_dir;
 
-			new_ray.d = hemi_dir.linear_interpolate(mirror_dir, m_Settings_Forward_BounceDirectionality);
+			new_ray.d = hemi_dir.linear_interpolate(mirror_dir, m_Settings_Smoothness);
 
 			new_ray.o = pos + (face_normal * 0.01f);
 
@@ -455,10 +455,10 @@ void RayBank::RayBank_ProcessRay_MT(uint32_t ray_id, int start_ray)
 	}
 
 	// hit the back of a face? if so terminate ray
-	Vector3 face_normal;
+	Vector3 vertex_normal;
 	const Tri &triangle_normal = m_Scene.m_TriNormals[tri];
-	triangle_normal.InterpolateBarycentric(face_normal, u, v, w);
-	face_normal.normalize(); // is this necessary as we are just checking a dot product polarity?
+	triangle_normal.InterpolateBarycentric(vertex_normal, u, v, w);
+	vertex_normal.normalize(); // is this necessary as we are just checking a dot product polarity?
 
 	// first get the texture details
 	Color albedo;
@@ -474,12 +474,16 @@ void RayBank::RayBank_ProcessRay_MT(uint32_t ray_id, int start_ray)
 //	}
 
 	bool bBackFace = false;
-	float dot = face_normal.dot(r.d);
-	if (dot >= 0.0f)
+
+	const Vector3 &face_normal = m_Scene.m_TriPlanes[tri].normal;
+
+	float face_dot = face_normal.dot(r.d);
+	if (face_dot >= 0.0f)
 	{
 		bBackFace = true;
 	}
 
+	float vertex_dot = vertex_normal.dot(r.d);
 
 	// if not transparent and backface, then terminate ray
 	if (bBackFace)
@@ -534,7 +538,7 @@ void RayBank::RayBank_ProcessRay_MT(uint32_t ray_id, int start_ray)
 			float push = -0.001f; // 0.001
 			if (bBackFace) push = -push;
 
-			const Vector3 &face_normal = m_Scene.m_TriPlanes[tri].normal;
+			//const Vector3 &face_normal = m_Scene.m_TriPlanes[tri].normal;
 			fray.ray.o = pos + (face_normal * push);
 			return;
 		}
@@ -551,6 +555,10 @@ void RayBank::RayBank_ProcessRay_MT(uint32_t ray_id, int start_ray)
 	hit.ty = ty;
 
 
+	float lambert = MAX(0.0f, -vertex_dot);
+	// apply lambert diffuse
+	fray.color *= lambert;
+
 	// bounce and lower power
 	if (fray.num_rays_left)
 	{
@@ -565,7 +573,7 @@ void RayBank::RayBank_ProcessRay_MT(uint32_t ray_id, int start_ray)
 //		{
 
 
-			fray.bounce_color = fray.color * falbedo * m_Settings_Forward_BouncePower;
+			fray.bounce_color = fray.color * falbedo * m_Settings_DirectionalBouncePower;
 
 			//		fray.bounce_color = fray.color * m_Settings_Forward_BouncePower;
 
@@ -586,7 +594,7 @@ void RayBank::RayBank_ProcessRay_MT(uint32_t ray_id, int start_ray)
 			//			new_ray.d = norm.cross(temp);
 
 						// BOUNCING - mirror
-						Vector3 mirror_dir = r.d - (2.0f * (dot * face_normal));
+						Vector3 mirror_dir = r.d - (2.0f * (face_dot * face_normal));
 
 						// random hemisphere
 						const float range = 1.0f;
@@ -607,9 +615,10 @@ void RayBank::RayBank_ProcessRay_MT(uint32_t ray_id, int start_ray)
 						if (hemi_dir.dot(face_normal) < 0.0f)
 							hemi_dir = -hemi_dir;
 
-						new_ray.d = hemi_dir.linear_interpolate(mirror_dir, m_Settings_Forward_BounceDirectionality);
+						new_ray.d = hemi_dir.linear_interpolate(mirror_dir, m_Settings_Smoothness);
 
-						new_ray.o = pos + (face_normal * 0.01f);
+						// standard epsilon? NYI
+						new_ray.o = pos + (face_normal * m_Settings_SurfaceBias); //0.01f);
 
 						// copy the info to the existing fray
 						fray.ray = new_ray;
@@ -635,6 +644,8 @@ void RayBank::RayBank_ProcessRay_MT(uint32_t ray_id, int start_ray)
 
 
 	} // if there are bounces left
+
+
 
 //	return false;
 }

@@ -229,7 +229,9 @@ void Merger::FindMeshes(Spatial * pNode)
 		}
 	}
 
-	for (int n=0; n<pNode->get_child_count(); n++)
+	int nChildren = pNode->get_child_count();
+
+	for (int n=0; n<nChildren; n++)
 	{
 		Spatial * pChild = Object::cast_to<Spatial>(pNode->get_child(n));
 		if (pChild)

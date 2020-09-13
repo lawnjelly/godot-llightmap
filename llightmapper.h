@@ -25,22 +25,40 @@ private:
 	void ProcessEmissionTris_Section(float fraction_of_total);
 	void ProcessEmissionTri(int etri_id, float fraction_of_total);
 
+	// ambient bounces
+	void DoAmbientBounces();
+	void ProcessTexels_AmbientBounce(int section_size, int num_sections);
+	void ProcessTexels_AmbientBounce_Line_MT(uint32_t offset_y, int start_y);
+	FColor ProcessTexel_AmbientBounce(int x, int y);
+	bool ProcessTexel_AmbientBounce_Sample(const Vector3 &plane_norm, const Vector3 &ray_origin, FColor &total_col);
+
 	// backward tracing
 	void ProcessTexels();
 	void ProcessTexel_Line_MT(uint32_t offset_y, int start_y);
-	void ProcessTexel(int tx, int ty);
-	void ProcessTexel_Light(int light_id, const Vector3 &ptSource, const Vector3 &ptNormal, FColor &color, int nSamples); //, uint32_t tri_ignore);
 
-	void ProcessTexels_Bounce(int section_size, int num_sections);
-	void ProcessTexels_Bounce_Line_MT(uint32_t offset_y, int start_y);
-	FColor ProcessTexel_Bounce(int x, int y);
-	bool ProcessTexel_Bounce_Sample(const Vector3 &plane_norm, const Vector3 &ray_origin, FColor &total_col);
+	// backward forward tracing
+	void BF_ProcessTexel(int tx, int ty);
+	void BF_ProcessTexel_Light(const Color &orig_albedo, int light_id, const Vector3 &ptSource, const Vector3 &orig_face_normal, const Vector3 &orig_vertex_normal, FColor &color, int nSamples); //, uint32_t tri_ignore);
+	void BF_ProcessTexel_LightBounce(int bounces_left, Ray r, FColor ray_color);
+
+	bool BounceRay(Ray &r, const Vector3 &face_normal, bool apply_epsilon = true);
 
 	// new backward tracing experiment, by triangle
 	void Backward_TraceTriangles();
 	void Backward_TraceTriangle(int tri_id);
 	void Backward_TraceSample(int tri_id);
 
+	// multithread safe. This must prevent against several threads trying to access the same texel
+	// at once. This will be rare but must be prevented.
+	void MT_SafeAddToTexel(int tx, int ty, const FColor &col)
+	{
+		// not yet thread safe
+		FColor * pTexel = m_Image_L.Get(tx, ty);
+		if (!pTexel)
+			return;
+
+		*pTexel += col;
+	}
 
 	// light probes
 	void ProcessLightProbes();

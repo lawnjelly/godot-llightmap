@@ -278,7 +278,10 @@ bool IsMeshInstanceSuitable(const MeshInstance &mi)
 	bool uv2 = uv2s.size() != 0;
 
 	if (!uv1 && !uv2)
+	{
+		print_line("\tunsuitable : " + mi.get_name() + " (no uvs at all)");
 		return false;
+	}
 
 	return true;
 }

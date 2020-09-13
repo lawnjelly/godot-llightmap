@@ -65,10 +65,10 @@ ADD_PROPERTY(PropertyInfo(P_TYPE, LIGHTMAP_TOSTRING(P_NAME), PROPERTY_HINT_RANGE
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "bake_mode", PROPERTY_HINT_ENUM, "UVMap,Lightmap,AO,Merge,LightProbes,Combined"), "set_bake_mode", "get_bake_mode");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "mode", PROPERTY_HINT_ENUM, "Forward,Backward"), "set_mode", "get_mode");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "quality", PROPERTY_HINT_ENUM, "Low,Medium,High,Final"), "set_quality", "get_quality");
+
+	ADD_GROUP("Paths", "");
 	LIMPL_PROPERTY(Variant::NODE_PATH, meshes, set_mesh_path, get_mesh_path);
 	LIMPL_PROPERTY(Variant::NODE_PATH, lights, set_lights_path, get_lights_path);
-
-	ADD_GROUP("Files", "");
 	ADD_PROPERTY(PropertyInfo(Variant::STRING, "lightmap_filename", PROPERTY_HINT_SAVE_FILE, "*.exr"), "set_lightmap_filename", "get_lightmap_filename");
 	ADD_PROPERTY(PropertyInfo(Variant::STRING, "ao_filename", PROPERTY_HINT_SAVE_FILE, "*.exr"), "set_ao_filename", "get_ao_filename");
 	ADD_PROPERTY(PropertyInfo(Variant::STRING, "combined_filename", PROPERTY_HINT_SAVE_FILE, "*.png,*.exr"), "set_combined_filename", "get_combined_filename");
@@ -84,20 +84,31 @@ ADD_PROPERTY(PropertyInfo(P_TYPE, LIGHTMAP_TOSTRING(P_NAME), PROPERTY_HINT_RANGE
 	LIMPL_PROPERTY_RANGE(Variant::INT, material_size, set_material_size, get_material_size, "128,2048,128");
 	LIMPL_PROPERTY_RANGE(Variant::INT, voxel_density, set_voxel_density, get_voxel_density, "1,512,1");
 
-	ADD_GROUP("Forward Parameters", "");
-	LIMPL_PROPERTY_RANGE(Variant::INT, f_rays, set_forward_num_rays, get_forward_num_rays, "1,4096,1");
-	//LIMPL_PROPERTY_RANGE(Variant::REAL, f_ray_power, set_forward_ray_power, get_forward_ray_power, "0.0,0.1,0.01");
-	LIMPL_PROPERTY_RANGE(Variant::INT, f_bounces, set_forward_num_bounces, get_forward_num_bounces, "0,16,1");
-	LIMPL_PROPERTY_RANGE(Variant::REAL, f_bounce_power, set_forward_bounce_power, get_forward_bounce_power, "0.0,8.0,0.05");
-	LIMPL_PROPERTY_RANGE(Variant::REAL, f_bounce_directionality, set_forward_bounce_directionality, get_forward_bounce_directionality, "0.0,1.0,0.05");
-	LIMPL_PROPERTY_RANGE(Variant::REAL, f_emission_density, set_forward_emission_density, get_forward_emission_density, "0.0,8.0,0.05");
 
-	ADD_GROUP("Backward Parameters", "");
-	LIMPL_PROPERTY(Variant::INT, b_initial_rays, set_backward_num_rays, get_backward_num_rays);
-	LIMPL_PROPERTY(Variant::INT, b_bounce_rays, set_backward_num_bounce_rays, get_backward_num_bounce_rays);
-	LIMPL_PROPERTY_RANGE(Variant::INT, b_bounces, set_backward_num_bounces, get_backward_num_bounces, "0,16,1");
-	LIMPL_PROPERTY(Variant::REAL, b_ray_power, set_backward_ray_power, get_backward_ray_power);
-	LIMPL_PROPERTY(Variant::REAL, b_bounce_power, set_backward_bounce_power, get_backward_bounce_power);
+	ADD_GROUP("Common", "");
+	LIMPL_PROPERTY_RANGE(Variant::INT, samples, set_num_samples, get_num_samples, "1,4096,1");
+
+	LIMPL_PROPERTY_RANGE(Variant::INT, num_bounces, set_num_bounces, get_num_bounces, "0,16,1");
+	LIMPL_PROPERTY_RANGE(Variant::REAL, bounce_power, set_bounce_power, get_bounce_power, "0.0,8.0,0.05");
+	LIMPL_PROPERTY_RANGE(Variant::REAL, roughness, set_roughness, get_roughness, "0.0,1.0,0.05");
+
+	ADD_GROUP("Ambient", "");
+
+	LIMPL_PROPERTY_RANGE(Variant::INT, a_bounces, set_num_ambient_bounces, get_num_ambient_bounces, "0,16,1");
+	LIMPL_PROPERTY(Variant::INT, a_bounce_samples, set_num_ambient_bounce_samples, get_num_ambient_bounce_samples);
+	LIMPL_PROPERTY(Variant::REAL, a_bounce_power, set_ambient_bounce_power, get_ambient_bounce_power);
+
+	ADD_GROUP("Emission", "");
+
+	LIMPL_PROPERTY_RANGE(Variant::REAL, emission_density, set_emission_density, get_emission_density, "0.0,8.0,0.05");
+	LIMPL_PROPERTY_RANGE(Variant::REAL, glow, set_glow, get_glow, "0.0,16.0,0.05");
+
+//	ADD_GROUP("Forward Parameters", "");
+	//LIMPL_PROPERTY_RANGE(Variant::REAL, f_ray_power, set_forward_ray_power, get_forward_ray_power, "0.0,0.1,0.01");
+
+//	ADD_GROUP("Backward Parameters", "");
+//	LIMPL_PROPERTY(Variant::INT, b_initial_rays, set_backward_num_rays, get_backward_num_rays);
+	//LIMPL_PROPERTY(Variant::REAL, b_ray_power, set_backward_ray_power, get_backward_ray_power);
 
 	ADD_GROUP("Ambient Occlusion", "");
 	LIMPL_PROPERTY_RANGE(Variant::INT, ao_samples, set_ao_num_samples, get_ao_num_samples, "1,2048,1");
@@ -106,7 +117,7 @@ ADD_PROPERTY(PropertyInfo(P_TYPE, LIGHTMAP_TOSTRING(P_NAME), PROPERTY_HINT_RANGE
 
 
 	ADD_GROUP("Dynamic Range", "");
-	LIMPL_PROPERTY(Variant::BOOL, normalize, set_normalize, get_normalize);
+//	LIMPL_PROPERTY(Variant::BOOL, normalize, set_normalize, get_normalize);
 	LIMPL_PROPERTY(Variant::REAL, normalize_multiplier, set_normalize_multiplier, get_normalize_multiplier);
 	LIMPL_PROPERTY_RANGE(Variant::REAL, ao_light_ratio, set_light_ao_ratio, get_light_ao_ratio, "0.0,1.0,0.01");
 	LIMPL_PROPERTY_RANGE(Variant::REAL, gamma, set_gamma, get_gamma, "0.01,10.0,0.01");
@@ -134,40 +145,47 @@ NodePath LLightmap::get_mesh_path() const {return m_LM.m_Settings_Path_Mesh;}
 void LLightmap::set_lights_path(const NodePath &p_path)  {m_LM.m_Settings_Path_Lights = p_path;}
 NodePath LLightmap::get_lights_path() const {return m_LM.m_Settings_Path_Lights;}
 
-void LLightmap::set_forward_num_rays(int num_rays) {m_LM.m_Settings_Forward_NumRays = num_rays;}
-int LLightmap::get_forward_num_rays() const {return m_LM.m_Settings_Forward_NumRays;}
+void LLightmap::set_num_samples(int num_samples) {m_LM.m_Settings_NumPrimaryRays = num_samples;}
+int LLightmap::get_num_samples() const {return m_LM.m_Settings_NumPrimaryRays;}
 
-void LLightmap::set_forward_num_bounces(int num_bounces) {m_LM.m_Settings_Forward_NumBounces = num_bounces;}
-int LLightmap::get_forward_num_bounces() const {return m_LM.m_Settings_Forward_NumBounces;}
+void LLightmap::set_num_bounces(int num_bounces) {m_LM.m_Settings_NumDirectionalBounces = num_bounces;}
+int LLightmap::get_num_bounces() const {return m_LM.m_Settings_NumDirectionalBounces;}
 
-void LLightmap::set_forward_ray_power(float ray_power) {m_LM.m_Settings_Forward_RayPower = ray_power;}
-float LLightmap::get_forward_ray_power() const {return m_LM.m_Settings_Forward_RayPower;}
+//void LLightmap::set_forward_ray_power(float ray_power) {m_LM.m_Settings_Forward_RayPower = ray_power;}
+//float LLightmap::get_forward_ray_power() const {return m_LM.m_Settings_Forward_RayPower;}
 
-void LLightmap::set_forward_bounce_power(float bounce_power) {m_LM.m_Settings_Forward_BouncePower = bounce_power;}
-float LLightmap::get_forward_bounce_power() const {return m_LM.m_Settings_Forward_BouncePower;}
+void LLightmap::set_bounce_power(float bounce_power) {m_LM.m_Settings_DirectionalBouncePower = bounce_power;}
+float LLightmap::get_bounce_power() const {return m_LM.m_Settings_DirectionalBouncePower;}
 
-void LLightmap::set_forward_bounce_directionality(float bounce_dir) {m_LM.m_Settings_Forward_BounceDirectionality = bounce_dir;}
-float LLightmap::get_forward_bounce_directionality() const {return m_LM.m_Settings_Forward_BounceDirectionality;}
+void LLightmap::set_roughness(float roughness) {m_LM.m_Settings_Smoothness = 1.0f - roughness;}
+float LLightmap::get_roughness() const {return 1.0f - m_LM.m_Settings_Smoothness;}
 
-void LLightmap::set_forward_emission_density(float density) {m_LM.m_Settings_Forward_Emission_Density = density;}
-float LLightmap::get_forward_emission_density() const {return m_LM.m_Settings_Forward_Emission_Density;}
+void LLightmap::set_emission_density(float density) {m_LM.m_Settings_EmissionDensity = density;}
+float LLightmap::get_emission_density() const {return m_LM.m_Settings_EmissionDensity;}
+
+void LLightmap::set_glow(float glow) {m_LM.m_Settings_Glow = glow;}
+float LLightmap::get_glow() const {return m_LM.m_Settings_Glow;}
+
 
 ////////////////////////////
 void LLightmap::set_backward_num_rays(int num_rays) {m_LM.m_Settings_Backward_NumRays = num_rays;}
 int LLightmap::get_backward_num_rays() const {return m_LM.m_Settings_Backward_NumRays;}
 
-void LLightmap::set_backward_num_bounce_rays(int num_rays) {m_LM.m_Settings_Backward_NumBounceRays = num_rays;}
-int LLightmap::get_backward_num_bounce_rays() const {return m_LM.m_Settings_Backward_NumBounceRays;}
+void LLightmap::set_num_ambient_bounce_samples(int num_samples) {m_LM.m_Settings_NumAmbientBounceRays = num_samples;}
+int LLightmap::get_num_ambient_bounce_samples() const {return m_LM.m_Settings_NumAmbientBounceRays;}
 
-void LLightmap::set_backward_num_bounces(int num_bounces) {m_LM.m_Settings_Backward_NumBounces = num_bounces;}
-int LLightmap::get_backward_num_bounces() const {return m_LM.m_Settings_Backward_NumBounces;}
+//void LLightmap::set_backward_num_bounces(int num_bounces) {m_LM.m_Settings_Backward_NumBounces = num_bounces;}
+//int LLightmap::get_backward_num_bounces() const {return m_LM.m_Settings_Backward_NumBounces;}
 
-void LLightmap::set_backward_ray_power(float ray_power) {m_LM.m_Settings_Backward_RayPower = ray_power;}
-float LLightmap::get_backward_ray_power() const {return m_LM.m_Settings_Backward_RayPower;}
+//void LLightmap::set_backward_ray_power(float ray_power) {m_LM.m_Settings_Backward_RayPower = ray_power;}
+//float LLightmap::get_backward_ray_power() const {return m_LM.m_Settings_Backward_RayPower;}
 
-void LLightmap::set_backward_bounce_power(float bounce_power) {m_LM.m_Settings_Backward_BouncePower = bounce_power;}
-float LLightmap::get_backward_bounce_power() const {return m_LM.m_Settings_Backward_BouncePower;}
+void LLightmap::set_ambient_bounce_power(float bounce_power) {m_LM.m_Settings_AmbientBouncePower = bounce_power;}
+float LLightmap::get_ambient_bounce_power() const {return m_LM.m_Settings_AmbientBouncePower;}
 ////////////////////////////
+
+void LLightmap::set_num_ambient_bounces(int num_bounces) {m_LM.m_Settings_NumAmbientBounces = num_bounces;}
+int LLightmap::get_num_ambient_bounces() const {return m_LM.m_Settings_NumAmbientBounces;}
 
 void LLightmap::set_ao_range(float ao_range) {m_LM.m_Settings_AO_Range = ao_range;}
 float LLightmap::get_ao_range() const {return m_LM.m_Settings_AO_Range;}

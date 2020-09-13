@@ -13,18 +13,23 @@ LightMapper_Base::BakeEndFunc LightMapper_Base::bake_end_function = NULL;
 LightMapper_Base::LightMapper_Base()
 {
 	m_iNumRays = 1;
-	m_Settings_Forward_NumRays = 16;
-	m_Settings_Forward_NumBounces = 0;
-	m_Settings_Forward_RayPower = 0.01f;
-	m_Settings_Forward_BouncePower = 1.0f;
-	m_Settings_Forward_BounceDirectionality = 0.5f;
-	m_Settings_Forward_Emission_Density = 1.0f;
+	//m_Settings_Forward_NumRays = 16;
+	//m_Settings_Forward_RayPower = 0.01f;
 
-	m_Settings_Backward_NumRays = 128;
-	m_Settings_Backward_NumBounceRays = 128;
-	m_Settings_Backward_NumBounces = 0;
+	//m_Settings_Backward_NumRays = 128;
 	m_Settings_Backward_RayPower = 1.0f;
-	m_Settings_Backward_BouncePower = 0.5f;
+
+	m_Settings_DirectionalBouncePower = 1.0f;
+
+	m_Settings_NumPrimaryRays = 32;
+
+	m_Settings_NumAmbientBounces = 0;
+	m_Settings_NumAmbientBounceRays = 128;
+	m_Settings_NumDirectionalBounces = 0;
+	m_Settings_AmbientBouncePower = 0.5f;
+	m_Settings_Smoothness = 0.5f;
+	m_Settings_EmissionDensity = 1.0f;
+	m_Settings_Glow = 1.0f;
 
 	m_Settings_AO_Range = 2.0f;
 	m_Settings_AO_Samples = 256;
@@ -87,13 +92,16 @@ void LightMapper_Base::CalculateQualityAdjustedSettings()
 	// set them initially to the same
 	AdjustedSettings &as = m_AdjustedSettings;
 
-	as.m_Forward_NumRays = m_Settings_Forward_NumRays;
-	as.m_Forward_NumBounces = m_Settings_Forward_NumBounces;
-	as.m_Forward_Emission_Density = m_Settings_Forward_Emission_Density;
+	as.m_NumPrimaryRays = m_Settings_NumPrimaryRays;
+
+	//as.m_Forward_NumRays = m_Settings_Forward_NumRays;
+	as.m_EmissionDensity = m_Settings_EmissionDensity;
 
 	as.m_Backward_NumRays= m_Settings_Backward_NumRays;
-	as.m_Backward_NumBounceRays = m_Settings_Backward_NumBounceRays;
-	as.m_Backward_NumBounces = m_Settings_Backward_NumBounces;
+
+	as.m_NumAmbientBounces = m_Settings_NumAmbientBounces;
+	as.m_NumAmbientBounceRays = m_Settings_NumAmbientBounceRays;
+	as.m_NumDirectionalBounces = m_Settings_NumDirectionalBounces;
 
 	as.m_AO_Samples = m_Settings_AO_Samples;
 
@@ -104,40 +112,43 @@ void LightMapper_Base::CalculateQualityAdjustedSettings()
 	{
 	case LM_QUALITY_LOW:
 		{
+			as.m_NumPrimaryRays = 1;
 			as.m_Forward_NumRays = 1;
-			as.m_Forward_NumBounces = 0;
 			as.m_Backward_NumRays = 4;
-			as.m_Backward_NumBounces = 0;
 			as.m_AO_Samples = 1;
 			as.m_Max_Material_Size = 32;
+			as.m_NumAmbientBounces = 0;
+			as.m_NumDirectionalBounces = 0;
 		}
 		break;
 	case LM_QUALITY_MEDIUM:
 		{
-			as.m_Forward_NumRays /= 2;
-			as.m_Backward_NumRays /= 2;
-			as.m_Backward_NumBounceRays /= 2;
+			as.m_NumPrimaryRays /= 2;
 			as.m_AO_Samples /= 2;
 			as.m_Max_Material_Size /= 4;
+			as.m_NumAmbientBounceRays /= 2;
 		}
 		break;
 	default:
 		// high is default
 		break;
 	case LM_QUALITY_FINAL:
-		as.m_Forward_NumRays *= 2;
-		as.m_Backward_NumRays *= 2;
-		as.m_Backward_NumBounceRays *= 2;
+		as.m_NumPrimaryRays *= 2;
 		as.m_AO_Samples *= 2;
+		as.m_NumAmbientBounceRays *= 2;
 		break;
 	}
 
 	// minimums
-	as.m_Forward_NumRays = MAX(as.m_Forward_NumRays, 1);
-	as.m_Backward_NumRays = MAX(as.m_Backward_NumRays, 1);
-	as.m_Backward_NumBounceRays = MAX(as.m_Backward_NumBounceRays, 1);
+	as.m_NumPrimaryRays = MAX(as.m_NumPrimaryRays, 1);
+
+	as.m_Forward_NumRays = (as.m_NumPrimaryRays * 16) / 32;
+	as.m_Backward_NumRays = (as.m_NumPrimaryRays * 128) / 32;
+
+	as.m_NumAmbientBounceRays = MAX(as.m_NumAmbientBounceRays, 1);
 	as.m_AO_Samples = MAX(as.m_AO_Samples, 1);
 	as.m_Max_Material_Size = MAX(as.m_Max_Material_Size, 32);
+	as.m_EmissionDensity = MAX(as.m_EmissionDensity, 1);
 
 }
 

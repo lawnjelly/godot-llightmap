@@ -162,32 +162,47 @@ public:
 	struct AdjustedSettings
 	{
 		int m_Forward_NumRays;
-		int m_Forward_NumBounces;
-
-		float m_Forward_Emission_Density;
-
 		int m_Backward_NumRays;
-		int m_Backward_NumBounceRays;
-		int m_Backward_NumBounces;
+		//int m_Forward_NumBounces;
 
+
+		int m_NumPrimaryRays;
+		//int m_Backward_NumBounces;
+
+		int m_NumAmbientBounces;
+		int m_NumAmbientBounceRays;
+
+		int m_NumDirectionalBounces;
+
+		float m_EmissionDensity;
 		int m_AO_Samples;
 
 		int m_Max_Material_Size;
 	} m_AdjustedSettings;
 
 	// params
-	int m_Settings_Forward_NumRays;
-	int m_Settings_Forward_NumBounces;
-	float m_Settings_Forward_RayPower;
-	float m_Settings_Forward_BouncePower;
-	float m_Settings_Forward_BounceDirectionality;
-	float m_Settings_Forward_Emission_Density;
+//	int m_Settings_Forward_NumRays;
+//	float m_Settings_Forward_RayPower;
+	//float m_Settings_Forward_BouncePower;
+	//float m_Settings_Forward_BounceDirectionality;
 
 	int m_Settings_Backward_NumRays;
-	int m_Settings_Backward_NumBounceRays;
-	int m_Settings_Backward_NumBounces;
 	float m_Settings_Backward_RayPower;
-	float m_Settings_Backward_BouncePower;
+	//float m_Settings_Backward_BouncePower;
+
+	// this number means nothing itself .. it is
+	// standardized so that 32 is the normal amount, for backward and forward
+	// and is translated into number of forward or backward rays
+	int m_Settings_NumPrimaryRays;
+
+	int m_Settings_NumAmbientBounces;
+	int m_Settings_NumAmbientBounceRays;
+	int m_Settings_NumDirectionalBounces;
+	float m_Settings_AmbientBouncePower;
+	float m_Settings_DirectionalBouncePower;
+	float m_Settings_Smoothness;
+	float m_Settings_EmissionDensity;
+	float m_Settings_Glow;
 
 	int m_Settings_AO_Samples;
 	float m_Settings_AO_Range;

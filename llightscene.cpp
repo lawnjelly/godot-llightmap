@@ -890,6 +890,34 @@ bool LightScene::FindEmissionColor(int tri_id, const Vector3 &bary, Color &textu
 }
 
 
+bool LightScene::FindAllTextureColors(int tri_id, const Vector3 &bary, Color &albedo, Color &emission, bool &bTransparent, bool &bEmitter)
+{
+	Vector2 uvs;
+	m_UVTris_Primary[tri_id].FindUVBarycentric(uvs, bary.x, bary.y, bary.z);
+
+	int mat_id_p1 = m_Tri_LMaterialIDs[tri_id];
+
+	bool res = m_Materials.FindColors(mat_id_p1, uvs, albedo, bTransparent);
+
+	if (res)
+	{
+		const LMaterial &mat = m_Materials.GetMaterial(mat_id_p1-1);
+
+		// return whether emitter
+		bEmitter = mat.m_bEmitter;
+		//emission = albedo * mat.m_Col_Emission;
+		emission = mat.m_Col_Emission;
+	}
+	else
+	{
+		bEmitter = false;
+		emission = Color(0, 0, 0, 1);
+	}
+
+	return res;
+}
+
+
 bool LightScene::FindPrimaryTextureColors(int tri_id, const Vector3 &bary, Color &albedo, bool &bTransparent)
 {
 	Vector2 uvs;

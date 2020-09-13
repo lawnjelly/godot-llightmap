@@ -53,39 +53,51 @@ public:
 	NodePath get_lights_path() const;
 
 	////////////////////////////
-	void set_forward_num_rays(int num_rays);
-	int get_forward_num_rays() const;
+	void set_num_samples(int num_samples);
+	int get_num_samples() const;
 
-	void set_forward_num_bounces(int num_bounces);
-	int get_forward_num_bounces() const;
+//	void set_forward_ray_power(float ray_power);
+//	float get_forward_ray_power() const;
 
-	void set_forward_ray_power(float ray_power);
-	float get_forward_ray_power() const;
 
-	void set_forward_bounce_power(float bounce_power);
-	float get_forward_bounce_power() const;
+	void set_emission_density(float density);
+	float get_emission_density() const;
 
-	void set_forward_bounce_directionality(float bounce_dir);
-	float get_forward_bounce_directionality() const;
-
-	void set_forward_emission_density(float density);
-	float get_forward_emission_density() const;
+	void set_glow(float glow);
+	float get_glow() const;
 
 	////////////////////////////
 	void set_backward_num_rays(int num_rays);
 	int get_backward_num_rays() const;
 
-	void set_backward_num_bounce_rays(int num_rays);
-	int get_backward_num_bounce_rays() const;
 
-	void set_backward_num_bounces(int num_bounces);
-	int get_backward_num_bounces() const;
+//	void set_backward_num_bounces(int num_bounces);
+//	int get_backward_num_bounces() const;
 
-	void set_backward_ray_power(float ray_power);
-	float get_backward_ray_power() const;
+//	void set_backward_ray_power(float ray_power);
+//	float get_backward_ray_power() const;
 
-	void set_backward_bounce_power(float bounce_power);
-	float get_backward_bounce_power() const;
+
+	////////////////////////////
+	void set_num_bounces(int num_bounces);
+	int get_num_bounces() const;
+
+	void set_bounce_power(float bounce_power);
+	float get_bounce_power() const;
+
+	void set_roughness(float roughness);
+	float get_roughness() const;
+
+	void set_num_ambient_bounces(int num_bounces);
+	int get_num_ambient_bounces() const;
+
+	void set_num_ambient_bounce_samples(int num_samples);
+	int get_num_ambient_bounce_samples() const;
+
+	void set_ambient_bounce_power(float bounce_power);
+	float get_ambient_bounce_power() const;
+
+
 	////////////////////////////
 
 	void set_ao_range(float ao_range);
