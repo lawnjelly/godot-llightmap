@@ -17,8 +17,7 @@ While JFons is finishing off the new official core lightmapper for 3.2, I've spe
 
 LLightmap is designed to be easy to use and produce nice soft shadows, with high performance at runtime. The existing core lightmappers produce a different lightmap for each object. This can be slow due to texture swapping. LLightmap instead can uv map your scene with multiple objects, unwrapping so that all your objects share the same texture space. Thus a single lightmap can be used.
 
-https://www.youtube.com/watch?v=m7fJTWoVYj0
-
+https://www.youtube.com/watch?v=m7fJTWoVYj0 \
 https://www.youtube.com/watch?v=pBpF2raGA8A
 
 ### Features
@@ -80,7 +79,7 @@ When you build your level geometry you should assign this shader, and in the sha
 3) Either place the lights as part of the level branch, or create another branch just for static lights.
 4) Add the new 'LLightmap' node to the scene tree (preferably not in the level or lights branch).
 
-If you click on the LLightmap inspector, we can now set things up for lightmapping.
+If you click on the LLightmap inspector, we can now set things up for lightmapping in the `Paths` section.
 1) Assign the 'meshes' to point to your level geometry branch.
 2) Assign the 'light' to point to your lights branch.
 3) Set the filenames you wish to use for lights intermediate, ambient occlusion intermediate, and the final combined lightmap.
@@ -91,11 +90,12 @@ Before we can lightmap anything, we need to make sure the level geometry is uvma
 You can uv map scenes in a third party modelling program such as blender, but this is inconvenient, and LLightmap can use xatlas to do this for us.
 
 1) All the meshes to be unwrapped should have `Use_In_Baked_Light` set to on in their Geometry section. Meshes that aren't tagged will not be lightmapped (or affect the lightmap of the other geometry).
-2) In order to add the new UVs, we will need to modify the level scene, so it makes sense to save it as a new tscn file. You should set the filename as 'uv_filename' in the uv unwrap section of the inspector.
+2) In order to add the new UVs, we will need to modify the level scene, so it makes sense to save it as a new tscn file. You should set the filename as 'uv_filename' in the `Paths` section of the inspector.
 3) Set the bake_mode to 'UVMap'.
 4) Once this output filename is set, and the meshes is assigned correctly, and the bake mode is correct, hit the 'Bake Lightmap' button above the main 3d window.
 5) This does a number of things by magic. First it merges all the marked geometry into a single mesh, then it unwraps the mesh, then it 'unmerges' the wrapped mesh back to the original objects. This is quite a complex process and can result in added vertices. Finally it saves the new uvmapped scene into the file we specified.
 6) As the mesh data has been altered, the original level mesh is deleted, and you should load in its place the UVmapped level that was exported. It is *highly recommended* to restart Godot IDE before loading in the UVmapped level (or at least close the main scene and reopen it) due to referencing bugs in Godot core.
+7) Double check that the meshes in your new scene have been unwrapped. Select a MeshInstance, then choose 'view UV2' from the `Mesh` menu. You should be able to see the UV2 mapping.
 
 > A backup of the original branch is saved to `uvmap_backup.tscn` in your project folder, just in case. You are highly recommended to keep a backup of your original level before uvmapping, for further editing etc. You may also see a `merged_proxy.tscn` file in your project file. This is only saved for debugging purposes while LLightmap is in alpha version, you may safely delete it. _The proxy is the geometry that is used for UV mapping with xatlas before 'unmerging' back to the original meshes._
 
