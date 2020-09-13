@@ -156,9 +156,11 @@ I'm hoping to eventually make some builds for windows / linux x86_64 so users wo
 * Set overall brightness with a combination of using a multiplier in the shader (see the example shader) and using `dynamic_range/normalize_multiplier` in the llightmap settings to make the lightmap overbright.
 * For each light, you can control the volumetric effect (soft or hard shadows) by changing the x, y, and z scale in the node `Transform` properties. Note that due to a bug / feature in Godot, light scales get reset every time you move the light in the editor, which can be annoying.
 * Be sure to use bounces in order to get colors from textures. You can make a bounced scene darker by reducing the bounce power.
+* In order for LLightmap to understand your texture colors, you must either use a shader (like the example), with a shader parameter called `texture_albedo`, OR you can use a regular spatial shader with albedo set. Using a custom shader will generally perform better.
 * For each light you can scale power with the `energy` parameter, and change color.
 * For transparency, the material name should contain the string `_T_` (anywhere, at the end, start etc). And use a texture with alpha.
 * In forward tracing you can scale the number of samples per light using the `indirect energy` light parameter. This is useful for directional lights which may need more samples.
 * Spotlights have position, direction and spot angle, and volume with scale.
 * When using spatial materials, the albedo texture will be found automatically. When using custom shaders, in order for LLightmap to find the texture colors for bouncing light, the uniform in the shader _must_ be called `texture_albedo`. Otherwise a plain white color will be used for bounces.
 * Directional lights must point at least slightly downward. This isn't ideal but allows more consistent lighting, and the use case is mainly skies. For side lights, or lighting from below, area lights via omnis are a better bet.
+* To make a material emit light, use the example shader or one containing an 'emission' parameter, and set this to above 0.0. 1.0 should be a reasonable value. You can control the relative amount of glow and emission using the `glow` setting in the LLightmap inspector.
