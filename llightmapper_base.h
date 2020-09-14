@@ -6,6 +6,7 @@
 #include "llightscene.h"
 #include "llightimage.h"
 #include "lqmc.h"
+#include "latomic.h"
 
 namespace LM {
 
@@ -146,6 +147,7 @@ protected:
 	LVector<LLight> m_Lights;
 
 	QMC m_QMC;
+	LAtomic m_Atomic;
 
 	// for stats
 	int m_iNumTests;

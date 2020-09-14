@@ -36,7 +36,7 @@ LightMapper_Base::LightMapper_Base()
 	m_Settings_AO_CutRange = 1.5f;
 	m_Settings_AO_ReverseBias = 0.005f;
 
-	m_Settings_Mode = LMMODE_FORWARD;
+	m_Settings_Mode = LMMODE_BACKWARD;
 	m_Settings_BakeMode = LMBAKEMODE_LIGHTMAP;
 	m_Settings_Quality = LM_QUALITY_MEDIUM;
 
@@ -62,7 +62,7 @@ LightMapper_Base::LightMapper_Base()
 	m_Logic_Process_Probes = true;
 	m_Logic_Output_Final = true;
 
-	m_Settings_UVPadding = 4;
+	m_Settings_UVPadding = 2;
 
 	m_Settings_ProbeDensity = 64;
 	m_Settings_ProbeSamples = 4096;
@@ -144,6 +144,8 @@ void LightMapper_Base::CalculateQualityAdjustedSettings()
 
 	as.m_Forward_NumRays = (as.m_NumPrimaryRays * 16) / 32;
 	as.m_Backward_NumRays = (as.m_NumPrimaryRays * 128) / 32;
+
+	as.m_Forward_NumRays = MAX(as.m_Forward_NumRays, 1);
 
 	as.m_NumAmbientBounceRays = MAX(as.m_NumAmbientBounceRays, 1);
 	as.m_AO_Samples = MAX(as.m_AO_Samples, 1);

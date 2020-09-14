@@ -602,7 +602,7 @@ void LightMapper::ProcessTexels()
 	m_iNumTests = 0;
 
 	// prevent multithread
-	num_sections = 0;
+	//num_sections = 0;
 
 	for (int s=0; s<num_sections; s++)
 	{
@@ -1064,7 +1064,7 @@ void LightMapper::BF_ProcessTexel_LightBounce(int bounces_left, Ray r, FColor ra
 	bool bBackFace = false;
 	const Vector3 &face_normal = m_Scene.m_TriPlanes[tri].normal;
 
-	float face_dot = face_normal.dot(r.d);
+	//float face_dot = face_normal.dot(r.d);
 //	if (face_dot >= 0.0f)
 //		bBackFace = true;
 

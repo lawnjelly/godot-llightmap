@@ -57,7 +57,8 @@ private:
 		if (!pTexel)
 			return;
 
-		*pTexel += col;
+		m_Atomic.AtomicAddCol(tx, *pTexel, col);
+		//*pTexel += col;
 	}
 
 	// light probes
