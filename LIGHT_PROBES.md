@@ -122,7 +122,12 @@ func _process(delta):
 
 The above basically shows the workflow. You create a LightProbes object over the lifetime of your game, load the corresponding `probe` file when loading a level, then for each dynamic object you make a sample, then pass the information in the sample to the shader so it can render the lighting correctly.
 
-You may need to make the material unique for each object so that the uniforms are unique for each object (I'm not sure on this yet, this is untested).
+You may need to make the material unique for each object so that the uniforms are unique for each object, so that several objects sharing the same material don't end up sharing the same lighting. To do this you can use something like the following:
+```
+# do this as a once off when you create / load a mesh instance
+# don't do this every frame
+player_mesh.set_surface_material(0, player_mesh.get_surface_material(0).duplicate())
+```
 
 `player_node` and `player_mesh` refer to e.g. a spatial holding the object and the mesh instance. Or they could be the same. Make the best choice over whether to use global_transform or translation (which is a local translate) for your sample point - this will depend on your game.
 
