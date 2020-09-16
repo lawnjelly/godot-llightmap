@@ -333,6 +333,51 @@ void LightScene::ProcessVoxelHits_Old(const Ray &ray, const Voxel &voxel, float 
 
 }
 
+bool LightScene::TestIntersect_Line(const Vector3 &a, const Vector3 &b, bool bCullBackFaces)
+{
+	Ray r;
+	r.o = a;
+	r.d = b - a;
+	float dist = r.d.length();
+	if (dist > 0.0f)
+	{
+		// normalize
+		r.d /= dist;
+		bool res = TestIntersect_Ray(r, dist);
+/*
+		// double check
+		Vector3 bary;
+		float t;
+		int tri = FindIntersect_Ray(r, bary, t);
+
+		if (res)
+		{
+			assert (tri != -1);
+			assert (t <= dist);
+		}
+		else
+		{
+			if (tri != -1)
+			{
+				assert (t > dist);
+			}
+		}
+*/
+		return res;
+	}
+	// no distance, no intersection
+	return false;
+}
+
+
+bool LightScene::TestIntersect_Ray(const Ray &ray, float max_dist, bool bCullBackFaces)
+{
+	Vec3i voxel_range;
+	m_Tracer.GetDistanceInVoxels(max_dist, voxel_range);
+	return TestIntersect_Ray(ray, max_dist, voxel_range, bCullBackFaces);
+}
+
+
 bool LightScene::TestIntersect_Ray(const Ray &ray, float max_dist, const Vec3i &voxel_range, bool bCullBackFaces)
 {
 	Ray voxel_ray;

@@ -207,9 +207,15 @@ void LightProbes::CalculateProbe(const Vec3i &pt)
 		//bool LightMapper::Process_BackwardSample_Light(const LLight &light, const Vector3 &ptSource, const Vector3 &ptNormal, FColor &color, float power)
 
 		// dummy not really needed
-		Vector3 ptNormal = Vector3(0, 1, 0);
-		FColor fcol;
-		fcol.Set(0.0f);
+		//Vector3 ptNormal = Vector3(0, 1, 0);
+		//FColor fcol;
+		//fcol.Set(0.0f);
+
+		// test single ray from probe to light centre
+		//if (!m_pLightMapper->m_Scene.TestIntersect_Line(pos, light.pos))
+		//	fClear = nSamples;
+
+		int sample_count = 0;
 
 		for (int sample=0; sample<nSamples; sample++)
 		{
@@ -221,13 +227,18 @@ void LightProbes::CalculateProbe(const Vec3i &pt)
 			Vector3 ptStart = pos;
 
 			float multiplier;
-			bool bClear = m_pLightMapper->Process_BackwardSample_Light(light, ptStart, ptNormal, fcol, 1.0f, multiplier);
+			bool disallow_sample;
+			bool bClear = m_pLightMapper->Probe_SampleToLight(light, ptStart, multiplier, disallow_sample);
+
+			// don't count samples if there is not path from the light centre to the light sample
+			if (!disallow_sample)
+				sample_count++;
 
 			if (bClear)
 			{
 				fClear += multiplier;
-				//nClear++;
 			}
+
 		} // for sample
 
 		if (fClear > 0.0f)
@@ -239,9 +250,10 @@ void LightProbes::CalculateProbe(const Vec3i &pt)
 
 			// calculate power based on distance
 			//pCont->power = CalculatePower(light, dist_to_light, pos);
-			pCont->power = (float) fClear / (float) (nSamples);
+			assert (sample_count);
+			pCont->power = (float) fClear / (float) (sample_count);
 
-			// print_line("\tprobe " + pt.ToString() + " light " + itos (l) + " power " + String(Variant(pCont->power)));
+			//print_line("\tprobe " + pt.ToString() + " light " + itos (l) + " power " + String(Variant(pCont->power)));
 		}
 
 	}

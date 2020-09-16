@@ -42,6 +42,8 @@ public:
 
 	// simple test returns true if any collision
 	bool TestIntersect_Ray(const Ray &ray, float max_dist, const Vec3i &voxel_range, bool bCullBackFaces = false);
+	bool TestIntersect_Ray(const Ray &ray, float max_dist, bool bCullBackFaces = false);
+	bool TestIntersect_Line(const Vector3 &a, const Vector3 &b, bool bCullBackFaces = false);
 
 	void FindUVsBarycentric(int tri, Vector2 &uvs, float u, float v, float w) const
 	{

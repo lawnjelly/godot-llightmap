@@ -696,6 +696,131 @@ void LightMapper::ProcessTexel_Line_MT(uint32_t offset_y, int start_y)
 }
 
 
+bool LightMapper::Light_RandomSample(const LLight &light, const Vector3 &ptSurf, Ray &ray, Vector3 &ptLight, float &ray_length, float &multiplier) const
+{
+	// for a spotlight, we can cull completely in a lot of cases.
+	if (light.type == LLight::LT_SPOT)
+	{
+		Ray r;
+		r.o = light.spot_emanation_point;
+		r.d = ptSurf- r.o;
+		r.d.normalize();
+		float dot = r.d.dot(light.dir);
+		//float angle = safe_acosf(dot);
+		//if (angle >= light.spot_angle_radians)
+
+		dot -= light.spot_dot_max;
+
+		if (dot <= 0.0f)
+			return false;
+	}
+
+	// default
+	multiplier = 1.0f;
+
+
+	switch (light.type)
+	{
+	case LLight::LT_DIRECTIONAL:
+		{
+			// we set this to maximum, better not to check at all but makes code simpler
+			ray_length = FLT_MAX;
+
+			ray.o = ptSurf;
+			//r.d = -light.dir;
+
+			// perturb direction depending on light scale
+			//Vector3 ptTarget = light.dir * -2.0f;
+
+			Vector3 offset;
+			RandomUnitDir(offset);
+			offset *= light.scale;
+
+			offset += (light.dir * -2.0f);
+			ray.d = offset.normalized();
+
+			// disallow zero length (should be rare)
+			if (ray.d.length_squared() < 0.00001f)
+				return false;
+
+			// don't allow from opposite direction
+			if (ray.d.dot(light.dir) > 0.0f)
+				ray.d = -ray.d;
+
+			// this is used for intersection test to see
+			// if e.g. sun is obscured. So we make the light position a long way from the origin
+			ptLight = ptSurf + (ray.d * 10000000.0f);
+		}
+		break;
+	case LLight::LT_SPOT:
+		{
+			// source
+			float dot;
+
+			while (true)
+			{
+				Vector3 offset;
+				RandomUnitDir(offset);
+				offset *= light.scale;
+
+				ray.o = light.pos;
+				ray.o += offset;
+
+				// offset from origin to destination texel
+				ray.d = ptSurf - ray.o;
+
+				// normalize and find length
+				ray_length = NormalizeAndFindLength(ray.d);
+
+				dot = ray.d.dot(light.dir);
+				//float angle = safe_acosf(dot);
+				//if (angle >= light.spot_angle_radians)
+
+				dot -= light.spot_dot_max;
+
+				// if within cone, it is ok
+				if (dot > 0.0f)
+					break;
+			}
+
+			// store the light sample point
+			ptLight = ray.o;
+
+			// reverse ray for precision reasons
+			ray.d = -ray.d;
+			ray.o = ptSurf;
+
+			dot *= 1.0f / (1.0f - light.spot_dot_max);
+			multiplier = dot * dot;
+			multiplier *= multiplier;
+		}
+		break;
+	default:
+		{
+			Vector3 offset;
+			RandomUnitDir(offset);
+			offset *= light.scale;
+			ptLight = light.pos + offset;
+
+			// offset from origin to destination texel
+			ray.o = ptSurf;
+			ray.d = ptLight - ray.o;
+
+			// normalize and find length
+			ray_length = NormalizeAndFindLength(ray.d);
+
+			// safety
+			//assert (r.d.length() > 0.0f);
+
+		}
+		break;
+	}
+
+	// by this point...
+	// ray should be set, ray_length, and ptLight
+	return true;
+}
+
 
 // trace from the poly TO the light, not the other way round, to avoid precision errors
 void LightMapper::BF_ProcessTexel_Light(const Color &orig_albedo, int light_id, const Vector3 &ptSource, const Vector3 &orig_face_normal, const Vector3 &orig_vertex_normal, FColor &color, int nSamples)//, uint32_t tri_ignore)

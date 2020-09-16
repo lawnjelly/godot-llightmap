@@ -65,7 +65,11 @@ private:
 	void ProcessLightProbes();
 public:
 	// encapsulate a single backward trace to a light, because this will be useful for light probes as well as backward tracing
-	bool Process_BackwardSample_Light(const LLight &light, const Vector3 &ptSource, const Vector3 &ptNormal, FColor &color, float power, float &multiplier);
+	bool Probe_SampleToLight(const LLight &light, const Vector3 &ptProbe, float &multiplier, bool &disallow_sample);
+
+	bool Light_RandomSample(const LLight &light, const Vector3 &ptSurf, Ray &ray, Vector3 &ptLight, float &ray_length, float &multiplier) const;
+
+	//bool Process_BackwardSample_Light(const LLight &light, const Vector3 &ptSource, const Vector3 &ptNormal, FColor &color, float power, float &multiplier, bool bTestLightToSample);
 
 	FColor Probe_CalculateIndirectLight(const Vector3 &pos);
 private:
@@ -78,9 +82,36 @@ private:
 };
 
 
+bool LightMapper::Probe_SampleToLight(const LLight &light, const Vector3 &ptProbe, float &multiplier, bool &disallow_sample)
+{
+	Ray r;
+	Vector3 ptLight;
+	float ray_length;
+	if (!Light_RandomSample(light, ptProbe, r, ptLight, ray_length, multiplier))
+		return false;
+
+
+	// if there is no clear path from the light to the the light sample point, we disallow the sample
+	// but not for directional lights as only the direction matters for these, not the origin
+	if ((light.type != LLight::LT_DIRECTIONAL) && m_Scene.TestIntersect_Line(light.pos, ptLight))
+	{
+		disallow_sample = true;
+		return false;
+	}
+
+	disallow_sample = false;
+
+	// just an intersect test for now
+	if (m_Scene.TestIntersect_Line(ptProbe, ptLight))
+		return false;
+
+	return true;
+}
+
+/*
 // encapsulate a single backward trace to a light, because this will be useful for light probes as well as backward tracing
 // returns true if path to light
-bool LightMapper::Process_BackwardSample_Light(const LLight &light, const Vector3 &ptSource, const Vector3 &ptNormal, FColor &color, float power, float &multiplier)
+bool LightMapper::Process_BackwardSample_Light(const LLight &light, const Vector3 &ptSource, const Vector3 &ptNormal, FColor &color, float power, float &multiplier, bool bTestLightToSample)
 {
 	Ray r;
 	Vector3 ptDest = light.pos;
@@ -146,6 +177,10 @@ bool LightMapper::Process_BackwardSample_Light(const LLight &light, const Vector
 					break;
 			}
 
+			// there must be a clear path from the light to the light sample
+			if (bTestLightToSample && m_Scene.TestIntersect_Line(light.pos, r.o))
+				return false;
+
 			// reverse ray for precision reasons
 			r.d = -r.d;
 			r.o = ptSource;
@@ -172,6 +207,10 @@ bool LightMapper::Process_BackwardSample_Light(const LLight &light, const Vector
 			RandomUnitDir(offset);
 			offset *= light.scale;
 			ptDest += offset;
+
+			// there must be a clear path from the light to the light sample
+			if (bTestLightToSample && m_Scene.TestIntersect_Line(light.pos, ptDest))
+				return false;
 
 			// offset from origin to destination texel
 			r.o = ptSource;
@@ -285,5 +324,6 @@ bool LightMapper::Process_BackwardSample_Light(const LLight &light, const Vector
 
 	return false;
 }
+*/
 
 } // namespace

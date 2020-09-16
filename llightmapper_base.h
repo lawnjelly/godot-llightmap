@@ -348,6 +348,7 @@ protected:
 //	  return rgbm;
 
 	}
+
 };
 
 inline void LightMapper_Base::RandomBarycentric(Vector3 &bary) const
