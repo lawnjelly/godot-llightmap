@@ -164,6 +164,7 @@ I will provide some example shaders, which can be used 'as is', but feel free to
 ### Medium Quality
 * Vertex lighting, using faux roughness term from blue channel in fragment shader
 * Suitable for skinned or non-animated models
+* You can set the balance for diffuse, specular and ambient light by setting a shader parameter
 
 ```
 shader_type spatial;
