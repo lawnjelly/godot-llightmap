@@ -180,6 +180,10 @@ uniform vec3 light_pos;
 uniform vec4 light_color;
 uniform vec4 light_indirect;
 
+// these are multipliers for the 3 components, so you
+// can balance the material for the look you want
+uniform vec3 light_diffuse_specular_ambient;
+
 // specular is interpolated separately to diffuse + ambient in this shader
 varying vec3 v_specular;
 
@@ -241,17 +245,14 @@ void vertex() {
 	d *= falloff;
 	specular *= falloff;
 	
-	// scale diffuse
-	d *= 0.8;
-	
-	// to test just the indirect lighting, set these both to zero
-	// d = 0.0;
-	// specular = 0.0f;
+	// custom scaling for diffuse and specular, user can change this
+	d *= light_diffuse_specular_ambient.r;
+	specular *= light_diffuse_specular_ambient.g;
 	
 	// the diffuse + ambient color.
 	// we are letting the indirect light have some influence on the diffuse light here -
 	// this isn't necessary but is artistic licence.
-	COLOR = vec4(((light_color.rgb + light_indirect.rgb) * d) + light_indirect.rgb, 1);
+	COLOR = vec4(((light_color.rgb + light_indirect.rgb) * d) + (light_indirect.rgb * light_diffuse_specular_ambient.b), 1);
 	
 	// the specular depends on the angles and the light color
 	v_specular = specular * light_color.rgb;
