@@ -1,6 +1,6 @@
 # godot-llightmap
-* Lightmap module for Godot Engine 3.2.2 or later
-* Version 0.40 (September 16th, 2020)
+* Lightmap module for Godot Engine 3.x (compatible with 3.2.2 or later versions) 
+* Version 0.41 (April 29th, 2021)
 * Lightmaps created can be used with standard Godot builds and templates, i.e. you only need the module for a preprocess
 * (work in progress, there may be bugs, especially in the uv mapping but it is usable)
 
@@ -32,6 +32,8 @@ https://www.youtube.com/watch?v=pBpF2raGA8A
 * Emissive materials
 * Transparency
 * Light Probes for realtime lighting of dynamic objects
+* Simple noise reduction
+* Seam stitching
 
 ### Still todo
 * Sky panorama textures
@@ -123,25 +125,25 @@ Once you have made some intermediate lights and ambient occlusion exr files, you
 1) Change the bake mode to 'Merge'.
 2) Hit 'Bake Lightmap'.
 
-Merging is much faster than baking lights, or AO. This is because baking requires many ray tests, whereas merging is simply mixing two textures together. When merging you can play with the overall brightness and gamma, and the balance between ambient occlusion and lights.
+Merging is much faster than baking lights, or AO. This is because baking requires many ray tests, whereas merging is simply mixing two textures together. When merging you can play with the overall brightness and gamma, and the balance between ambient occlusion and lights. You can also change post processing features such as noise reduction and seam stitching.
 
 #### Final
 * Once you are satisfied with your final lightmap (for a particular game level), make sure to save it somewhere.
 * For your final game build, you don't need the LLightmap node, and should remove it (it won't be understood in standard builds of the engine anyway).
 * You also don't need the intermediate lights and ao exr files. These should be deleted to reduce the export size of your game.
 * Instead of using the final png, you can alternatively use an exr file for your lightmap (it will contain more accurate colors, with higher dynamic range). For mobile use png is still recommended.
-* At the moment it is recommended to run noise reduction on the final lightmap with an image editing program (e.g. gimp, photoshop). Soon OpenImageDenoise will be in core and I will add a hook to use that as soon as available, which will make this more user friendly.
+* At the moment it is recommended to run noise reduction on the final lightmap with an image editing program (e.g. gimp, photoshop). Simple noise reduction is available in LLightmap but the quality won't be as high as an advanced denoiser.
 
 ## Realtime lighting (Light probes)
 See [LIGHT_PROBES.md](LIGHT_PROBES.md) for full information on using light probes
 
 ## Installation
-* Get the latest godot engine 3.2 source, NOT 3.2 stable, it should be 3.2.2 or later as there has been a change to xatlas since then (commit 1bd5188 specifically, June 4th 2020):
+* Get the latest godot engine 3.x source, NOT 3.2 stable, it should be 3.2.2 or later as there has been a change to xatlas since then (commit 1bd5188 specifically, June 4th 2020):
 
 Either:
-1) go to https://github.com/godotengine/godot/tree/3.2 and click download zip for the bleeding edge latest
-2) go to https://github.com/godotengine/godot/releases/tag/3.2.2-stable and click to download source code
-3) A later official release of the source (e.g. 3.2.3 or 3.2.4 when available)
+1) go to https://github.com/godotengine/godot/tree/3.x and click download zip for the bleeding edge latest
+2) go to https://github.com/godotengine/godot/releases/tag/3.3-stable and click to download source code
+3) A latest official release of the 3.x source
 
 * Create a folder called 'llightmap' in the modules directory
 * Clone / download this repository into the folder
