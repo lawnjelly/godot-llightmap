@@ -1,8 +1,11 @@
-#include "llightmapper.h"
-#include "ldilate.h"
-#include "core/os/os.h"
-#include "scene/3d/light.h"
 #include "core/math/plane.h"
+#include "core/os/os.h"
+#include "editor/editor_node.h"
+#include "lconvolution.h"
+#include "ldilate.h"
+#include "llightmapper.h"
+#include "lstitcher.h"
+#include "scene/3d/light.h"
 
 using namespace LM;
 
@@ -10,8 +13,7 @@ LightMapper_Base::BakeBeginFunc LightMapper_Base::bake_begin_function = NULL;
 LightMapper_Base::BakeStepFunc LightMapper_Base::bake_step_function = NULL;
 LightMapper_Base::BakeEndFunc LightMapper_Base::bake_end_function = NULL;
 
-LightMapper_Base::LightMapper_Base()
-{
+LightMapper_Base::LightMapper_Base() {
 	m_iNumRays = 1;
 	//m_Settings_Forward_NumRays = 16;
 	//m_Settings_Forward_RayPower = 0.01f;
@@ -66,10 +68,18 @@ LightMapper_Base::LightMapper_Base()
 
 	m_Settings_ProbeDensity = 64;
 	m_Settings_ProbeSamples = 4096;
+
+	m_Settings_NoiseThreshold = 0.1f;
+	m_Settings_NoiseReduction = 1.0f;
+	m_Settings_SeamStitching = true;
+	m_Settings_SeamDistanceThreshold = 0.001f;
+	m_Settings_SeamNormalThreshold = 45.0f;
+
+	m_Settings_VisualizeSeams = false;
+	m_Settings_Dilate = true;
 }
 
-void LightMapper_Base::Base_Reset()
-{
+void LightMapper_Base::Base_Reset() {
 	m_Image_L.Reset();
 	m_Image_L_mirror.Reset();
 
@@ -86,9 +96,7 @@ void LightMapper_Base::Base_Reset()
 	m_QMC.Create(0);
 }
 
-
-void LightMapper_Base::CalculateQualityAdjustedSettings()
-{
+void LightMapper_Base::CalculateQualityAdjustedSettings() {
 	// set them initially to the same
 	AdjustedSettings &as = m_AdjustedSettings;
 
@@ -97,7 +105,7 @@ void LightMapper_Base::CalculateQualityAdjustedSettings()
 	//as.m_Forward_NumRays = m_Settings_Forward_NumRays;
 	as.m_EmissionDensity = m_Settings_EmissionDensity;
 
-	as.m_Backward_NumRays= m_Settings_Backward_NumRays;
+	as.m_Backward_NumRays = m_Settings_Backward_NumRays;
 
 	as.m_NumAmbientBounces = m_Settings_NumAmbientBounces;
 	as.m_NumAmbientBounceRays = m_Settings_NumAmbientBounceRays;
@@ -108,10 +116,8 @@ void LightMapper_Base::CalculateQualityAdjustedSettings()
 	as.m_Max_Material_Size = m_Settings_Max_Material_Size;
 
 	// overrides
-	switch (m_Settings_Quality)
-	{
-	case LM_QUALITY_LOW:
-		{
+	switch (m_Settings_Quality) {
+		case LM_QUALITY_LOW: {
 			as.m_NumPrimaryRays = 1;
 			as.m_Forward_NumRays = 1;
 			as.m_Backward_NumRays = 4;
@@ -119,24 +125,21 @@ void LightMapper_Base::CalculateQualityAdjustedSettings()
 			as.m_Max_Material_Size = 32;
 			as.m_NumAmbientBounces = 0;
 			as.m_NumDirectionalBounces = 0;
-		}
-		break;
-	case LM_QUALITY_MEDIUM:
-		{
+		} break;
+		case LM_QUALITY_MEDIUM: {
 			as.m_NumPrimaryRays /= 2;
 			as.m_AO_Samples /= 2;
 			as.m_Max_Material_Size /= 4;
 			as.m_NumAmbientBounceRays /= 2;
-		}
-		break;
-	default:
-		// high is default
-		break;
-	case LM_QUALITY_FINAL:
-		as.m_NumPrimaryRays *= 2;
-		as.m_AO_Samples *= 2;
-		as.m_NumAmbientBounceRays *= 2;
-		break;
+		} break;
+		default:
+			// high is default
+			break;
+		case LM_QUALITY_FINAL:
+			as.m_NumPrimaryRays *= 2;
+			as.m_AO_Samples *= 2;
+			as.m_NumAmbientBounceRays *= 2;
+			break;
 	}
 
 	// minimums
@@ -151,12 +154,10 @@ void LightMapper_Base::CalculateQualityAdjustedSettings()
 	as.m_AO_Samples = MAX(as.m_AO_Samples, 1);
 	as.m_Max_Material_Size = MAX(as.m_Max_Material_Size, 32);
 	as.m_EmissionDensity = MAX(as.m_EmissionDensity, 1);
-
 }
 
-void LightMapper_Base::FindLight(const Node * pNode)
-{
-	const Light * pLight = Object::cast_to<const Light>(pNode);
+void LightMapper_Base::FindLight(const Node *pNode) {
+	const Light *pLight = Object::cast_to<const Light>(pNode);
 	if (!pLight)
 		return;
 
@@ -165,13 +166,13 @@ void LightMapper_Base::FindLight(const Node * pNode)
 		return;
 
 	// is it visible?
-//	if (!pLight->is_visible_in_tree())
-//		return;
+	//	if (!pLight->is_visible_in_tree())
+	//		return;
 
-	LLight * l = m_Lights.request();
+	LLight *l = m_Lights.request();
 
 	// blank
-	memset (l, 0, sizeof (LLight));
+	memset(l, 0, sizeof(LLight));
 
 	l->m_pLight = pLight;
 	// get global transform only works if glight is in the tree
@@ -195,29 +196,26 @@ void LightMapper_Base::FindLight(const Node * pNode)
 	// the sample origin is offset by scale from pos. So we push back the pos
 	// in order to account for the scale 'cloud' of origins.
 	float radius = MAX(l->scale.x, MAX(l->scale.y, l->scale.z));
-	l->spot_emanation_point =l->pos - (l->dir * radius);
+	l->spot_emanation_point = l->pos - (l->dir * radius);
 
 	// pre apply intensity
 	l->color.Set(pLight->get_color() * l->energy);
 
-	const DirectionalLight * pDLight = Object::cast_to<DirectionalLight>(pLight);
+	const DirectionalLight *pDLight = Object::cast_to<DirectionalLight>(pLight);
 	if (pDLight)
 		l->type = LLight::LT_DIRECTIONAL;
 
-	const SpotLight * pSLight = Object::cast_to<SpotLight>(pLight);
+	const SpotLight *pSLight = Object::cast_to<SpotLight>(pLight);
 	if (pSLight)
 		l->type = LLight::LT_SPOT;
 
-	const OmniLight * pOLight = Object::cast_to<OmniLight>(pLight);
+	const OmniLight *pOLight = Object::cast_to<OmniLight>(pLight);
 	if (pOLight)
 		l->type = LLight::LT_OMNI;
-
 }
 
-void LightMapper_Base::PrepareLights()
-{
-	for (int n=0; n<m_Lights.size(); n++)
-	{
+void LightMapper_Base::PrepareLights() {
+	for (int n = 0; n < m_Lights.size(); n++) {
 		LLight &light = m_Lights[n];
 
 		if (light.type == LLight::LT_DIRECTIONAL)
@@ -225,22 +223,18 @@ void LightMapper_Base::PrepareLights()
 	}
 }
 
-
-void LightMapper_Base::FindLights_Recursive(const Node * pNode)
-{
+void LightMapper_Base::FindLights_Recursive(const Node *pNode) {
 	FindLight(pNode);
 
 	int nChildren = pNode->get_child_count();
 
-	for (int n=0; n<nChildren; n++)
-	{
-		Node * pChild = pNode->get_child(n);
+	for (int n = 0; n < nChildren; n++) {
+		Node *pChild = pNode->get_child(n);
 		FindLights_Recursive(pChild);
 	}
 }
 
-Plane LightMapper_Base::FindContainmentPlane(const Vector3 &dir, Vector3 pts[8], float &range, float padding)
-{
+Plane LightMapper_Base::FindContainmentPlane(const Vector3 &dir, Vector3 pts[8], float &range, float padding) {
 	// construct a plane with one of the points
 	Plane pl(pts[0], dir);
 
@@ -248,12 +242,10 @@ Plane LightMapper_Base::FindContainmentPlane(const Vector3 &dir, Vector3 pts[8],
 	int furthest = 0;
 
 	// find the furthest point
-	for (int n=0; n<8; n++)
-	{
+	for (int n = 0; n < 8; n++) {
 		float d = pl.distance_to(pts[n]);
 
-		if (d < furthest_dist)
-		{
+		if (d < furthest_dist) {
 			furthest_dist = d;
 			furthest = n;
 		}
@@ -265,17 +257,15 @@ Plane LightMapper_Base::FindContainmentPlane(const Vector3 &dir, Vector3 pts[8],
 	// find the range
 	range = 0.0f;
 
-	for (int n=0; n<8; n++)
-	{
+	for (int n = 0; n < 8; n++) {
 		float d = pl.distance_to(pts[n]);
 
-		if (d > range)
-		{
+		if (d > range) {
 			range = d;
 		}
 	}
 
-//	const float padding = 8.0f;
+	//	const float padding = 8.0f;
 
 	// move plane backward a bit for luck
 	pl.d -= padding;
@@ -286,8 +276,7 @@ Plane LightMapper_Base::FindContainmentPlane(const Vector3 &dir, Vector3 pts[8],
 	return pl;
 }
 
-void LightMapper_Base::LightToPlane(LLight &light)
-{
+void LightMapper_Base::LightToPlane(LLight &light) {
 	AABB bb = m_Scene.m_Tracer.GetWorldBound_expanded();
 	Vector3 minmax[2];
 	minmax[0] = bb.position;
@@ -311,7 +300,6 @@ void LightMapper_Base::LightToPlane(LLight &light)
 	else
 		minmax[0].z += offset.z;
 
-
 	light.dl_plane_pt = minmax[0];
 	light.dl_tangent = Vector3(1, 0, 0);
 	light.dl_bitangent = Vector3(0, 0, 1);
@@ -321,15 +309,10 @@ void LightMapper_Base::LightToPlane(LLight &light)
 	print_line("plane mins : " + String(Variant(minmax[0])));
 	print_line("plane maxs : " + String(Variant(minmax[1])));
 
-
 	return;
 
-
-
-
 	Vector3 pts[8];
-	for (int n=0; n<8; n++)
-	{
+	for (int n = 0; n < 8; n++) {
 		// which x etc. either 0 or 1 for each axis
 		int wx = MIN(n & 1, 1);
 		int wy = MIN(n & 2, 1);
@@ -345,12 +328,9 @@ void LightMapper_Base::LightToPlane(LLight &light)
 	// This will deal with most common cases .. for side lights,
 	// area light is better.
 	Vector3 plane_normal = light.dir;
-	if (light.dir.y < 0.0f)
-	{
+	if (light.dir.y < 0.0f) {
 		plane_normal = Vector3(0, -1, 0);
-	}
-	else
-	{
+	} else {
 		plane_normal = Vector3(0, 1, 0);
 	}
 
@@ -375,8 +355,7 @@ void LightMapper_Base::LightToPlane(LLight &light)
 	float lz = cross[2].length();
 
 	int best_cross = 0;
-	if (ly > lx)
-	{
+	if (ly > lx) {
 		best_cross = 1;
 		if (lz > ly)
 			best_cross = 2;
@@ -399,28 +378,27 @@ void LightMapper_Base::LightToPlane(LLight &light)
 	// find point at mins of the planes
 	Vector3 ptPlaneMins;
 	bool res = pl.intersect_3(pl_tangent, pl_bitangent, &ptPlaneMins);
-	assert (res);
+	assert(res);
 
 	// for flat sky, adjust the point to account for the incoming light direction
 	// so as not to have part of the mesh in shadow
-//	Vector3 offset = light.dir * -PLANE_PUSH;
-//	ptPlaneMins.x += offset.x;
-//	ptPlaneMins.z += offset.z;
+	//	Vector3 offset = light.dir * -PLANE_PUSH;
+	//	ptPlaneMins.x += offset.x;
+	//	ptPlaneMins.z += offset.z;
 
 	// we now have a point, 2 vectors (tangent and bitangent) and ranges,
 	// all that is needed for a random distribution!
 
-//	Vector3 dl_plane_pt;
-//	Vector3 dl_plane_tangent;
-//	Vector3 dl_plane_bitangent;
-//	float dl_plane_tangent_range;
-//	float dl_plane_bitangent_range;
+	//	Vector3 dl_plane_pt;
+	//	Vector3 dl_plane_tangent;
+	//	Vector3 dl_plane_bitangent;
+	//	float dl_plane_tangent_range;
+	//	float dl_plane_bitangent_range;
 	light.dl_plane_pt = ptPlaneMins;
 	light.dl_tangent = tangent;
 	light.dl_bitangent = bitangent;
 	light.dl_tangent_range = tangent_range;
 	light.dl_bitangent_range = bitangent_range;
-
 
 	// debug output the positions
 	Vector3 pA = ptPlaneMins;
@@ -432,12 +410,9 @@ void LightMapper_Base::LightToPlane(LLight &light)
 	print_line("dir light B : " + String(Variant(pB)));
 	print_line("dir light C : " + String(Variant(pC)));
 	print_line("dir light D : " + String(Variant(pD)));
-
 }
 
-
-void LightMapper_Base::PrepareImageMaps()
-{
+void LightMapper_Base::PrepareImageMaps() {
 	m_Image_ID_p1.Blank();
 	//m_Image_ID2_p1.Blank();
 
@@ -464,21 +439,18 @@ void LightMapper_Base::PrepareImageMaps()
 	*/
 }
 
-void LightMapper_Base::Normalize_AO()
-{
+void LightMapper_Base::Normalize_AO() {
 	int nPixels = m_Image_AO.GetNumPixels();
 	float fmax = 0.0f;
 
 	// first find the max
-	for (int n=0; n<nPixels; n++)
-	{
+	for (int n = 0; n < nPixels; n++) {
 		float f = *m_Image_AO.Get(n);
 		if (f > fmax)
 			fmax = f;
 	}
 
-	if (fmax < 0.001f)
-	{
+	if (fmax < 0.001f) {
 		WARN_PRINT_ONCE("LightMapper_Base::Normalize_AO : values too small to normalize");
 		return;
 	}
@@ -490,8 +462,7 @@ void LightMapper_Base::Normalize_AO()
 	//mult *= m_Settings_NormalizeBias;
 
 	// apply multiplier
-	for (int n=0; n<nPixels; n++)
-	{
+	for (int n = 0; n < nPixels; n++) {
 		float &f = *m_Image_AO.Get(n);
 		f *= mult;
 
@@ -500,11 +471,31 @@ void LightMapper_Base::Normalize_AO()
 		if (f < 0.0f)
 			f = 0.0f;
 	}
-
 }
 
-void LightMapper_Base::Normalize()
-{
+void LightMapper_Base::StitchSeams() {
+	if (!m_Settings_SeamStitching)
+		return;
+
+	Stitcher stitcher;
+
+	// stitch seams one mesh at a time
+	for (int n = 0; n < m_Scene.GetNumMeshes(); n++) {
+		MeshInstance *mi = m_Scene.GetMesh(n);
+
+		stitcher.StitchObjectSeams(*mi, m_Image_L, m_Settings_SeamDistanceThreshold, m_Settings_SeamNormalThreshold, m_Settings_VisualizeSeams);
+	}
+}
+
+void LightMapper_Base::ApplyNoiseReduction() {
+	Convolution<FColor> conv;
+	conv.Run(m_Image_L, m_Settings_NoiseThreshold, m_Settings_NoiseReduction);
+
+	//	Convolution<float> conv_ao;
+	//	conv_ao.Run(m_Image_AO, m_Settings_NoiseThreshold, m_Settings_NoiseReduction);
+}
+
+void LightMapper_Base::Normalize() {
 	if (!m_Settings_Normalize)
 		return;
 
@@ -512,15 +503,13 @@ void LightMapper_Base::Normalize()
 	float fmax = 0.0f;
 
 	// first find the max
-	for (int n=0; n<nPixels; n++)
-	{
+	for (int n = 0; n < nPixels; n++) {
 		float f = m_Image_L.Get(n)->Max();
 		if (f > fmax)
 			fmax = f;
 	}
 
-	if (fmax < 0.001f)
-	{
+	if (fmax < 0.001f) {
 		WARN_PRINT_ONCE("LightMapper_Base::Normalize : values too small to normalize");
 		return;
 	}
@@ -532,38 +521,30 @@ void LightMapper_Base::Normalize()
 	mult *= m_Settings_NormalizeBias;
 
 	// apply multiplier
-	for (int n=0; n<nPixels; n++)
-	{
+	for (int n = 0; n < nPixels; n++) {
 		FColor &col = *m_Image_L.Get(n);
 		col = col * mult;
 	}
 }
 
-
-bool LightMapper_Base::LoadLightmap(Image &image)
-{
-//	assert (image.get_width() == m_iWidth);
-//	assert (image.get_height() == m_iHeight);
+bool LightMapper_Base::LoadLightmap(Image &image) {
+	//	assert (image.get_width() == m_iWidth);
+	//	assert (image.get_height() == m_iHeight);
 
 	Error res = image.load(m_Settings_LightmapFilename);
-	if (res != OK)
-	{
+	if (res != OK) {
 		ShowWarning("Loading lights EXR failed.\n\n" + m_Settings_LightmapFilename);
 		return false;
 	}
 
-	if ((image.get_width() != m_iWidth) || (image.get_height() != m_iHeight))
-	{
+	if ((image.get_width() != m_iWidth) || (image.get_height() != m_iHeight)) {
 		ShowWarning("Loaded Lights texture file dimensions do not match project, ignoring.");
 		return false;
 	}
 
-
 	image.lock();
-	for (int y=0; y<m_iHeight; y++)
-	{
-		for (int x=0; x<m_iWidth; x++)
-		{
+	for (int y = 0; y < m_iHeight; y++) {
+		for (int x = 0; x < m_iWidth; x++) {
 			m_Image_L.GetItem(x, y).Set(image.get_pixel(x, y));
 		}
 	}
@@ -572,29 +553,24 @@ bool LightMapper_Base::LoadLightmap(Image &image)
 	return true;
 }
 
-bool LightMapper_Base::LoadAO(Image &image)
-{
-//	assert (image.get_width() == m_iWidth);
-//	assert (image.get_height() == m_iHeight);
+bool LightMapper_Base::LoadAO(Image &image) {
+	//	assert (image.get_width() == m_iWidth);
+	//	assert (image.get_height() == m_iHeight);
 
 	Error res = image.load(m_Settings_AmbientFilename);
-	if (res != OK)
-	{
+	if (res != OK) {
 		ShowWarning("Loading AO EXR failed.\n\n" + m_Settings_AmbientFilename);
 		return false;
 	}
 
-	if ((image.get_width() != m_iWidth) || (image.get_height() != m_iHeight))
-	{
+	if ((image.get_width() != m_iWidth) || (image.get_height() != m_iHeight)) {
 		ShowWarning("Loaded AO texture file dimensions do not match project, ignoring.");
 		return false;
 	}
 
 	image.lock();
-	for (int y=0; y<m_iHeight; y++)
-	{
-		for (int x=0; x<m_iWidth; x++)
-		{
+	for (int y = 0; y < m_iHeight; y++) {
+		for (int x = 0; x < m_iWidth; x++) {
 			m_Image_AO.GetItem(x, y) = image.get_pixel(x, y).r;
 		}
 	}
@@ -603,23 +579,15 @@ bool LightMapper_Base::LoadAO(Image &image)
 	return true;
 }
 
-
-void LightMapper_Base::Merge_AndWriteOutputImage_Combined(Image &image)
-{
+void LightMapper_Base::Merge_AndWriteOutputImage_Combined(Image &image) {
 	// normalize lightmap on combine
 	Normalize();
 
-	// assuming both lightmap and AO are already dilated
-	// final version
-	image.lock();
-
-
+	// merge them both before applying noise reduction and seams
 	float gamma = 1.0f / m_Settings_Gamma;
 
-	for (int y=0; y<m_iHeight; y++)
-	{
-		for (int x=0; x<m_iWidth; x++)
-		{
+	for (int y = 0; y < m_iHeight; y++) {
+		for (int x = 0; x < m_iWidth; x++) {
 			float ao = 0.0f;
 
 			if (m_Image_AO.GetNumPixels())
@@ -629,41 +597,110 @@ void LightMapper_Base::Merge_AndWriteOutputImage_Combined(Image &image)
 
 			// combined
 			FColor f;
-			switch (m_Settings_BakeMode)
-			{
-			case LMBAKEMODE_LIGHTMAP:
-				{
+			switch (m_Settings_BakeMode) {
+				case LMBAKEMODE_LIGHTMAP: {
 					f = lum;
-				}
-				break;
-			case LMBAKEMODE_AO:
-				{
+				} break;
+				case LMBAKEMODE_AO: {
 					f.Set(ao);
-				}
-				break;
-			default:
-				{
+				} break;
+				default: {
 					FColor mid = lum * ao;
 
-					if (m_Settings_Light_AO_Ratio < 0.5f)
-					{
+					if (m_Settings_Light_AO_Ratio < 0.5f) {
 						float r = m_Settings_Light_AO_Ratio / 0.5f;
 						f.Set((1.0f - r) * ao);
 						f += mid * r;
-					}
-					else
-					{
-						float r = (m_Settings_Light_AO_Ratio-0.5f) / 0.5f;
-						f =  mid * (1.0f - r);
+					} else {
+						float r = (m_Settings_Light_AO_Ratio - 0.5f) / 0.5f;
+						f = mid * (1.0f - r);
 						f += lum * r;
 					}
-				}
-				break;
+				} break;
 			}
 
 			// gamma correction
-			if (!m_Settings_CombinedIsHDR)
-			{
+			if (!m_Settings_CombinedIsHDR) {
+				f.r = powf(f.r, gamma);
+				f.g = powf(f.g, gamma);
+				f.b = powf(f.b, gamma);
+			}
+
+			/*
+			Color col;
+			col = Color(f.r, f.g, f.b, 1);
+
+			// new... RGBM .. use a multiplier in the alpha to get increased dynamic range!
+			//ColorToRGBM(col);
+
+			image.set_pixel(x, y, col);
+			*/
+			// write back to L
+			*m_Image_L.Get(x, y) = f;
+		}
+	}
+
+	ApplyNoiseReduction();
+
+	StitchSeams();
+
+	// assuming both lightmap and AO are already dilated
+	// final version
+	image.lock();
+
+	for (int y = 0; y < m_iHeight; y++) {
+		for (int x = 0; x < m_iWidth; x++) {
+
+			FColor f = m_Image_L.GetItem(x, y);
+
+			Color col;
+			col = Color(f.r, f.g, f.b, 1);
+
+			// new... RGBM .. use a multiplier in the alpha to get increased dynamic range!
+			//ColorToRGBM(col);
+
+			image.set_pixel(x, y, col);
+		}
+	}
+
+	/*	
+	float gamma = 1.0f / m_Settings_Gamma;
+
+	for (int y = 0; y < m_iHeight; y++) {
+		for (int x = 0; x < m_iWidth; x++) {
+			float ao = 0.0f;
+
+			if (m_Image_AO.GetNumPixels())
+				ao = m_Image_AO.GetItem(x, y);
+
+			FColor lum = m_Image_L.GetItem(x, y);
+
+			// combined
+			FColor f;
+			switch (m_Settings_BakeMode) {
+				case LMBAKEMODE_LIGHTMAP: {
+					f = lum;
+				} break;
+				case LMBAKEMODE_AO: {
+					f.Set(ao);
+				} break;
+				default: {
+					FColor mid = lum * ao;
+
+					if (m_Settings_Light_AO_Ratio < 0.5f) {
+						float r = m_Settings_Light_AO_Ratio / 0.5f;
+						f.Set((1.0f - r) * ao);
+						f += mid * r;
+					} else {
+						float r = (m_Settings_Light_AO_Ratio - 0.5f) / 0.5f;
+						f = mid * (1.0f - r);
+						f += lum * r;
+					}
+				} break;
+			}
+
+			// gamma correction
+			if (!m_Settings_CombinedIsHDR) {
 				f.r = powf(f.r, gamma);
 				f.g = powf(f.g, gamma);
 				f.b = powf(f.b, gamma);
@@ -678,33 +715,31 @@ void LightMapper_Base::Merge_AndWriteOutputImage_Combined(Image &image)
 			image.set_pixel(x, y, col);
 		}
 	}
+	*/
 
 	image.unlock();
 }
 
-
-void LightMapper_Base::WriteOutputImage_AO(Image &image)
-{
+void LightMapper_Base::WriteOutputImage_AO(Image &image) {
 	if (!m_Image_AO.GetNumPixels())
 		return;
 
-	Dilate<float> dilate;
-	dilate.DilateImage(m_Image_AO, m_Image_ID_p1, 256);
+	if (m_Settings_Dilate) {
+		Dilate<float> dilate;
+		dilate.DilateImage(m_Image_AO, m_Image_ID_p1, 256);
+	}
 
 	// final version
 	image.lock();
 
-	for (int y=0; y<m_iHeight; y++)
-	{
-		for (int x=0; x<m_iWidth; x++)
-		{
-			const float * pf = m_Image_AO.Get(x, y);
-			assert (pf);
+	for (int y = 0; y < m_iHeight; y++) {
+		for (int x = 0; x < m_iWidth; x++) {
+			const float *pf = m_Image_AO.Get(x, y);
+			assert(pf);
 			float f = *pf;
 
 			// gamma correction
-			if (!m_Settings_AmbientIsHDR)
-			{
+			if (!m_Settings_AmbientIsHDR) {
 				float gamma = 1.0f / 2.2f;
 				f = powf(f, gamma);
 			}
@@ -712,12 +747,10 @@ void LightMapper_Base::WriteOutputImage_AO(Image &image)
 			Color col;
 			col = Color(f, f, f, 1);
 
-
 			// debug mark the dilated pixels
 //#define MARK_AO_DILATED
 #ifdef MARK_AO_DILATED
-			if (!m_Image_ID_p1.GetItem(x, y))
-			{
+			if (!m_Image_ID_p1.GetItem(x, y)) {
 				col = Color(1.0f, 0.33f, 0.66f, 1);
 			}
 #endif
@@ -728,9 +761,7 @@ void LightMapper_Base::WriteOutputImage_AO(Image &image)
 	image.unlock();
 }
 
-
-void LightMapper_Base::ShowWarning(String sz, bool bAlert)
-{
+void LightMapper_Base::ShowWarning(String sz, bool bAlert) {
 #ifdef TOOLS_ENABLED
 	EditorNode::get_singleton()->show_warning(TTR(sz));
 	WARN_PRINT(sz);
@@ -742,22 +773,12 @@ void LightMapper_Base::ShowWarning(String sz, bool bAlert)
 #endif
 }
 
+void LightMapper_Base::WriteOutputImage_Lightmap(Image &image) {
 
-void LightMapper_Base::WriteOutputImage_Lightmap(Image &image)
-{
-	Dilate<FColor> dilate;
-	dilate.DilateImage(m_Image_L, m_Image_ID_p1, 256);
-
-	// test
-//	int test_size = 7;
-//	LightImage<float> imf;
-//	imf.Create(test_size, test_size);
-//	LightImage<uint32_t> imi;
-//	imi.Create(test_size, test_size);
-//	imi.GetItem(3, 3) = 255;
-//	dilate.DilateImage(imf, imi);
-
-//	Normalize();
+	if (m_Settings_Dilate) {
+		Dilate<FColor> dilate;
+		dilate.DilateImage(m_Image_L, m_Image_ID_p1, 256);
+	}
 
 	////
 	// write some debug
@@ -765,8 +786,7 @@ void LightMapper_Base::WriteOutputImage_Lightmap(Image &image)
 #ifdef LLIGHTMAPPER_OUTPUT_TRIIDS
 	output_image.lock();
 	Color cols[1024];
-	for (int n=0; n<m_Scene.GetNumTris(); n++)
-	{
+	for (int n = 0; n < m_Scene.GetNumTris(); n++) {
 		if (n == 1024)
 			break;
 
@@ -774,10 +794,8 @@ void LightMapper_Base::WriteOutputImage_Lightmap(Image &image)
 	}
 	cols[0] = Color(0, 0, 0, 1.0f);
 
-	for (int y=0; y<m_iHeight; y++)
-	{
-		for (int x=0; x<m_iWidth; x++)
-		{
+	for (int y = 0; y < m_iHeight; y++) {
+		for (int x = 0; x < m_iWidth; x++) {
 			int coln = m_Image_ID_p1.GetItem(x, y) % 1024;
 
 			output_image.set_pixel(x, y, cols[coln]);
@@ -791,15 +809,12 @@ void LightMapper_Base::WriteOutputImage_Lightmap(Image &image)
 	// final version
 	image.lock();
 
-	for (int y=0; y<m_iHeight; y++)
-	{
-		for (int x=0; x<m_iWidth; x++)
-		{
+	for (int y = 0; y < m_iHeight; y++) {
+		for (int x = 0; x < m_iWidth; x++) {
 			FColor f = *m_Image_L.Get(x, y);
 
 			// gamma correction
-			if (!m_Settings_LightmapIsHDR)
-			{
+			if (!m_Settings_LightmapIsHDR) {
 				float gamma = 1.0f / 2.2f;
 				f.r = powf(f.r, gamma);
 				f.g = powf(f.g, gamma);
@@ -809,47 +824,45 @@ void LightMapper_Base::WriteOutputImage_Lightmap(Image &image)
 			Color col;
 			col = Color(f.r, f.g, f.b, 1);
 
-
 			// debug mark the dilated pixels
 //#define MARK_DILATED
 #ifdef MARK_DILATED
-			if (!m_Image_ID_p1.GetItem(x, y))
-			{
+			if (!m_Image_ID_p1.GetItem(x, y)) {
 				col = Color(1.0f, 0.33f, 0.66f, 1);
 			}
 #endif
 			//			if (m_Image_ID_p1.GetItem(x, y))
-//			{
-//				output_image.set_pixel(x, y, Color(f, f, f, 255));
-//			}
-//			else
-//			{
-//				output_image.set_pixel(x, y, Color(0, 0, 0, 255));
-//			}
+			//			{
+			//				output_image.set_pixel(x, y, Color(f, f, f, 255));
+			//			}
+			//			else
+			//			{
+			//				output_image.set_pixel(x, y, Color(0, 0, 0, 255));
+			//			}
 
 			// visual cuts
-//			if (m_Image_Cuts.GetItem(x, y).num)
-//			{
-//				col = Color(1.0f, 0.33f, 0.66f, 1);
-//			}
-//			else
-//			{
-//				col = Color(0, 0, 0, 1);
-//			}
+			//			if (m_Image_Cuts.GetItem(x, y).num)
+			//			{
+			//				col = Color(1.0f, 0.33f, 0.66f, 1);
+			//			}
+			//			else
+			//			{
+			//				col = Color(0, 0, 0, 1);
+			//			}
 
 			// visualize concave
-//			const MiniList_Cuts &cuts = m_Image_Cuts.GetItem(x, y);
-//			if (cuts.num == 2)
-//			{
-//				if (cuts.convex)
-//				{
-//					col = Color(1.0f, 0, 0, 1);
-//				}
-//				else
-//				{
-//					col = Color(0, 0, 1, 1);
-//				}
-//			}
+			//			const MiniList_Cuts &cuts = m_Image_Cuts.GetItem(x, y);
+			//			if (cuts.num == 2)
+			//			{
+			//				if (cuts.convex)
+			//				{
+			//					col = Color(1.0f, 0, 0, 1);
+			//				}
+			//				else
+			//				{
+			//					col = Color(0, 0, 1, 1);
+			//				}
+			//			}
 
 			image.set_pixel(x, y, col);
 		}
@@ -857,5 +870,3 @@ void LightMapper_Base::WriteOutputImage_Lightmap(Image &image)
 
 	image.unlock();
 }
-
-

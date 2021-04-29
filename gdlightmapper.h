@@ -1,40 +1,37 @@
 #pragma once
 
-#include "scene/3d/spatial.h"
-#include "scene/3d/mesh_instance.h"
 #include "llightmapper.h"
+#include "scene/3d/mesh_instance.h"
+#include "scene/3d/spatial.h"
 
-class LLightmap : public Spatial
-{
+class LLightmap : public Spatial {
 	GDCLASS(LLightmap, Spatial);
+
 public:
-	enum eMode
-	{
+	enum eMode {
 		MODE_FORWARD = LM::LightMapper::LMMODE_FORWARD,
 		MODE_BACKWARD = LM::LightMapper::LMMODE_BACKWARD,
 	};
 
-	enum eBakeMode
-	{
+	enum eBakeMode {
 		BAKEMODE_UVMAP = LM::LightMapper::LMBAKEMODE_UVMAP,
-		BAKEMODE_LIGHTMAP  = LM::LightMapper::LMBAKEMODE_LIGHTMAP,
+		BAKEMODE_LIGHTMAP = LM::LightMapper::LMBAKEMODE_LIGHTMAP,
 		BAKEMODE_AO = LM::LightMapper::LMBAKEMODE_AO,
 		BAKEMODE_MERGE = LM::LightMapper::LMBAKEMODE_MERGE,
 		BAKEMODE_PROBES = LM::LightMapper::LMBAKEMODE_PROBES,
 		BAKEMODE_COMBINED = LM::LightMapper::LMBAKEMODE_COMBINED,
 	};
 
-	enum eQuality
-	{
+	enum eQuality {
 		QUALITY_LOW = LM::LightMapper::LM_QUALITY_LOW,
 		QUALITY_MEDIUM = LM::LightMapper::LM_QUALITY_MEDIUM,
 		QUALITY_HIGH = LM::LightMapper::LM_QUALITY_HIGH,
 		QUALITY_FINAL = LM::LightMapper::LM_QUALITY_FINAL,
 	};
 
-	bool lightmap_mesh(Node * pMeshRoot, Node * pLightRoot, Object * pOutputImage_Lightmap, Object * pOutputImage_AO, Object * pOutputImage_Combined);
+	bool lightmap_mesh(Node *pMeshRoot, Node *pLightRoot, Object *pOutputImage_Lightmap, Object *pOutputImage_AO, Object *pOutputImage_Combined);
 	bool lightmap_bake();
-	bool lightmap_bake_to_image(Object * pOutputLightmapImage, Object * pOutputAOImage, Object * pOutputCombinedImage);
+	bool lightmap_bake_to_image(Object *pOutputLightmapImage, Object *pOutputAOImage, Object *pOutputCombinedImage);
 
 	bool uvmap();
 
@@ -56,9 +53,8 @@ public:
 	void set_num_samples(int num_samples);
 	int get_num_samples() const;
 
-//	void set_forward_ray_power(float ray_power);
-//	float get_forward_ray_power() const;
-
+	//	void set_forward_ray_power(float ray_power);
+	//	float get_forward_ray_power() const;
 
 	void set_emission_density(float density);
 	float get_emission_density() const;
@@ -70,13 +66,11 @@ public:
 	void set_backward_num_rays(int num_rays);
 	int get_backward_num_rays() const;
 
+	//	void set_backward_num_bounces(int num_bounces);
+	//	int get_backward_num_bounces() const;
 
-//	void set_backward_num_bounces(int num_bounces);
-//	int get_backward_num_bounces() const;
-
-//	void set_backward_ray_power(float ray_power);
-//	float get_backward_ray_power() const;
-
+	//	void set_backward_ray_power(float ray_power);
+	//	float get_backward_ray_power() const;
 
 	////////////////////////////
 	void set_num_bounces(int num_bounces);
@@ -96,7 +90,6 @@ public:
 
 	void set_ambient_bounce_power(float bounce_power);
 	float get_ambient_bounce_power() const;
-
 
 	////////////////////////////
 
@@ -160,18 +153,39 @@ public:
 	void set_probe_samples(int samples);
 	int get_probe_samples() const;
 
-//	void set_probe_filename(const String &p_filename);
-//	String get_probe_filename() const;
+	//	void set_probe_filename(const String &p_filename);
+	//	String get_probe_filename() const;
+
+	// Noise reduction
+	void set_noise_reduction(float nr);
+	float get_noise_reduction() const;
+
+	void set_noise_threshold(float threshold);
+	float get_noise_threshold() const;
+
+	void set_seam_stitching(bool active);
+	bool get_seam_stitching() const;
+
+	void set_seam_distance_threshold(float threshold);
+	float get_seam_distance_threshold() const;
+
+	void set_seam_normal_threshold(float threshold);
+	float get_seam_normal_threshold() const;
+
+	void set_visualize_seams(bool active);
+	bool get_visualize_seams() const;
+
+	void set_dilate(bool active);
+	bool get_dilate() const;
 
 private:
 	LM::LightMapper m_LM;
 
-	void ShowWarning(String sz, bool bAlert = true) {m_LM.ShowWarning(sz, bAlert);}
+	void ShowWarning(String sz, bool bAlert = true) { m_LM.ShowWarning(sz, bAlert); }
 
 protected:
 	static void _bind_methods();
 };
-
 
 VARIANT_ENUM_CAST(LLightmap::eMode);
 VARIANT_ENUM_CAST(LLightmap::eBakeMode);

@@ -1,26 +1,23 @@
 #pragma once
 
-#include "scene/3d/spatial.h"
+#include "latomic.h"
+#include "llightimage.h"
+#include "llightscene.h"
+#include "lqmc.h"
 #include "scene/3d/light.h"
 #include "scene/3d/mesh_instance.h"
-#include "llightscene.h"
-#include "llightimage.h"
-#include "lqmc.h"
-#include "latomic.h"
+#include "scene/3d/spatial.h"
 
 namespace LM {
 
-class LightMapper_Base
-{
+class LightMapper_Base {
 	friend class LightScene;
 	friend class LightProbes;
 
 protected:
-	class LLight
-	{
+	class LLight {
 	public:
-		enum LType
-		{
+		enum LType {
 			LT_OMNI,
 			LT_SPOT,
 			LT_DIRECTIONAL,
@@ -39,7 +36,7 @@ protected:
 		float spot_dot_max;
 		// behind the origin, takes account of the scale in order to cull spotlights
 		Vector3 spot_emanation_point;
-		const Light * m_pLight;
+		const Light *m_pLight;
 
 		// for directional lights
 		// all that is needed for a random distribution
@@ -51,14 +48,12 @@ protected:
 	};
 
 public:
-	enum eLMMode
-	{
+	enum eLMMode {
 		LMMODE_FORWARD,
 		LMMODE_BACKWARD,
 	};
 
-	enum eLMBakeMode
-	{
+	enum eLMBakeMode {
 		LMBAKEMODE_UVMAP,
 		LMBAKEMODE_LIGHTMAP,
 		LMBAKEMODE_AO,
@@ -67,14 +62,12 @@ public:
 		LMBAKEMODE_COMBINED,
 	};
 
-	enum eLMBakeQuality
-	{
+	enum eLMBakeQuality {
 		LM_QUALITY_LOW,
 		LM_QUALITY_MEDIUM,
 		LM_QUALITY_HIGH,
 		LM_QUALITY_FINAL,
 	};
-
 
 	// these enable feedback in the Godot UI as we bake
 	typedef void (*BakeBeginFunc)(int);
@@ -89,13 +82,15 @@ public:
 protected:
 	void Base_Reset();
 
-	void FindLights_Recursive(const Node * pNode);
-	void FindLight(const Node * pNode);
+	void FindLights_Recursive(const Node *pNode);
+	void FindLight(const Node *pNode);
 	void PrepareLights();
 
 	void PrepareImageMaps();
 	void Normalize();
 	void Normalize_AO();
+	void ApplyNoiseReduction();
+	void StitchSeams();
 
 	void WriteOutputImage_Lightmap(Image &image);
 	void WriteOutputImage_AO(Image &image);
@@ -114,7 +109,10 @@ protected:
 	Plane FindContainmentPlane(const Vector3 &dir, Vector3 pts[8], float &range, float padding);
 
 	void CalculateQualityAdjustedSettings();
-	float safe_acosf(float f) const {f = CLAMP(f, -1.0f, 1.0f); return acosf(f);}
+	float safe_acosf(float f) const {
+		f = CLAMP(f, -1.0f, 1.0f);
+		return acosf(f);
+	}
 
 protected:
 	// luminosity
@@ -155,18 +153,15 @@ protected:
 	// if user cancels bake in editor
 	bool m_bCancel;
 
-
 	// these need to be public because can't get friend to work
 	// with LLightMapper_Base. It is not recognised in global namespace.
 	// Perhaps some Godot template fu is involved.
 public:
 	// actual params (after applying quality)
-	struct AdjustedSettings
-	{
+	struct AdjustedSettings {
 		int m_Forward_NumRays;
 		int m_Backward_NumRays;
 		//int m_Forward_NumBounces;
-
 
 		int m_NumPrimaryRays;
 		//int m_Backward_NumBounces;
@@ -183,8 +178,8 @@ public:
 	} m_AdjustedSettings;
 
 	// params
-//	int m_Settings_Forward_NumRays;
-//	float m_Settings_Forward_RayPower;
+	//	int m_Settings_Forward_NumRays;
+	//	float m_Settings_Forward_RayPower;
 	//float m_Settings_Forward_BouncePower;
 	//float m_Settings_Forward_BounceDirectionality;
 
@@ -246,6 +241,17 @@ public:
 	int m_Settings_ProbeDensity; // number of units on largest axis
 	int m_Settings_ProbeSamples;
 
+	float m_Settings_NoiseThreshold;
+	float m_Settings_NoiseReduction;
+
+	bool m_Settings_SeamStitching;
+
+	float m_Settings_SeamDistanceThreshold;
+	float m_Settings_SeamNormalThreshold;
+
+	bool m_Settings_VisualizeSeams;
+	bool m_Settings_Dilate;
+
 	// some internal logic based on the bake state
 	bool m_Logic_Process_Lightmap;
 	bool m_Logic_Process_AO;
@@ -255,42 +261,37 @@ public:
 	bool m_Logic_Output_Final;
 
 	LightMapper_Base();
-protected:
-//	static void _bind_methods();
 
-	float LightDistanceDropoff(float dist, const LLight &light, float power) const
-	{
+protected:
+	//	static void _bind_methods();
+
+	float LightDistanceDropoff(float dist, const LLight &light, float power) const {
 		float local_power;
 
-		if (light.type != LLight::LT_DIRECTIONAL)
-		{
+		if (light.type != LLight::LT_DIRECTIONAL) {
 			local_power = power * InverseSquareDropoff(dist);
-		}
-		else
+		} else
 			local_power = power;
 
 		return local_power;
 	}
 
-	float NormalizeAndFindLength(Vector3 &v) const
-	{
+	float NormalizeAndFindLength(Vector3 &v) const {
 		float l = v.length();
 		if (l > 0.0f)
 			v /= l;
 		return l;
 	}
 
-	float InverseSquareDropoff(float dist) const
-	{
+	float InverseSquareDropoff(float dist) const {
 		dist *= 0.2f;
 		dist += 0.282f;
 		// 4 PI = 12.5664
-		float area = 4.0f * ((float) Math_PI) * (dist * dist);
+		float area = 4.0f * ((float)Math_PI) * (dist * dist);
 		return 1.0f / area;
 	}
 
-	float LargestColorComponent(const Color &c) const
-	{
+	float LargestColorComponent(const Color &c) const {
 		float l = c.r;
 		if (c.g > l) l = c.g;
 		if (c.b > l) l = c.b;
@@ -298,22 +299,19 @@ protected:
 	}
 
 	// use the alpha as a multiplier to increase dynamic range
-	void ColorToRGBM(Color &c) const
-	{
+	void ColorToRGBM(Color &c) const {
 		c.a = 0.0f;
-		if (LargestColorComponent(c) > 1.0f)
-		{
+		if (LargestColorComponent(c) > 1.0f) {
 			c *= 0.125f;
 			//c.a = 255.0f;
 		}
 		return;
 
-
-//		c *= 5;
+		//		c *= 5;
 		// if multiplier 1x = x16;
-//		Color o = c;
+		//		Color o = c;
 		Color o = c * (1.0f / 6.0f);
-//		o.a = 16.0f / l;
+		//		o.a = 16.0f / l;
 
 		// first find the largest component
 		float l = LargestColorComponent(o);
@@ -325,8 +323,7 @@ protected:
 		o.a = ceilf(o.a * 255.0f) / 255.0f;
 
 		// zero color pass as is, prevents divide by zero
-		if (o.a == 0.0f)
-		{
+		if (o.a == 0.0f) {
 			c.a = 0.0f;
 			return;
 		}
@@ -337,22 +334,18 @@ protected:
 		c.b = o.b / o.a;
 		c.a = o.a;
 
+		//		print_line("a is " + String(Variant(c.a)));
 
-//		print_line("a is " + String(Variant(c.a)));
-
-//		float4 rgbm;
-//	  color *= 1.0 / 6.0;
-//	  rgbm.a = saturate( max( max( color.r, color.g ), max( color.b, 1e-6 ) ) );
-//	  rgbm.a = ceil( rgbm.a * 255.0 ) / 255.0;
-//	  rgbm.rgb = color / rgbm.a;
-//	  return rgbm;
-
+		//		float4 rgbm;
+		//	  color *= 1.0 / 6.0;
+		//	  rgbm.a = saturate( max( max( color.r, color.g ), max( color.b, 1e-6 ) ) );
+		//	  rgbm.a = ceil( rgbm.a * 255.0 ) / 255.0;
+		//	  rgbm.rgb = color / rgbm.a;
+		//	  return rgbm;
 	}
-
 };
 
-inline void LightMapper_Base::RandomBarycentric(Vector3 &bary) const
-{
+inline void LightMapper_Base::RandomBarycentric(Vector3 &bary) const {
 	float r1 = Math::randf();
 	float r2 = Math::randf();
 	float sqrt_r1 = sqrtf(r1);
@@ -362,11 +355,9 @@ inline void LightMapper_Base::RandomBarycentric(Vector3 &bary) const
 	bary.z = 1.0f - bary.x - bary.y;
 }
 
-inline void LightMapper_Base::RandomAxis(Vector3 &axis) const
-{
+inline void LightMapper_Base::RandomAxis(Vector3 &axis) const {
 	float sl;
-	while (true)
-	{
+	while (true) {
 		axis.x = Math::random(-1.0f, 1.0f);
 		axis.y = Math::random(-1.0f, 1.0f);
 		axis.z = Math::random(-1.0f, 1.0f);
@@ -381,8 +372,7 @@ inline void LightMapper_Base::RandomAxis(Vector3 &axis) const
 	axis /= l;
 }
 
-inline void LightMapper_Base::RandomSphereDir(Vector3 &dir, float max_length) const
-{
+inline void LightMapper_Base::RandomSphereDir(Vector3 &dir, float max_length) const {
 	dir.x = Math::random(-1.0f, 1.0f);
 	dir.y = Math::random(-1.0f, 1.0f);
 	dir.z = Math::random(-1.0f, 1.0f);
@@ -394,23 +384,18 @@ inline void LightMapper_Base::RandomSphereDir(Vector3 &dir, float max_length) co
 	dir *= f;
 }
 
-
-inline void LightMapper_Base::RandomUnitDir(Vector3 &dir) const
-{
-	while (true)
-	{
+inline void LightMapper_Base::RandomUnitDir(Vector3 &dir) const {
+	while (true) {
 		dir.x = Math::random(-1.0f, 1.0f);
 		dir.y = Math::random(-1.0f, 1.0f);
 		dir.z = Math::random(-1.0f, 1.0f);
 
 		float l = dir.length();
-		if (l > 0.001f)
-		{
+		if (l > 0.001f) {
 			dir /= l;
 			return;
 		}
 	}
 }
 
-
-} // namespace
+} // namespace LM

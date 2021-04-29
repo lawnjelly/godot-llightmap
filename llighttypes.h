@@ -1,77 +1,101 @@
 #pragma once
 
+#include "core/color.h"
+#include "core/math/vector2.h"
 #include "core/math/vector3.h"
 #include "lvector.h"
+#include "scene/3d/mesh_instance.h"
 
-namespace LM
-{
+namespace LM {
 
-struct MiniList
-{
+struct MiniList {
 	uint32_t first;
 	uint32_t num;
 };
 
-
-class Vec3i
-{
+class Vec3i {
 public:
 	Vec3i() {}
-	Vec3i(int xx, int yy, int zz) {x = xx; y = yy; z = zz;}
+	Vec3i(int xx, int yy, int zz) {
+		x = xx;
+		y = yy;
+		z = zz;
+	}
 	int32_t x, y, z;
 
-	Vec3i &operator-=(const Vec3i &v) {x -= v.x; y -= v.y; z -= v.z; return *this;}
-	int SquareLength() const {return (x * x) + (y * y)  + (z * z);}
-	float Length() const {return sqrtf(SquareLength());}
+	Vec3i &operator-=(const Vec3i &v) {
+		x -= v.x;
+		y -= v.y;
+		z -= v.z;
+		return *this;
+	}
+	int SquareLength() const { return (x * x) + (y * y) + (z * z); }
+	float Length() const { return sqrtf(SquareLength()); }
 
-	void Set(int xx, int yy, int zz) {x = xx; y = yy; z = zz;}
-	void Set_Round(const Vector3 &p) {x = (int) (p.x + 0.5f); y = (int) (p.y + 0.5f); z = (int) (p.z + 0.5f);}
-	void To(Vector3 &p) const {p.x = x; p.y = y; p.z = z;}
-	String ToString() const {return itos(x) + ", " + itos(y) + ", " + itos(z);}
+	void Set(int xx, int yy, int zz) {
+		x = xx;
+		y = yy;
+		z = zz;
+	}
+	void Set_Round(const Vector3 &p) {
+		x = (int)(p.x + 0.5f);
+		y = (int)(p.y + 0.5f);
+		z = (int)(p.z + 0.5f);
+	}
+	void To(Vector3 &p) const {
+		p.x = x;
+		p.y = y;
+		p.z = z;
+	}
+	String ToString() const { return itos(x) + ", " + itos(y) + ", " + itos(z); }
 };
 
-class Vec2_i16
-{
+class Vec2_i16 {
 public:
 	Vec2_i16() {}
-	Vec2_i16(int xx, int yy) {x = xx; y = yy;}
+	Vec2_i16(int xx, int yy) {
+		x = xx;
+		y = yy;
+	}
 	int16_t x;
 	int16_t y;
-	void Set(int xx, int yy) {x = xx; y = yy;}
-	bool IsZero() const {return (x == 0) && (y == 0);}
-	bool IsNonZero() const {return !IsZero();}
+	void Set(int xx, int yy) {
+		x = xx;
+		y = yy;
+	}
+	bool IsZero() const { return (x == 0) && (y == 0); }
+	bool IsNonZero() const { return !IsZero(); }
 };
 
-struct EmissionTri
-{
+struct EmissionTri {
 	uint32_t tri_id;
 	float area;
 };
 
-class Tri
-{
+class Tri {
 public:
 	Vector3 pos[3];
 
-	Vector3 GetCentre() const {return (pos[0] + pos[1] + pos[2]) / 3.0f;}
-	void FlipWinding() {Vector3 temp = pos[0]; pos[0] = pos[2]; pos[2] = temp;}
+	Vector3 GetCentre() const { return (pos[0] + pos[1] + pos[2]) / 3.0f; }
+	void FlipWinding() {
+		Vector3 temp = pos[0];
+		pos[0] = pos[2];
+		pos[2] = temp;
+	}
 	void FindBarycentric(const Vector3 &pt, float &u, float &v, float &w) const;
-	void InterpolateBarycentric(Vector3 &pt, const Vector3 &bary) const {InterpolateBarycentric(pt, bary.x, bary.y, bary.z);}
+	void InterpolateBarycentric(Vector3 &pt, const Vector3 &bary) const { InterpolateBarycentric(pt, bary.x, bary.y, bary.z); }
 	void InterpolateBarycentric(Vector3 &pt, float u, float v, float w) const;
-	void FindNormal_EdgeForm(Vector3 &norm) const
-	{
+	void FindNormal_EdgeForm(Vector3 &norm) const {
 		norm = -pos[0].cross(pos[1]);
 		norm.normalize();
 	}
-	void FindNormal(Vector3 &norm) const
-	{
+	void FindNormal(Vector3 &norm) const {
 		Vector3 e0 = pos[1] - pos[0];
 		Vector3 e1 = pos[2] - pos[1];
 		norm = -e0.cross(e1);
 		norm.normalize();
 	}
-	void ConvertToEdgeForm()
-	{
+	void ConvertToEdgeForm() {
 		Tri t = *this;
 		// b - a
 		pos[0] = t.pos[1] - t.pos[0];
@@ -81,26 +105,21 @@ public:
 		pos[2] = t.pos[0];
 	}
 
-	float CalculateArea() const
-	{
+	float CalculateArea() const {
 		return sqrtf(CalculateTwiceAreaSquared()) * 0.5f;
 	}
 
-	float CalculateTwiceAreaSquared() const
-	{
+	float CalculateTwiceAreaSquared() const {
 		// compute the area squared. Which is the result of the cross product of two edges. If it's near zero, bingo
-		Vector3 edge1 = pos[1]-pos[0];
+		Vector3 edge1 = pos[1] - pos[0];
 		Vector3 edge2 = pos[2] - pos[0];
 
 		Vector3 vec = edge1.cross(edge2);
 		return vec.length_squared();
 	}
-
 };
 
-
-class Ray
-{
+class Ray {
 public:
 	Vector3 o; // origin
 	Vector3 d; // direction
@@ -110,47 +129,93 @@ public:
 
 	void FindIntersect(const Tri &tri, float t, float &u, float &v, float &w) const;
 	bool IntersectAAPlane(int axis, Vector3 &pt, float epsilon = 0.0001f) const;
-
 };
 
 // a ray in flight .. in the ray bank to be processed
-struct FHit
-{
-	void SetNoHit() {tx = UINT16_MAX;}
-	bool IsNoHit() const {return tx == UINT16_MAX;}
+struct FHit {
+	void SetNoHit() { tx = UINT16_MAX; }
+	bool IsNoHit() const { return tx == UINT16_MAX; }
 	// texel hit points
 	uint16_t tx, ty;
 };
 
-struct FColor
-{
+struct FColor {
 	float r, g, b;
-	void Set(float v) {r = v; g = v; b = v;}
-	void Set(float rr, float gg, float bb) {r = rr; g = gg; b = bb;}
-	void Set(const Color &col) {r = col.r; g = col.g; b = col.b;}
-	float Max() const {return MAX(r, MAX(g, b));}
-	FColor operator*(float v) const {FColor s; s.r = r * v; s.g = g * v; s.b = b * v; return s;}
-	FColor operator/(float v) const {FColor s; s.r = r / v; s.g = g / v; s.b = b / v; return s;}
-	FColor &operator+=(const FColor &v) {r += v.r; g += v.g; b += v.b; return *this;}
-	FColor &operator*=(float v) {r *= v; g *= v; b *= v; return *this;}
-	FColor operator*(const FColor &o) const {FColor s; s.r = r * o.r; s.g = g * o.g; s.b = b * o.b; return s;}
-	void Lerp(const FColor &o, float f)
-	{
+	void Set(float v) {
+		r = v;
+		g = v;
+		b = v;
+	}
+	void Set(float rr, float gg, float bb) {
+		r = rr;
+		g = gg;
+		b = bb;
+	}
+	void Set(const Color &col) {
+		r = col.r;
+		g = col.g;
+		b = col.b;
+	}
+	float Max() const { return MAX(r, MAX(g, b)); }
+	FColor operator*(float v) const {
+		FColor s;
+		s.r = r * v;
+		s.g = g * v;
+		s.b = b * v;
+		return s;
+	}
+	FColor operator/(float v) const {
+		FColor s;
+		s.r = r / v;
+		s.g = g / v;
+		s.b = b / v;
+		return s;
+	}
+	FColor &operator+=(const FColor &v) {
+		r += v.r;
+		g += v.g;
+		b += v.b;
+		return *this;
+	}
+	FColor &operator-=(const FColor &v) {
+		r -= v.r;
+		g -= v.g;
+		b -= v.b;
+		return *this;
+	}
+	FColor &operator*=(float v) {
+		r *= v;
+		g *= v;
+		b *= v;
+		return *this;
+	}
+	FColor operator*(const FColor &o) const {
+		FColor s;
+		s.r = r * o.r;
+		s.g = g * o.g;
+		s.b = b * o.b;
+		return s;
+	}
+	void Lerp(const FColor &o, float f) {
 		float mf = 1.0f - f;
 		r = (r * mf) + (o.r * f);
 		g = (g * mf) + (o.g * f);
 		b = (b * mf) + (o.b * f);
 	}
-	void To_u8(uint8_t &rr, uint8_t &gg, uint8_t &bb, float m) const
-	{
+	void To_u8(uint8_t &rr, uint8_t &gg, uint8_t &bb, float m) const {
 		rr = _FloatToU8(r, m);
 		gg = _FloatToU8(g, m);
 		bb = _FloatToU8(b, m);
 	}
-	void To(Color &col) const {col.r = r; col.g = g; col.b = b; col.a = 1.0f;}
+	void To(Color &col) const {
+		col.r = r;
+		col.g = g;
+		col.b = b;
+		col.a = 1.0f;
+	}
+
 private:
-	uint8_t _FloatToU8(float f, float m) const
-	{
+	uint8_t _FloatToU8(float f, float m) const {
 		f *= m;
 		f *= 255.0f;
 
@@ -160,8 +225,7 @@ private:
 	}
 };
 
-struct FRay
-{
+struct FRay {
 	Ray ray;
 
 	// the color of the ray at the moment
@@ -175,14 +239,11 @@ struct FRay
 	FHit hit;
 };
 
-
-class Line2
-{
+class Line2 {
 public:
 	Vector2 a;
 	Vector2 b;
-	float Distance(const Vector2 &pt) const
-	{
+	float Distance(const Vector2 &pt) const {
 		Vector2 dir = b - a;
 		Vector2 norm = Vector2(dir.y, -dir.x);
 		norm.normalize();
@@ -192,84 +253,78 @@ public:
 	}
 };
 
-class UVTri
-{
+class UVTri {
 public:
 	Vector2 uv[3];
 
-	void FlipWinding() {Vector2 temp = uv[0]; uv[0] = uv[2]; uv[2] = temp;}
-	void FindUVBarycentric(Vector2 &res, const Vector3 &bary) const {FindUVBarycentric(res, bary.x, bary.y, bary.z);}
+	void FlipWinding() {
+		Vector2 temp = uv[0];
+		uv[0] = uv[2];
+		uv[2] = temp;
+	}
+	void FindUVBarycentric(Vector2 &res, const Vector3 &bary) const { FindUVBarycentric(res, bary.x, bary.y, bary.z); }
 	void FindUVBarycentric(Vector2 &res, float u, float v, float w) const;
 	bool ContainsPoint(const Vector2 &pt, float epsilon = 0.0f) const;
 	bool ContainsTexel(int tx, int ty, int width, int height) const;
 
 	void FindBarycentricCoords(const Vector2 &pt, float &u, float &v, float &w) const;
-	void FindBarycentricCoords(const Vector2 &pt, Vector3 &bary) const {FindBarycentricCoords(pt, bary.x, bary.y, bary.z);}
-	bool IsWindingCW() const {return CalculateTwiceArea() < 0.0f;}
-	float CalculateTwiceArea() const
-	{
-		const Vector2 &a = uv[0]; const Vector2  &b = uv[1]; const Vector2 &c = uv[2];
+	void FindBarycentricCoords(const Vector2 &pt, Vector3 &bary) const { FindBarycentricCoords(pt, bary.x, bary.y, bary.z); }
+	bool IsWindingCW() const { return CalculateTwiceArea() < 0.0f; }
+	float CalculateTwiceArea() const {
+		const Vector2 &a = uv[0];
+		const Vector2 &b = uv[1];
+		const Vector2 &c = uv[2];
 		return (b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y);
 	}
 };
 
-
-
-bool BarycentricInside(float u, float v, float w)
-{
+bool BarycentricInside(float u, float v, float w) {
 	if ((u < 0.0f) || (u > 1.0f) ||
-	(v < 0.0f) || (v > 1.0f) ||
-	(w < 0.0f) || (w > 1.0f))
+			(v < 0.0f) || (v > 1.0f) ||
+			(w < 0.0f) || (w > 1.0f))
 		return false;
 
 	return true;
 }
 
-bool BarycentricInside(const Vector3 &bary)
-{
+bool BarycentricInside(const Vector3 &bary) {
 	return BarycentricInside(bary.x, bary.y, bary.z);
 }
 
-bool IsMeshInstanceSuitable(const MeshInstance &mi)
-{
+bool IsMeshInstanceSuitable(const MeshInstance &mi) {
 	// must be set to bake in lightmap
-	if (!mi.get_flag(GeometryInstance::FLAG_USE_BAKED_LIGHT))
-	{
+	if (!mi.get_flag(GeometryInstance::FLAG_USE_BAKED_LIGHT)) {
 		print_line("\tunsuitable : " + mi.get_name() + " (use_baked_light unset)");
 		return false;
 	}
 
 	Ref<Mesh> rmesh = mi.get_mesh();
-	if (rmesh->get_surface_count() == 0)
-	{
+	if (rmesh->get_surface_count() == 0) {
 		print_line("\tunsuitable : " + mi.get_name() + " (no surfaces)");
 		return false;
 	}
 
 	Array arrays = rmesh->surface_get_arrays(0);
-	if (!arrays.size())
-	{
+	if (!arrays.size()) {
 		print_line("\tunsuitable : " + mi.get_name() + " (no arrays)");
 		return false;
 	}
 
 	PoolVector<Vector3> verts = arrays[VS::ARRAY_VERTEX];
-	if (!verts.size())
-	{
+	if (!verts.size()) {
 		print_line("\tunsuitable : " + mi.get_name() + " (no positions)");
 		return false;
 	}
 
 	PoolVector<Vector3> norms = arrays[VS::ARRAY_NORMAL];
-	if (!norms.size())
-	{
+	if (!norms.size()) {
 		print_line("\tunsuitable : " + mi.get_name() + " (no normals)");
 		return false;
 	}
 
-//	PoolVector<int> indices = arrays[VS::ARRAY_INDEX];
-//	if (!indices.size())
-//		return false;
+	//	PoolVector<int> indices = arrays[VS::ARRAY_INDEX];
+	//	if (!indices.size())
+	//		return false;
 
 	PoolVector<Vector2> uv1s = arrays[VS::ARRAY_TEX_UV];
 	PoolVector<Vector2> uv2s = arrays[VS::ARRAY_TEX_UV2];
@@ -277,8 +332,7 @@ bool IsMeshInstanceSuitable(const MeshInstance &mi)
 	bool uv1 = uv1s.size() != 0;
 	bool uv2 = uv2s.size() != 0;
 
-	if (!uv1 && !uv2)
-	{
+	if (!uv1 && !uv2) {
 		print_line("\tunsuitable : " + mi.get_name() + " (no uvs at all)");
 		return false;
 	}
@@ -286,20 +340,18 @@ bool IsMeshInstanceSuitable(const MeshInstance &mi)
 	return true;
 }
 
-float Triangle_CalculateTwiceAreaSquared(const Vector3 &a, const Vector3 &b, const Vector3 &c)
-{
+float Triangle_CalculateTwiceAreaSquared(const Vector3 &a, const Vector3 &b, const Vector3 &c) {
 	// compute the area squared. Which is the result of the cross product of two edges. If it's near zero, bingo
-	Vector3 edge1 = b-a;
+	Vector3 edge1 = b - a;
 	Vector3 edge2 = c - a;
 
 	Vector3 vec = edge1.cross(edge2);
 	return vec.length_squared();
 }
 
-bool Triangle_IsDegenerate(const Vector3 &a, const Vector3 &b, const Vector3 &c, float epsilon)
-{
+bool Triangle_IsDegenerate(const Vector3 &a, const Vector3 &b, const Vector3 &c, float epsilon) {
 	// not interested in the actual area, but numerical stability
-	Vector3 edge1 = b-a;
+	Vector3 edge1 = b - a;
 	Vector3 edge2 = c - a;
 
 	edge1 *= 1024.0f;
@@ -314,16 +366,13 @@ bool Triangle_IsDegenerate(const Vector3 &a, const Vector3 &b, const Vector3 &c,
 	return false;
 }
 
-
 // check for invalid tris, or make a list of the valid triangles, depending on whether pOutputInds is set
-bool CheckForValidIndices(const PoolVector<int> &inds, const PoolVector<Vector3> &verts, LVector<int> * pOutputInds)
-{
+bool CheckForValidIndices(const PoolVector<int> &inds, const PoolVector<Vector3> &verts, LVector<int> *pOutputInds) {
 	int nTris = inds.size();
 	nTris /= 3;
 	int indCount = 0;
 
-	for (int t=0; t<nTris; t++)
-	{
+	for (int t = 0; t < nTris; t++) {
 		int i0 = inds[indCount++];
 		int i1 = inds[indCount++];
 		int i2 = inds[indCount++];
@@ -336,73 +385,61 @@ bool CheckForValidIndices(const PoolVector<int> &inds, const PoolVector<Vector3>
 		if (i0 == i2) ok = false;
 
 		// check positions
-		if (ok)
-		{
+		if (ok) {
 			// vertex positions
 			const Vector3 &p0 = verts[i0];
 			const Vector3 &p1 = verts[i1];
 			const Vector3 &p2 = verts[i2];
 
 			// if the area is zero, the triangle is invalid (will crash xatlas)
-			if (Triangle_IsDegenerate(p0, p1, p2, 0.00001f))
-			{
+			if (Triangle_IsDegenerate(p0, p1, p2, 0.00001f)) {
 				print_line("\t\tdetected zero area triangle, ignoring");
 				ok = false;
 			}
 		}
 
-		if (ok)
-		{
+		if (ok) {
 			// if the triangle is ok, we will output it if we are outputting
-			if (pOutputInds)
-			{
+			if (pOutputInds) {
 				pOutputInds->push_back(i0);
 				pOutputInds->push_back(i1);
 				pOutputInds->push_back(i2);
 			}
-		}
-		else
-		{
+		} else {
 			// if triangle not ok, return failed check if we are not outputting
 			if (!pOutputInds)
 				return false;
 		}
-
 	}
 
 	return true;
 }
 
-bool EnsureIndicesValid(PoolVector<int> &indices, const PoolVector<Vector3> &verts)
-{
+bool EnsureIndicesValid(PoolVector<int> &indices, const PoolVector<Vector3> &verts) {
 	// no indices? create some
-	if (!indices.size())
-	{
+	if (!indices.size()) {
 		// indices are blank!! let's create some, assuming the mesh is using triangles
 		indices.resize(verts.size());
 		PoolVector<int>::Write write = indices.write();
-		int * pi = write.ptr();
+		int *pi = write.ptr();
 
 		// this is assuming each triangle vertex is unique
-		for (int n=0; n<verts.size(); n++)
-		{
+		for (int n = 0; n < verts.size(); n++) {
 			*pi = n;
 			pi++;
 		}
 	}
 
-	if (!CheckForValidIndices(indices, verts, nullptr))
-	{
+	if (!CheckForValidIndices(indices, verts, nullptr)) {
 		LVector<int> new_inds;
 		CheckForValidIndices(indices, verts, &new_inds);
 
 		// copy the new indices
 		indices.resize(new_inds.size());
 		PoolVector<int>::Write write = indices.write();
-		int * pi = write.ptr();
+		int *pi = write.ptr();
 
-		for (int n=0; n<new_inds.size(); n++)
-		{
+		for (int n = 0; n < new_inds.size(); n++) {
 			pi[n] = new_inds[n];
 		}
 
@@ -412,11 +449,9 @@ bool EnsureIndicesValid(PoolVector<int> &indices, const PoolVector<Vector3> &ver
 	return true;
 }
 
-
 // somewhat more complicated test to try and get all the tris that hit any part of the texel.
 // really this should be a box / tri test.
-inline bool UVTri::ContainsTexel(int tx, int ty, int width, int height) const
-{
+inline bool UVTri::ContainsTexel(int tx, int ty, int width, int height) const {
 	float unit_x = 1.0f / width;
 	float unit_y = 1.0f / height;
 	float fx = tx * unit_x;
@@ -441,8 +476,7 @@ inline bool UVTri::ContainsTexel(int tx, int ty, int width, int height) const
 	return false;
 }
 
-inline bool UVTri::ContainsPoint(const Vector2 &pt, float epsilon) const
-{
+inline bool UVTri::ContainsPoint(const Vector2 &pt, float epsilon) const {
 	const Vector2 &a = uv[0];
 	const Vector2 &b = uv[1];
 	const Vector2 &c = uv[2];
@@ -473,8 +507,7 @@ inline bool UVTri::ContainsPoint(const Vector2 &pt, float epsilon) const
 	return true;
 }
 
-inline void UVTri::FindBarycentricCoords(const Vector2 &pt, float &u, float &v, float &w) const
-{
+inline void UVTri::FindBarycentricCoords(const Vector2 &pt, float &u, float &v, float &w) const {
 	const Vector2 &a = uv[0];
 	const Vector2 &b = uv[1];
 	const Vector2 &c = uv[2];
@@ -489,8 +522,7 @@ inline void UVTri::FindBarycentricCoords(const Vector2 &pt, float &u, float &v, 
 
 	// degenerate tris will produce division by zero
 	float denom = d00 * d11 - d01 * d01;
-	if (denom == 0.0f)
-	{
+	if (denom == 0.0f) {
 		// panic mode, return something reasonable.
 		// THIS DOES HAPPEN
 		u = 0.0f;
@@ -506,15 +538,12 @@ inline void UVTri::FindBarycentricCoords(const Vector2 &pt, float &u, float &v, 
 	u = 1.0f - v - w;
 }
 
-
-inline void UVTri::FindUVBarycentric(Vector2 &res, float u, float v, float w) const
-{
+inline void UVTri::FindUVBarycentric(Vector2 &res, float u, float v, float w) const {
 	res = (uv[0] * u) + (uv[1] * v) + (uv[2] * w);
 }
 //////////////////////////////////////////////////////////
 
-inline void Tri::FindBarycentric(const Vector3 &pt, float &u, float &v, float &w) const
-{
+inline void Tri::FindBarycentric(const Vector3 &pt, float &u, float &v, float &w) const {
 	const Vector3 &a = pos[0];
 	const Vector3 &b = pos[1];
 	const Vector3 &c = pos[2];
@@ -532,8 +561,7 @@ inline void Tri::FindBarycentric(const Vector3 &pt, float &u, float &v, float &w
 	u = 1.0f - v - w;
 }
 
-inline void Tri::InterpolateBarycentric(Vector3 &pt, float u, float v, float w) const
-{
+inline void Tri::InterpolateBarycentric(Vector3 &pt, float u, float v, float w) const {
 	const Vector3 &a = pos[0];
 	const Vector3 &b = pos[1];
 	const Vector3 &c = pos[2];
@@ -542,18 +570,15 @@ inline void Tri::InterpolateBarycentric(Vector3 &pt, float u, float v, float w) 
 	pt.z = (a.z * u) + (b.z * v) + (c.z * w);
 }
 
-
 // returns barycentric, assumes we have already tested and got a collision
-inline void Ray::FindIntersect(const Tri &tri, float t, float &u, float &v, float &w) const
-{
+inline void Ray::FindIntersect(const Tri &tri, float t, float &u, float &v, float &w) const {
 	Vector3 pt = o + (d * t);
 	tri.FindBarycentric(pt, u, v, w);
 }
 
 // returns false if doesn't cut x.
 // the relevant axis should be filled on entry (0 is x, 1 is y, 2 is z) with the axis aligned plane constant.
-bool Ray::IntersectAAPlane(int axis, Vector3 &pt, float epsilon) const
-{
+bool Ray::IntersectAAPlane(int axis, Vector3 &pt, float epsilon) const {
 	// x(t) = o.x + (d.x * t)
 	// y(t) = o.y + (d.y * t)
 	// z(t) = o.z + (d.z * t)
@@ -567,10 +592,8 @@ bool Ray::IntersectAAPlane(int axis, Vector3 &pt, float epsilon) const
 	//	const Vector3 &o = ray.o;
 	//	const Vector3 &d = ray.d;
 
-	switch (axis)
-	{
-	case 0:
-		{
+	switch (axis) {
+		case 0: {
 			if (fabsf(d.x) < epsilon)
 				return false;
 
@@ -579,10 +602,8 @@ bool Ray::IntersectAAPlane(int axis, Vector3 &pt, float epsilon) const
 
 			pt.y = o.y + (d.y * t);
 			pt.z = o.z + (d.z * t);
-		}
-		break;
-	case 1:
-		{
+		} break;
+		case 1: {
 			if (fabsf(d.y) < epsilon)
 				return false;
 
@@ -591,10 +612,8 @@ bool Ray::IntersectAAPlane(int axis, Vector3 &pt, float epsilon) const
 
 			pt.x = o.x + (d.x * t);
 			pt.z = o.z + (d.z * t);
-		}
-		break;
-	case 2:
-		{
+		} break;
+		case 2: {
 			if (fabsf(d.z) < epsilon)
 				return false;
 
@@ -604,19 +623,16 @@ bool Ray::IntersectAAPlane(int axis, Vector3 &pt, float epsilon) const
 			// now we have t, we can calculate y and z
 			pt.x = o.x + (d.x * t);
 			pt.y = o.y + (d.y * t);
-		}
-		break;
-	default:
-		break;
+		} break;
+		default:
+			break;
 	}
 
 	return true;
 }
 
-
 // same as below but with edges pre calced
-inline bool Ray::TestIntersect_EdgeForm(const Tri &tri_edge, float &t) const
-{
+inline bool Ray::TestIntersect_EdgeForm(const Tri &tri_edge, float &t) const {
 	//Edge1, Edge2
 	const Vector3 &e1 = tri_edge.pos[0];
 	const Vector3 &e2 = tri_edge.pos[1];
@@ -633,7 +649,7 @@ inline bool Ray::TestIntersect_EdgeForm(const Tri &tri_edge, float &t) const
 	det = e1.dot(P);
 
 	//NOT CULLING
-	if(det > -cfEpsilon && det < cfEpsilon) return false;//IR_NONE;
+	if (det > -cfEpsilon && det < cfEpsilon) return false; //IR_NONE;
 	inv_det = 1.f / det;
 
 	//calculate distance from V1 to ray origin
@@ -643,7 +659,7 @@ inline bool Ray::TestIntersect_EdgeForm(const Tri &tri_edge, float &t) const
 	u = T.dot(P) * inv_det;
 
 	//The intersection lies outside of the triangle
-	if(u < 0.f || u > 1.f) return false; // IR_NONE;
+	if (u < 0.f || u > 1.f) return false; // IR_NONE;
 
 	//Prepare to test v parameter
 	Q = T.cross(e1);
@@ -652,12 +668,11 @@ inline bool Ray::TestIntersect_EdgeForm(const Tri &tri_edge, float &t) const
 	v = d.dot(Q) * inv_det;
 
 	//The intersection lies outside of the triangle
-	if(v < 0.f || u + v  > 1.f) return false; //IR_NONE;
+	if (v < 0.f || u + v > 1.f) return false; //IR_NONE;
 
 	t = e2.dot(Q) * inv_det;
 
-	if(t > cfEpsilon)
-	{ //ray intersection
+	if (t > cfEpsilon) { //ray intersection
 		//	*out = t;
 		return true; //IR_HIT;
 	}
@@ -667,15 +682,14 @@ inline bool Ray::TestIntersect_EdgeForm(const Tri &tri_edge, float &t) const
 }
 
 // moller and trumbore test (actually calculated uv and t but we are not returning uv)
-inline bool Ray::TestIntersect(const Tri &tri, float &t) const
-{
+inline bool Ray::TestIntersect(const Tri &tri, float &t) const {
 	const Vector3 &a = tri.pos[0];
 	const Vector3 &b = tri.pos[1];
 	const Vector3 &c = tri.pos[2];
 
 	const float cfEpsilon = 0.000001f;
 	//#define EPSILON 0.000001
-	Vector3 e1, e2;  //Edge1, Edge2
+	Vector3 e1, e2; //Edge1, Edge2
 	Vector3 P, Q, T;
 	float det, inv_det, u, v;
 	//	float t;
@@ -691,7 +705,7 @@ inline bool Ray::TestIntersect(const Tri &tri, float &t) const
 	det = e1.dot(P);
 
 	//NOT CULLING
-	if(det > -cfEpsilon && det < cfEpsilon) return false;//IR_NONE;
+	if (det > -cfEpsilon && det < cfEpsilon) return false; //IR_NONE;
 	inv_det = 1.f / det;
 
 	//calculate distance from V1 to ray origin
@@ -701,7 +715,7 @@ inline bool Ray::TestIntersect(const Tri &tri, float &t) const
 	u = T.dot(P) * inv_det;
 
 	//The intersection lies outside of the triangle
-	if(u < 0.f || u > 1.f) return false; // IR_NONE;
+	if (u < 0.f || u > 1.f) return false; // IR_NONE;
 
 	//Prepare to test v parameter
 	Q = T.cross(e1);
@@ -710,12 +724,11 @@ inline bool Ray::TestIntersect(const Tri &tri, float &t) const
 	v = d.dot(Q) * inv_det;
 
 	//The intersection lies outside of the triangle
-	if(v < 0.f || u + v  > 1.f) return false; //IR_NONE;
+	if (v < 0.f || u + v > 1.f) return false; //IR_NONE;
 
 	t = e2.dot(Q) * inv_det;
 
-	if(t > cfEpsilon)
-	{ //ray intersection
+	if (t > cfEpsilon) { //ray intersection
 		//	*out = t;
 		return true; //IR_HIT;
 	}
@@ -724,5 +737,4 @@ inline bool Ray::TestIntersect(const Tri &tri, float &t) const
 	return false; //IR_BEHIND;
 }
 
-
-}
+} // namespace LM

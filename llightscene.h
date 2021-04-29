@@ -1,42 +1,36 @@
 #pragma once
 
-#include "lvector.h"
-#include "llighttypes.h"
-#include "llighttracer.h"
 #include "llightimage.h"
+#include "llighttracer.h"
+#include "llighttypes.h"
 #include "lmaterials.h"
+#include "lvector.h"
 #include "scene/3d/mesh_instance.h"
 
-
-
-namespace LM
-{
+namespace LM {
 
 class LightMapper_Base;
 
-class LightScene
-{
+class LightScene {
 	friend class LLightMapper;
 	friend class LightTracer;
-public:
 
+public:
 	// each texel can have more than 1 triangle crossing it.
 	// this is important for sub texel anti-aliasing, so we need a quick record
 	// of all the triangles to test
-	struct TexelTriList
-	{
-		enum {MAX_TRIS = 11};
+	struct TexelTriList {
+		enum { MAX_TRIS = 11 };
 		uint32_t tri_ids[MAX_TRIS];
 		uint32_t num_tris;
 	};
 
 	void Reset();
-	bool Create(Spatial * pMeshesRoot, int width, int height, int voxel_density, int max_material_size, float emission_density);
+	bool Create(Spatial *pMeshesRoot, int width, int height, int voxel_density, int max_material_size, float emission_density);
 
 	// returns triangle ID (or -1) and barycentric coords
-	int FindIntersect_Ray(const Ray &ray, float &u, float &v, float &w, float &nearest_t, const Vec3i * pVoxelRange = nullptr);//, int ignore_tri_p1 = 0);
-	int FindIntersect_Ray(const Ray &ray, Vector3 &bary, float &nearest_t, const Vec3i * pVoxelRange = nullptr)
-	{
+	int FindIntersect_Ray(const Ray &ray, float &u, float &v, float &w, float &nearest_t, const Vec3i *pVoxelRange = nullptr); //, int ignore_tri_p1 = 0);
+	int FindIntersect_Ray(const Ray &ray, Vector3 &bary, float &nearest_t, const Vec3i *pVoxelRange = nullptr) {
 		return FindIntersect_Ray(ray, bary.x, bary.y, bary.z, nearest_t, pVoxelRange);
 	}
 
@@ -45,12 +39,10 @@ public:
 	bool TestIntersect_Ray(const Ray &ray, float max_dist, bool bCullBackFaces = false);
 	bool TestIntersect_Line(const Vector3 &a, const Vector3 &b, bool bCullBackFaces = false);
 
-	void FindUVsBarycentric(int tri, Vector2 &uvs, float u, float v, float w) const
-	{
+	void FindUVsBarycentric(int tri, Vector2 &uvs, float u, float v, float w) const {
 		m_UVTris[tri].FindUVBarycentric(uvs, u, v, w);
 	}
-	void FindUVsBarycentric(int tri, Vector2 &uvs, const Vector3 &bary) const
-	{
+	void FindUVsBarycentric(int tri, Vector2 &uvs, const Vector3 &bary) const {
 		m_UVTris[tri].FindUVBarycentric(uvs, bary);
 	}
 
@@ -60,17 +52,18 @@ public:
 	// single function
 	bool FindAllTextureColors(int tri_id, const Vector3 &bary, Color &albedo, Color &emission, bool &bTransparent, bool &bEmitter);
 
-
 	// setup
 	void RasterizeTriangleIDs(LightMapper_Base &base, LightImage<uint32_t> &im_p1, LightImage<Vector3> &im_bary);
-	int GetNumTris() const {return m_UVTris.size();}
+	int GetNumTris() const { return m_UVTris.size(); }
+
+	int GetNumMeshes() const { return m_Meshes.size(); }
+	MeshInstance *GetMesh(int n) { return m_Meshes[n]; }
+
+	void FindMeshes(Spatial *pNode);
 
 private:
-	void FindMeshes(Spatial * pNode);
-
 	bool Create_FromMesh(int mesh_id, int width, int height);
 	bool Create_FromMeshSurface(int mesh_id, int surf_id, Ref<Mesh> rmesh, int width, int height);
-
 
 	void CalculateTriTexelSize(int tri_id, int width, int height);
 
@@ -81,9 +74,8 @@ private:
 
 	bool TestVoxelHits(const Ray &ray, const PackedRay &pray, const Voxel &voxel, float max_dist, bool bCullBackFaces);
 
-
-//	PoolVector<Vector3> m_ptPositions;
-//	PoolVector<Vector3> m_ptNormals;
+	//	PoolVector<Vector3> m_ptPositions;
+	//	PoolVector<Vector3> m_ptNormals;
 	//PoolVector<Vector2> m_UVs;
 	//PoolVector<int> m_Inds;
 
@@ -112,15 +104,14 @@ public:
 	LVector<Tri> m_Tris_EdgeForm;
 
 	// stuff for mapping to original meshes
-//	LVector<int> m_Tri_MeshIDs;
-//	LVector<uint16_t> m_Tri_SurfIDs;
+	//	LVector<int> m_Tri_MeshIDs;
+	//	LVector<uint16_t> m_Tri_SurfIDs;
 
 	// these are plus 1
 	LVector<uint16_t> m_Tri_LMaterialIDs;
 
 	// a list of triangles that have emission materials
 	LVector<EmissionTri> m_EmissionTris;
-
 
 	// these are UVs in the first channel, if present, or 0.
 	// This allows mapping back to the albedo etc texture.
@@ -131,6 +122,4 @@ public:
 	bool m_bUseSIMD;
 };
 
-
-
-}
+} // namespace LM
