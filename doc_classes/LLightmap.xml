@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<class name="LLightmap" inherits="Spatial" version="3.2">
+<class name="LLightmap" inherits="Spatial" version="3.4">
 	<brief_description>
 		Creates lightmaps and ambient occlusion for scenes.
 Version 0.1.
@@ -61,6 +61,9 @@ Version 0.1.
 		<member name="combined_filename" type="String" setter="set_combined_filename" getter="get_combined_filename" default="&quot;&quot;">
 			Filename for the final lightmap, combining lights and ambient occlusion (or just one of these). This can be exr format (linear) or png, with gamma applied.
 		</member>
+		<member name="dilate" type="bool" setter="set_dilate" getter="get_dilate" default="true">
+			Dilation is a post process filter than expands the color at the edge of uv islands into the unused gutter pixels. Although these pixels appear useless, they are actually sampled during texture filtering, and especially using mipmaps, so having them roughly match the edge colors can prevent ugly artifacts at seams.
+		</member>
 		<member name="emission_density" type="float" setter="set_emission_density" getter="get_emission_density" default="1.0">
 			Allows increasing or decreasing the number of samples used for emission, in relation to the overall primary number of samples. This can be used to relatively increase emission quality, or decrease bake times.
 		</member>
@@ -82,8 +85,15 @@ Version 0.1.
 		<member name="meshes" type="NodePath" setter="set_mesh_path" getter="get_mesh_path" default="NodePath(&quot;&quot;)">
 			This is the branch which contains the meshes you intend to use for baked lighting. They should be set to 'use in baked light' in the geometry section, if they are to be included.
 		</member>
-		<member name="mode" type="int" setter="set_mode" getter="get_mode" enum="LLightmap.eMode" default="0">
+		<member name="mode" type="int" setter="set_mode" getter="get_mode" enum="LLightmap.eMode" default="1">
 			Chooses whether to bake lightmaps using forward (from the light) or backward (from the texel) tracing.
+		</member>
+		<member name="noise_reduction" type="float" setter="set_noise_reduction" getter="get_noise_reduction" default="1.0">
+			Applies simple noise reduction to reduce dithering. This can make the lightmap look 'plastic'. For in progress versions it is a good trade off, for final versions consider a longer bake and turning off noise reduction (set to 0), or applying it in a specialist photo editor afterwards.
+			It takes place as a post process (after merging), so you can make quickly preview changes by merging rather than doing a full bake.
+		</member>
+		<member name="noise_threshold" type="float" setter="set_noise_threshold" getter="get_noise_threshold" default="0.1">
+			When applying noise reduction, pixels that are more different than this threshold from their neighbor pixels are considered details, and are preserved without applying noise reduction.
 		</member>
 		<member name="normalize_multiplier" type="float" setter="set_normalize_multiplier" getter="get_normalize_multiplier" default="4.0">
 			In order to prevent the scene being dark, depending on how you are using the lightmap in the shader, it can be a good idea to make the scene overbright. This multiplier is applied during normalization. In the case of png output, the maximum brightness is capped, so you will lose some detail.
@@ -106,6 +116,15 @@ Version 0.1.
 		<member name="samples" type="int" setter="set_num_samples" getter="get_num_samples" default="32">
 			The principal determinant of lightmap quality is the number of samples. A low number of samples gives a noisy appearance, however more samples requires longer baking.
 		</member>
+		<member name="seam_distance_threshold" type="float" setter="set_seam_distance_threshold" getter="get_seam_distance_threshold" default="0.001">
+			Tolerance distance (in world space) for welding vertices that form seams (i.e. two edges). Sometimes the modelling program will introduce small floating point error and this needs to be allowed.
+		</member>
+		<member name="seam_normal_threshold" type="float" setter="set_seam_normal_threshold" getter="get_seam_normal_threshold" default="45.0">
+			Seams as part of a flat or curved surface should be stitched, but those at a sharp angle (e.g. 90 degrees) may not be desired for stitching. You can set the threshold angle here (in degrees), above this angle seams will not be stitched.
+		</member>
+		<member name="seam_stitching" type="bool" setter="set_seam_stitching" getter="get_seam_stitching" default="true">
+			Seam stitching can help prevent ugly artifacts at the seams between UV islands. It takes place as a post process (after merging), so you can make quickly preview changes by merging rather than doing a full bake.
+		</member>
 		<member name="surface_bias" type="float" setter="set_surface_bias" getter="get_surface_bias" default="0.005">
 			In order to prevent self intersection of rays bounced from surfaces, a small bias is added to the ray start position. The default value should normally work, but just in case there are problems, this can be edited.
 		</member>
@@ -118,8 +137,11 @@ Version 0.1.
 		<member name="uv_filename" type="String" setter="set_uv_filename" getter="get_uv_filename" default="&quot;&quot;">
 			As uv mapping is a destructive process, that also adds information to the meshes scene (vertex count may change, and UVs are added), the uvmapped scene will be saved separately from the source meshes scene. This new scene is automatically loaded to replace the original scene in the scene tree during uvmapping.
 		</member>
-		<member name="uv_padding" type="int" setter="set_uv_padding" getter="get_uv_padding" default="4">
+		<member name="uv_padding" type="int" setter="set_uv_padding" getter="get_uv_padding" default="2">
 			When uv mapping it is a good idea to add padding of unused texels around the uv islands. This prevents visual artifacts due to the GPU sampling outside the island, during filtering and mipmapping.
+		</member>
+		<member name="visualize_seams" type="bool" setter="set_visualize_seams" getter="get_visualize_seams" default="false">
+			Draw seams in red (for debugging purposes).
 		</member>
 		<member name="voxel_density" type="int" setter="set_voxel_density" getter="get_voxel_density" default="20">
 			The ray tracer uses a 3d map of cells called 'voxels' to speed up tracing. The best density to use can depend on your scene geometry. A large complex scene can benefit from a higher density, but there can be slowdown with too many voxels. The default is a good balance for small / medium scenes. For larger scenes consider increasing this to 40 or more.
