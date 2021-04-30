@@ -209,6 +209,10 @@ public:
 	eLMMode m_Settings_Mode;
 	eLMBakeMode m_Settings_BakeMode;
 	eLMBakeQuality m_Settings_Quality;
+
+	// for faster baking, limit length that light can reach
+	int m_Settings_MaxLightDist;
+
 	int m_Settings_VoxelDensity; // number of units on largest axis
 	float m_Settings_SurfaceBias;
 

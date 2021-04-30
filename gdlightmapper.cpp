@@ -62,6 +62,7 @@ void LLightmap::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "bake_mode", PROPERTY_HINT_ENUM, "UVMap,Lightmap,AO,Merge,LightProbes,Combined"), "set_bake_mode", "get_bake_mode");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "mode", PROPERTY_HINT_ENUM, "Forward,Backward"), "set_mode", "get_mode");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "quality", PROPERTY_HINT_ENUM, "Low,Medium,High,Final"), "set_quality", "get_quality");
+	LIMPL_PROPERTY_RANGE(Variant::INT, max_light_distance, set_max_light_distance, get_max_light_distance, "0,999999,1");
 
 	ADD_GROUP("Paths", "");
 	LIMPL_PROPERTY(Variant::NODE_PATH, meshes, set_mesh_path, get_mesh_path);
@@ -157,6 +158,14 @@ void LLightmap::set_quality(LLightmap::eQuality p_quality) {
 }
 LLightmap::eQuality LLightmap::get_quality() const {
 	return (LLightmap::eQuality)m_LM.m_Settings_Quality;
+}
+
+void LLightmap::set_max_light_distance(int dist) {
+	m_LM.m_Settings_MaxLightDist = dist;
+}
+
+int LLightmap::get_max_light_distance() const {
+	return m_LM.m_Settings_MaxLightDist;
 }
 
 void LLightmap::set_mesh_path(const NodePath &p_path) {

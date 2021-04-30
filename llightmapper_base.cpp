@@ -42,6 +42,9 @@ LightMapper_Base::LightMapper_Base() {
 	m_Settings_BakeMode = LMBAKEMODE_LIGHTMAP;
 	m_Settings_Quality = LM_QUALITY_MEDIUM;
 
+	// 0 is infinite
+	m_Settings_MaxLightDist = 0;
+
 	m_Settings_TexWidth = 512;
 	m_Settings_TexHeight = 512;
 	m_Settings_VoxelDensity = 20;

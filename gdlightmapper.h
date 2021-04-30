@@ -44,6 +44,9 @@ public:
 	void set_quality(LLightmap::eQuality p_quality);
 	LLightmap::eQuality get_quality() const;
 
+	void set_max_light_distance(int dist);
+	int get_max_light_distance() const;
+
 	void set_mesh_path(const NodePath &p_path);
 	NodePath get_mesh_path() const;
 	void set_lights_path(const NodePath &p_path);

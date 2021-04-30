@@ -758,11 +758,51 @@ void LightMapper::BF_ProcessTexel_Light(const Color &orig_albedo, int light_id, 
 
 		if (dot <= 0.0f)
 			return;
+
+		// cull by surface back facing NYI
 	}
 
 	// lower power of directionals - no distance falloff
 	if (light.type == LLight::LT_DIRECTIONAL) {
 		power *= 0.08f;
+
+		// cull by back face determined by the sky softness ... NYI
+	}
+
+	// omni cull by distance?
+
+	// cull by surface normal .. anything facing away gets no light (plus a bit for wraparound)
+	// about 5% faster with this cull with a lot of omnis
+	if (light.type == LLight::LT_OMNI) {
+		Vector3 light_vec = light.pos - ptSource;
+		float light_dist = light_vec.length();
+
+		// cull by dist test
+		if (m_Settings_MaxLightDist) {
+			if ((int)light_dist > m_Settings_MaxLightDist)
+				return;
+		}
+
+		float radius = MAX(light.scale.x, light.scale.y);
+		radius = MAX(radius, light.scale.z);
+
+		// we can only cull if outside the radius of the light
+		if (light_dist > radius) {
+
+			// normalize light vec
+			light_vec *= 1.0f / light_dist;
+
+			// angle in radians from the surface to the furthest points on the sphere
+			float theta = Math::asin(CLAMP(radius / light_dist, 0.0f, 1.0f));
+
+			float dot_threshold = Math::cos(theta + Math_PI / 2.0);
+			float dot_light_surf = orig_vertex_normal.dot(light_vec);
+
+			// doesn't need an epsilon, because at 90 degrees the dot will be zero
+			// and the lighting will be zero.
+			if (dot_light_surf < dot_threshold)
+				return;
+		}
 	}
 
 	// each ray
