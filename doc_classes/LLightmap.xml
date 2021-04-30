@@ -82,6 +82,11 @@ Version 0.1.
 		<member name="material_size" type="int" setter="set_material_size" getter="get_material_size" default="256">
 			In order to sample material colors in bounced light, downsized versions of the original textures can be used, for greater speed, less memory use and less aliasing. This determines the maximum size of the texture.
 		</member>
+		<member name="max_light_distance" type="int" setter="set_max_light_distance" getter="get_max_light_distance" default="0">
+			For faster baking during testing, you can limit the maximum distance at which lights have an effect. However you will get an abrupt cutoff at this limit which can look unsightly. 
+			Setting this to 0 disables the limit, and is recommended for final bakes.
+			[b]Note:[/b] Only operates with backward tracing.
+		</member>
 		<member name="meshes" type="NodePath" setter="set_mesh_path" getter="get_mesh_path" default="NodePath(&quot;&quot;)">
 			This is the branch which contains the meshes you intend to use for baked lighting. They should be set to 'use in baked light' in the geometry section, if they are to be included.
 		</member>
