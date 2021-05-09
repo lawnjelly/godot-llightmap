@@ -39,6 +39,15 @@ public:
 	bool TestIntersect_Ray(const Ray &ray, float max_dist, bool bCullBackFaces = false);
 	bool TestIntersect_Line(const Vector3 &a, const Vector3 &b, bool bCullBackFaces = false);
 
+	// single triangle
+	bool TestIntersect_Ray_Triangle(const Ray &ray, float max_dist, int tri_id) const {
+		float t;
+		if (!ray.TestIntersect_EdgeForm(m_Tris_EdgeForm[tri_id], t))
+			return false;
+
+		return t <= max_dist;
+	}
+
 	void FindUVsBarycentric(int tri, Vector2 &uvs, float u, float v, float w) const {
 		m_UVTris[tri].FindUVBarycentric(uvs, u, v, w);
 	}

@@ -69,6 +69,12 @@ public:
 		LM_QUALITY_FINAL,
 	};
 
+	enum eNRMethod {
+		NR_DISABLE,
+		NR_SIMPLE,
+		NR_ADVANCED,
+	};
+
 	// these enable feedback in the Godot UI as we bake
 	typedef void (*BakeBeginFunc)(int);
 	typedef bool (*BakeStepFunc)(int, const String &);
@@ -247,6 +253,7 @@ public:
 
 	float m_Settings_NoiseThreshold;
 	float m_Settings_NoiseReduction;
+	eNRMethod m_Settings_NoiseReductionMethod;
 
 	bool m_Settings_SeamStitching;
 
@@ -297,8 +304,10 @@ protected:
 
 	float LargestColorComponent(const Color &c) const {
 		float l = c.r;
-		if (c.g > l) l = c.g;
-		if (c.b > l) l = c.b;
+		if (c.g > l)
+			l = c.g;
+		if (c.b > l)
+			l = c.b;
 		return l;
 	}
 
@@ -319,7 +328,8 @@ protected:
 
 		// first find the largest component
 		float l = LargestColorComponent(o);
-		if (l > 1.0f) l = 1.0f;
+		if (l > 1.0f)
+			l = 1.0f;
 
 		o.a = l;
 

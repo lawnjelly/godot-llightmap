@@ -43,6 +43,9 @@ void LLightmap::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_uv_filename", "uv_filename"), &LLightmap::set_uv_filename);
 	ClassDB::bind_method(D_METHOD("get_uv_filename"), &LLightmap::get_uv_filename);
 
+	ClassDB::bind_method(D_METHOD("set_noise_reduction_method", "method"), &LLightmap::set_noise_reduction_method);
+	ClassDB::bind_method(D_METHOD("get_noise_reduction_method"), &LLightmap::get_noise_reduction_method);
+
 	//	ClassDB::bind_method(D_METHOD("set_probe_filename", "probe_filename"), &LLightmap::set_probe_filename);
 	//	ClassDB::bind_method(D_METHOD("get_probe_filename"), &LLightmap::get_probe_filename);
 
@@ -119,6 +122,8 @@ void LLightmap::_bind_methods() {
 
 	ADD_GROUP("Post Processing", "");
 	LIMPL_PROPERTY(Variant::BOOL, dilate, set_dilate, get_dilate);
+
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "noise method", PROPERTY_HINT_ENUM, "Disabled,Simple,Advanced"), "set_noise_reduction_method", "get_noise_reduction_method");
 	LIMPL_PROPERTY_RANGE(Variant::REAL, noise_reduction, set_noise_reduction, get_noise_reduction, "0.0,1.0,0.01");
 	LIMPL_PROPERTY_RANGE(Variant::REAL, noise_threshold, set_noise_threshold, get_noise_threshold, "0.0,1.0,0.01");
 	LIMPL_PROPERTY(Variant::BOOL, seam_stitching, set_seam_stitching, get_seam_stitching);
@@ -391,6 +396,14 @@ float LLightmap::get_noise_threshold() const {
 	return m_LM.m_Settings_NoiseThreshold;
 }
 
+void LLightmap::set_noise_reduction_method(int method) {
+	m_LM.m_Settings_NoiseReductionMethod = (LM::LightMapper_Base::eNRMethod)method;
+}
+
+int LLightmap::get_noise_reduction_method() const {
+	return m_LM.m_Settings_NoiseReductionMethod;
+}
+
 void LLightmap::set_seam_stitching(bool active) {
 	m_LM.m_Settings_SeamStitching = active;
 }
@@ -624,7 +637,6 @@ bool LLightmap::lightmap_bake_to_image(Object *pOutputLightmapImage, Object *pOu
 }
 
 bool LLightmap::lightmap_mesh(Node *pMeshRoot, Node *pLightRoot, Object *pOutputImage_Lightmap, Object *pOutputImage_AO, Object *pOutputImage_Combined) {
-
 	Spatial *pMI = Object::cast_to<Spatial>(pMeshRoot);
 	if (!pMI) {
 		ShowWarning("lightmap_mesh : pMeshRoot not a spatial");

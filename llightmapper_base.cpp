@@ -5,6 +5,7 @@
 #include "ldilate.h"
 #include "llightmapper.h"
 #include "lstitcher.h"
+#include "modules/denoise/denoise_wrapper.h"
 #include "scene/3d/light.h"
 
 using namespace LM;
@@ -67,13 +68,14 @@ LightMapper_Base::LightMapper_Base() {
 	m_Logic_Process_Probes = true;
 	m_Logic_Output_Final = true;
 
-	m_Settings_UVPadding = 2;
+	m_Settings_UVPadding = 4; // 2
 
 	m_Settings_ProbeDensity = 64;
 	m_Settings_ProbeSamples = 4096;
 
 	m_Settings_NoiseThreshold = 0.1f;
 	m_Settings_NoiseReduction = 1.0f;
+	m_Settings_NoiseReductionMethod = NR_ADVANCED;
 	m_Settings_SeamStitching = true;
 	m_Settings_SeamDistanceThreshold = 0.001f;
 	m_Settings_SeamNormalThreshold = 45.0f;
@@ -491,11 +493,28 @@ void LightMapper_Base::StitchSeams() {
 }
 
 void LightMapper_Base::ApplyNoiseReduction() {
-	Convolution<FColor> conv;
-	conv.Run(m_Image_L, m_Settings_NoiseThreshold, m_Settings_NoiseReduction);
+	switch (m_Settings_NoiseReductionMethod) {
+		case NR_DISABLE: {
+		} break;
+		case NR_SIMPLE: {
+			// simple
+			Convolution<FColor> conv;
+			conv.Run(m_Image_L, m_Settings_NoiseThreshold, m_Settings_NoiseReduction);
 
-	//	Convolution<float> conv_ao;
-	//	conv_ao.Run(m_Image_AO, m_Settings_NoiseThreshold, m_Settings_NoiseReduction);
+			//	Convolution<float> conv_ao;
+			//	conv_ao.Run(m_Image_AO, m_Settings_NoiseThreshold, m_Settings_NoiseReduction);
+		} break;
+		case NR_ADVANCED: {
+			// use open image denoise
+			void *device = oidn_denoiser_init();
+
+			if (!oidn_denoise(device, (float *)m_Image_L.Get(0), m_Image_L.GetWidth(), m_Image_L.GetHeight())) {
+				WARN_PRINT("open image denoise error");
+			}
+
+			oidn_denoiser_finish(device);
+		} break;
+	}
 }
 
 void LightMapper_Base::Normalize() {
@@ -653,7 +672,6 @@ void LightMapper_Base::Merge_AndWriteOutputImage_Combined(Image &image) {
 
 	for (int y = 0; y < m_iHeight; y++) {
 		for (int x = 0; x < m_iWidth; x++) {
-
 			FColor f = m_Image_L.GetItem(x, y);
 
 			Color col;
@@ -777,7 +795,6 @@ void LightMapper_Base::ShowWarning(String sz, bool bAlert) {
 }
 
 void LightMapper_Base::WriteOutputImage_Lightmap(Image &image) {
-
 	if (m_Settings_Dilate) {
 		Dilate<FColor> dilate;
 		dilate.DilateImage(m_Image_L, m_Image_ID_p1, 256);

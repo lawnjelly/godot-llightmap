@@ -420,7 +420,6 @@ void LightMapper::Backward_TraceTriangles() {
 	}
 
 	for (int n = 0; n < nTris; n++) {
-
 		if ((n % 128) == 0) {
 			if (bake_step_function) {
 				m_bCancel = bake_step_function(n, String("Process Backward Tris: ") + " (" + itos(n) + ")");
@@ -441,11 +440,11 @@ void LightMapper::Backward_TraceTriangles() {
 }
 
 void LightMapper::Backward_TraceTriangle(int tri_id) {
-
 	const UVTri &tri = m_Scene.m_UVTris[tri_id];
 
 	float area = tri.CalculateTwiceArea();
-	if (area < 0.0f) area = -area;
+	if (area < 0.0f)
+		area = -area;
 
 	int nSamples = area * 400000.0f * m_AdjustedSettings.m_Backward_NumRays;
 
@@ -600,7 +599,8 @@ void LightMapper::DoAmbientBounces() {
 	}
 
 	for (int b = 0; b < m_AdjustedSettings.m_NumAmbientBounces; b++) {
-		ProcessTexels_AmbientBounce(section_size, num_sections);
+		if (!m_bCancel)
+			ProcessTexels_AmbientBounce(section_size, num_sections);
 	}
 
 	if (bake_end_function) {
@@ -788,7 +788,6 @@ void LightMapper::BF_ProcessTexel_Light(const Color &orig_albedo, int light_id, 
 
 		// we can only cull if outside the radius of the light
 		if (light_dist > radius) {
-
 			// normalize light vec
 			light_vec *= 1.0f / light_dist;
 
@@ -804,6 +803,9 @@ void LightMapper::BF_ProcessTexel_Light(const Color &orig_albedo, int light_id, 
 				return;
 		}
 	}
+
+	// for quick primary test on the last blocking triangle
+	int quick_reject_tri_id = -1;
 
 	// each ray
 	for (int n = 0; n < nSamples; n++) {
@@ -914,6 +916,13 @@ void LightMapper::BF_ProcessTexel_Light(const Color &orig_albedo, int light_id, 
 		while (keep_tracing) {
 			keep_tracing = false;
 
+			// quick reject triangle
+			if (quick_reject_tri_id != -1) {
+				if (m_Scene.TestIntersect_Ray_Triangle(r, ray_length, quick_reject_tri_id)) {
+					break;
+				}
+			}
+
 			// collision detect
 			float u, v, w, t;
 
@@ -1015,7 +1024,8 @@ void LightMapper::BF_ProcessTexel_Light(const Color &orig_albedo, int light_id, 
 						triangle.InterpolateBarycentric(pos, u, v, w);
 
 						float push = -m_Settings_SurfaceBias;
-						if (bBackFace) push = -push;
+						if (bBackFace)
+							push = -push;
 
 						r.o = pos + (hit_face_normal * push);
 
@@ -1029,6 +1039,8 @@ void LightMapper::BF_ProcessTexel_Light(const Color &orig_albedo, int light_id, 
 
 						keep_tracing = true;
 					}
+				} else {
+					quick_reject_tri_id = tri;
 				}
 			}
 
@@ -1153,7 +1165,8 @@ void LightMapper::BF_ProcessTexel_LightBounce(int bounces_left, Ray r, FColor ra
 		if (bBackFace || pass_through) {
 			// push the ray origin through the hit surface
 			float push = -0.001f; // 0.001
-			if (bBackFace) push = -push;
+			if (bBackFace)
+				push = -push;
 
 			r.o = pos + (face_normal * push);
 
@@ -1316,7 +1329,6 @@ bool LightMapper::ProcessTexel_AmbientBounce_Sample(const Vector3 &plane_norm, c
 
 	// loop here just in case transparent
 	while (true) {
-
 		// collision detect
 		Vector3 bary;
 		float t;
@@ -1369,7 +1381,8 @@ bool LightMapper::ProcessTexel_AmbientBounce_Sample(const Vector3 &plane_norm, c
 				triangle.InterpolateBarycentric(pos, bary);
 
 				float push = -m_Settings_SurfaceBias;
-				if (bBackFace) push = -push;
+				if (bBackFace)
+					push = -push;
 
 				r.o = pos + (face_normal * push);
 

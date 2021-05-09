@@ -4,7 +4,6 @@
 using namespace LM;
 
 void Stitcher::StitchObjectSeams(const MeshInstance &p_mi, LightImage<FColor> &r_image, float distance_threshold, float normal_threshold, bool p_visualize_seams) {
-
 	// important - the distance threshold is assumed to be in world space,
 	// but we are using the model in model space here. So we must apply a scaling
 	// to roughly get them to match up. Note this assumes uniform scaling. With non-uniform
@@ -204,7 +203,7 @@ void Stitcher::_fix_seams(const LocalVector<UVSeam> &p_seams, Vector3 *r_lightma
 	LocalVector<Vector3> extra_buffer;
 	extra_buffer.resize(p_size.x * p_size.y);
 
-	copymem(extra_buffer.ptr(), r_lightmap, p_size.x * p_size.y * sizeof(Vector3));
+	memcpy(extra_buffer.ptr(), r_lightmap, p_size.x * p_size.y * sizeof(Vector3));
 
 	Vector3 *read_ptr = extra_buffer.ptr();
 	Vector3 *write_ptr = r_lightmap;
@@ -214,7 +213,7 @@ void Stitcher::_fix_seams(const LocalVector<UVSeam> &p_seams, Vector3 *r_lightma
 			_fix_seam(p_seams[j].edge0[0], p_seams[j].edge0[1], p_seams[j].edge1[0], p_seams[j].edge1[1], read_ptr, write_ptr, p_size);
 			_fix_seam(p_seams[j].edge1[0], p_seams[j].edge1[1], p_seams[j].edge0[0], p_seams[j].edge0[1], read_ptr, write_ptr, p_size);
 		}
-		copymem(read_ptr, write_ptr, p_size.x * p_size.y * sizeof(Vector3));
+		memcpy(read_ptr, write_ptr, p_size.x * p_size.y * sizeof(Vector3));
 	}
 }
 
@@ -260,7 +259,6 @@ void Stitcher::_fix_seam(const Vector2 &p_pos0, const Vector2 &p_pos1, const Vec
 	}
 
 	while (start_p.distance_to(pixel) < line_length + 1.0f) {
-
 		Vector2 current_point = Vector2(pixel) + Vector2(0.5f, 0.5f);
 		current_point = Geometry::get_closest_point_to_segment_2d(current_point, line);
 		float t = line[0].distance_to(current_point) / line_length;
