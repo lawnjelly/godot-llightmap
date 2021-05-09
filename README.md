@@ -1,6 +1,6 @@
 # godot-llightmap
 * Lightmap module for Godot Engine 3.x (compatible with 3.2.2 or later versions) 
-* Version 0.42 (April 30th, 2021)
+* Version 0.43 (May 9th, 2021)
 * Lightmaps created can be used with standard Godot builds and templates, i.e. you only need the module for a preprocess
 * (work in progress, there may be bugs, especially in the uv mapping but it is usable)
 
@@ -32,7 +32,7 @@ https://www.youtube.com/watch?v=pBpF2raGA8A
 * Emissive materials
 * Transparency
 * Light Probes for realtime lighting of dynamic objects
-* Simple noise reduction
+* Noise reduction (simple or OpenImageDenoise)
 * Seam stitching
 
 ### Still todo
