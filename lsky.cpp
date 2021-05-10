@@ -45,6 +45,12 @@ bool LSky::load_sky(String p_filename, float p_blur, int p_tex_size) {
 	// blur
 	_blur();
 
+	// normalize and brightness
+	_adjust_brightness();
+
+	// debug save
+	//_debug_save();
+
 	_active = true;
 
 	return true;
@@ -160,9 +166,6 @@ void LSky::_blur() {
 
 	// copy the intermediate output to the texture
 	output.CopyTo(_texture);
-
-	// debug save
-	_debug_save();
 }
 
 void LSky::_create_curve(float *p_curve, int p_num_scan) {
@@ -183,6 +186,34 @@ void LSky::_create_curve(float *p_curve, int p_num_scan) {
 	// normalize curve
 	for (int n = 0; n < p_num_scan; n++) {
 		p_curve[n] /= total;
+	}
+}
+
+void LSky::_adjust_brightness() {
+	int w = _texture.GetWidth();
+	int h = _texture.GetHeight();
+
+	// normalize at the same time, to an average per pixel value
+	FColor total;
+	total.Set(0.0);
+
+	for (int y = 0; y < h; y++) {
+		for (int x = 0; x < w; x++) {
+			total += _texture.GetItem(x, y);
+		}
+	}
+
+	// lightness per pixel
+	float lightness = MAX(MAX(total.r, total.g), total.b);
+	lightness /= w * h;
+
+	// we want to bump this up to an average of say .. 0.5?
+	float brightness = (0.25f) / lightness;
+
+	for (int y = 0; y < h; y++) {
+		for (int x = 0; x < w; x++) {
+			_texture.GetItem(x, y) *= brightness;
+		}
 	}
 }
 

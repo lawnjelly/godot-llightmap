@@ -83,9 +83,10 @@ LightMapper_Base::LightMapper_Base() {
 	m_Settings_VisualizeSeams = false;
 	m_Settings_Dilate = true;
 
-	m_Settings_Sky_BlurAmount = 0.1f;
+	m_Settings_Sky_BlurAmount = 0.18f;
 	m_Settings_Sky_Size = 256;
 	m_Settings_Sky_Samples = 512;
+	m_Settings_Sky_Brightness = 1.0f;
 }
 
 void LightMapper_Base::Base_Reset() {
@@ -125,6 +126,7 @@ void LightMapper_Base::CalculateQualityAdjustedSettings() {
 	as.m_Max_Material_Size = m_Settings_Max_Material_Size;
 
 	as.m_Sky_Samples = m_Settings_Sky_Samples;
+	as.m_Sky_Brightness = m_Settings_Sky_Brightness * m_Settings_Sky_Brightness;
 
 	// overrides
 	switch (m_Settings_Quality) {

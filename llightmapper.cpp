@@ -539,7 +539,9 @@ void LightMapper::ProcessTexels() {
 	m_Sky.load_sky(m_Settings_Sky_Filename, m_Settings_Sky_BlurAmount, m_Settings_Sky_Size);
 
 	// prevent multithread
-	//num_sections = 0;
+#ifndef BACKWARD_TRACE_MULTITHEADED
+	num_sections = 0;
+#endif
 
 	for (int s = 0; s < num_sections; s++) {
 		int section_start = s * section_size;
@@ -735,11 +737,14 @@ bool LightMapper::Light_RandomSample(const LLight &light, const Vector3 &ptSurf,
 	return true;
 }
 
-void LightMapper::BF_ProcessTexel_Sky(const Color &orig_albedo, const Vector3 &ptSource, const Vector3 &orig_face_normal, const Vector3 &orig_vertex_normal, FColor &color) {
+bool LightMapper::BF_ProcessTexel_Sky(const Color &orig_albedo, const Vector3 &ptSource, const Vector3 &orig_face_normal, const Vector3 &orig_vertex_normal, FColor &color) {
 	color.Set(0.0);
 
 	if (!m_Sky.is_active())
-		return;
+		return false;
+
+	if (m_Settings_Sky_Brightness == 0.0f)
+		return false;
 
 	Ray r;
 
@@ -747,6 +752,9 @@ void LightMapper::BF_ProcessTexel_Sky(const Color &orig_albedo, const Vector3 &p
 	//nSamples *= 4;
 
 	int nSamples = m_AdjustedSettings.m_Sky_Samples;
+
+	FColor total;
+	total.Set(0.0);
 
 	for (int s = 0; s < nSamples; s++) {
 		r.o = ptSource;
@@ -768,10 +776,13 @@ void LightMapper::BF_ProcessTexel_Sky(const Color &orig_albedo, const Vector3 &p
 
 		// ray test
 		if (!m_Scene.TestIntersect_Ray(r, FLT_MAX)) {
-			m_Sky.read_sky(r.d, color);
+			m_Sky.read_sky(r.d, total);
 		}
 
 	} // for s
+
+	color = total * (m_AdjustedSettings.m_Sky_Brightness * (64.0 / nSamples));
+	return true;
 }
 
 // trace from the poly TO the light, not the other way round, to avoid precision errors
@@ -957,15 +968,16 @@ void LightMapper::BF_ProcessTexel_Light(const Color &orig_albedo, int light_id, 
 		Vector3 hit_face_normal = orig_face_normal;
 
 		bool keep_tracing = true;
+
+		// quick reject triangle
+		if (quick_reject_tri_id != -1) {
+			if (m_Scene.TestIntersect_Ray_Triangle(r, ray_length, quick_reject_tri_id)) {
+				keep_tracing = false;
+			}
+		}
+
 		while (keep_tracing) {
 			keep_tracing = false;
-
-			// quick reject triangle
-			if (quick_reject_tri_id != -1) {
-				if (m_Scene.TestIntersect_Ray_Triangle(r, ray_length, quick_reject_tri_id)) {
-					break;
-				}
-			}
 
 			// collision detect
 			float u, v, w, t;
@@ -1010,15 +1022,17 @@ void LightMapper::BF_ProcessTexel_Light(const Color &orig_albedo, int light_id, 
 				float dot = r.d.dot(orig_vertex_normal);
 				dot = fabs(dot);
 
-				local_power *= dot;
+				//local_power *= dot;
 
 				// cone falloff
 				local_power *= multiplier;
 
-				// total color
+				// total color // this was incorrect because it also reduced the bounce power.
 				sample_color *= local_power;
+				color += (sample_color * dot);
 
-				color += sample_color;
+				// new .. only apply the local power for the first hit, not for the bounces
+				//				color += sample_color * (local_power * dot);
 
 				// ONLY BOUNCE IF WE HIT THE TARGET SURFACE!!
 				// start the bounces
@@ -1093,6 +1107,9 @@ void LightMapper::BF_ProcessTexel_Light(const Color &orig_albedo, int light_id, 
 	} // for n through samples
 
 	// the color is returned in color
+
+	// scale color by number of samples
+	//	color *= 1024.0 / nSamples;
 }
 
 bool LightMapper::BounceRay(Ray &r, const Vector3 &face_normal, bool apply_epsilon) {
@@ -1536,8 +1553,11 @@ void LightMapper::BF_ProcessTexel(int tx, int ty) {
 	}
 
 	// sky (if present)
-	BF_ProcessTexel_Sky(albedo, pos, plane_normal, normal, temp);
-	texel_add += temp;
+	if (BF_ProcessTexel_Sky(albedo, pos, plane_normal, normal, temp)) {
+		// scale sky by number of samples in the normal lights
+		float descale_to_match_normal_lights = nSamples / 1024.0;
+		texel_add += temp * descale_to_match_normal_lights;
+	}
 
 	// add emission
 	//	Color emission_tex_color;

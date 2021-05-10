@@ -39,7 +39,7 @@ private:
 	void BF_ProcessTexel_Light(const Color &orig_albedo, int light_id, const Vector3 &ptSource, const Vector3 &orig_face_normal, const Vector3 &orig_vertex_normal, FColor &color, int nSamples); //, uint32_t tri_ignore);
 	void BF_ProcessTexel_LightBounce(int bounces_left, Ray r, FColor ray_color);
 
-	void BF_ProcessTexel_Sky(const Color &orig_albedo, const Vector3 &ptSource, const Vector3 &orig_face_normal, const Vector3 &orig_vertex_normal, FColor &color);
+	bool BF_ProcessTexel_Sky(const Color &orig_albedo, const Vector3 &ptSource, const Vector3 &orig_face_normal, const Vector3 &orig_vertex_normal, FColor &color);
 
 	bool BounceRay(Ray &r, const Vector3 &face_normal, bool apply_epsilon = true);
 

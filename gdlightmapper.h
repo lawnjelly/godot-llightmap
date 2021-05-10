@@ -197,6 +197,9 @@ public:
 	void set_sky_samples(int p_samples);
 	int get_sky_samples() const;
 
+	void set_sky_brightness(float p_brightness);
+	float get_sky_brightness() const;
+
 private:
 	LM::LightMapper m_LM;
 

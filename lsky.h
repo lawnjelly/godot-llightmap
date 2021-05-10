@@ -21,6 +21,7 @@ private:
 	void _blur_vert(FColor *p_scan, const float *p_curve, int p_num_scan, LightImage<FColor> &p_output, int p_x);
 	void _debug_save();
 	void _create_curve(float *p_curve, int p_num_scan);
+	void _adjust_brightness();
 
 	const FColor &_blur_read_x(int x, int y) const {
 		// wrap x

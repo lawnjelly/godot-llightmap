@@ -9,6 +9,13 @@
 #include "scene/3d/mesh_instance.h"
 #include "scene/3d/spatial.h"
 
+#define LLIGHTMAP_MULTITHREADED
+
+#ifdef LLIGHTMAP_MULTITHREADED
+#define RAYBANK_USE_THREADING
+#define BACKWARD_TRACE_MULTITHEADED
+#endif
+
 namespace LM {
 
 class LightMapper_Base {
@@ -185,6 +192,8 @@ public:
 		int m_Max_Material_Size;
 
 		int m_Sky_Samples;
+
+		float m_Sky_Brightness;
 	} m_AdjustedSettings;
 
 	// params
@@ -271,6 +280,7 @@ public:
 	float m_Settings_Sky_BlurAmount;
 	int m_Settings_Sky_Size;
 	int m_Settings_Sky_Samples;
+	float m_Settings_Sky_Brightness;
 
 	// some internal logic based on the bake state
 	bool m_Logic_Process_Lightmap;

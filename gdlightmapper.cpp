@@ -122,6 +122,7 @@ void LLightmap::_bind_methods() {
 	LIMPL_PROPERTY_RANGE(Variant::INT, sky_size, set_sky_size, get_sky_size, "64,2048,64");
 	LIMPL_PROPERTY_RANGE(Variant::INT, sky_samples, set_sky_samples, get_sky_samples, "128,8192,128");
 	LIMPL_PROPERTY_RANGE(Variant::REAL, sky_blur, set_sky_blur, get_sky_blur, "0.0,0.5,0.01");
+	LIMPL_PROPERTY_RANGE(Variant::REAL, sky_brightness, set_sky_brightness, get_sky_brightness, "0.0,4.0,0.01");
 
 	ADD_GROUP("Dynamic Range", "");
 	//	LIMPL_PROPERTY(Variant::BOOL, normalize, set_normalize, get_normalize);
@@ -482,6 +483,14 @@ void LLightmap::set_sky_samples(int p_samples) {
 
 int LLightmap::get_sky_samples() const {
 	return m_LM.m_Settings_Sky_Samples;
+}
+
+void LLightmap::set_sky_brightness(float p_brightness) {
+	m_LM.m_Settings_Sky_Brightness = p_brightness;
+}
+
+float LLightmap::get_sky_brightness() const {
+	return m_LM.m_Settings_Sky_Brightness;
 }
 
 //void LLightmap::set_probe_filename(const String &p_filename) {m_LM.m_Settings_ProbeFilename = p_filename;}
