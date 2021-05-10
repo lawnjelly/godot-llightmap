@@ -535,6 +535,9 @@ void LightMapper::ProcessTexels() {
 
 	m_iNumTests = 0;
 
+	// load sky
+	m_Sky.load_sky(m_Settings_Sky_Filename, m_Settings_Sky_BlurAmount, m_Settings_Sky_Size);
+
 	// prevent multithread
 	//num_sections = 0;
 
@@ -580,6 +583,8 @@ void LightMapper::ProcessTexels() {
 
 	//	m_iNumTests /= (m_iHeight * m_iWidth);
 	print_line("num tests : " + itos(m_iNumTests));
+
+	m_Sky.unload_sky();
 
 	if (bake_end_function) {
 		bake_end_function();
@@ -728,6 +733,45 @@ bool LightMapper::Light_RandomSample(const LLight &light, const Vector3 &ptSurf,
 	// by this point...
 	// ray should be set, ray_length, and ptLight
 	return true;
+}
+
+void LightMapper::BF_ProcessTexel_Sky(const Color &orig_albedo, const Vector3 &ptSource, const Vector3 &orig_face_normal, const Vector3 &orig_vertex_normal, FColor &color) {
+	color.Set(0.0);
+
+	if (!m_Sky.is_active())
+		return;
+
+	Ray r;
+
+	// we need more samples for sky, than for a normal light
+	//nSamples *= 4;
+
+	int nSamples = m_AdjustedSettings.m_Sky_Samples;
+
+	for (int s = 0; s < nSamples; s++) {
+		r.o = ptSource;
+
+		Vector3 offset;
+		RandomUnitDir(offset);
+
+		//		offset += (light.dir * -2.0f);
+		//		r.d = offset.normalized();
+		r.d = offset;
+
+		// disallow zero length (should be rare)
+		//		if (r.d.length_squared() < 0.00001f)
+		//			continue;
+
+		// don't allow from opposite direction
+		if (r.d.dot(orig_face_normal) < 0.0f)
+			r.d = -r.d;
+
+		// ray test
+		if (!m_Scene.TestIntersect_Ray(r, FLT_MAX)) {
+			m_Sky.read_sky(r.d, color);
+		}
+
+	} // for s
 }
 
 // trace from the poly TO the light, not the other way round, to avoid precision errors
@@ -1490,6 +1534,10 @@ void LightMapper::BF_ProcessTexel(int tx, int ty) {
 		BF_ProcessTexel_Light(albedo, l, pos, plane_normal, normal, temp, nSamples);
 		texel_add += temp;
 	}
+
+	// sky (if present)
+	BF_ProcessTexel_Sky(albedo, pos, plane_normal, normal, temp);
+	texel_add += temp;
 
 	// add emission
 	//	Color emission_tex_color;

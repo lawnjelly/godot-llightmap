@@ -4,16 +4,14 @@
 
 namespace LM {
 
-class LightMapper : public AmbientOcclusion
-{
+class LightMapper : public AmbientOcclusion {
 public:
-
 	// main function called from the godot class
-	bool lightmap_mesh(Spatial * pMeshesRoot, Spatial * pLR, Image * pIm_Lightmap, Image * pIm_AO, Image * pIm_Combined);
-	bool uv_map_meshes(Spatial * pRoot);
+	bool lightmap_mesh(Spatial *pMeshesRoot, Spatial *pLR, Image *pIm_Lightmap, Image *pIm_AO, Image *pIm_Combined);
+	bool uv_map_meshes(Spatial *pRoot);
 
 private:
-	bool LightmapMesh(Spatial * pMeshesRoot, const Spatial &light_root, Image &out_image_lightmap, Image &out_image_ao, Image &out_image_combined);
+	bool LightmapMesh(Spatial *pMeshesRoot, const Spatial &light_root, Image &out_image_lightmap, Image &out_image_ao, Image &out_image_combined);
 	void Reset();
 
 private:
@@ -41,6 +39,8 @@ private:
 	void BF_ProcessTexel_Light(const Color &orig_albedo, int light_id, const Vector3 &ptSource, const Vector3 &orig_face_normal, const Vector3 &orig_vertex_normal, FColor &color, int nSamples); //, uint32_t tri_ignore);
 	void BF_ProcessTexel_LightBounce(int bounces_left, Ray r, FColor ray_color);
 
+	void BF_ProcessTexel_Sky(const Color &orig_albedo, const Vector3 &ptSource, const Vector3 &orig_face_normal, const Vector3 &orig_vertex_normal, FColor &color);
+
 	bool BounceRay(Ray &r, const Vector3 &face_normal, bool apply_epsilon = true);
 
 	// new backward tracing experiment, by triangle
@@ -50,10 +50,9 @@ private:
 
 	// multithread safe. This must prevent against several threads trying to access the same texel
 	// at once. This will be rare but must be prevented.
-	void MT_SafeAddToTexel(int tx, int ty, const FColor &col)
-	{
+	void MT_SafeAddToTexel(int tx, int ty, const FColor &col) {
 		// not yet thread safe
-		FColor * pTexel = m_Image_L.Get(tx, ty);
+		FColor *pTexel = m_Image_L.Get(tx, ty);
 		if (!pTexel)
 			return;
 
@@ -63,6 +62,7 @@ private:
 
 	// light probes
 	void ProcessLightProbes();
+
 public:
 	// encapsulate a single backward trace to a light, because this will be useful for light probes as well as backward tracing
 	bool Probe_SampleToLight(const LLight &light, const Vector3 &ptProbe, float &multiplier, bool &disallow_sample);
@@ -72,29 +72,24 @@ public:
 	//bool Process_BackwardSample_Light(const LLight &light, const Vector3 &ptSource, const Vector3 &ptNormal, FColor &color, float power, float &multiplier, bool bTestLightToSample);
 
 	FColor Probe_CalculateIndirectLight(const Vector3 &pos);
+
 private:
-
-
 	void Refresh_Process_State();
-//	const int m_iRaysPerSection = 1024 * 1024 * 4; // 64
+	//	const int m_iRaysPerSection = 1024 * 1024 * 4; // 64
 	const int m_iRaysPerSection = 1024 * 64; // 64
 	// 1024*1024 is 46 megs
 };
 
-
-bool LightMapper::Probe_SampleToLight(const LLight &light, const Vector3 &ptProbe, float &multiplier, bool &disallow_sample)
-{
+bool LightMapper::Probe_SampleToLight(const LLight &light, const Vector3 &ptProbe, float &multiplier, bool &disallow_sample) {
 	Ray r;
 	Vector3 ptLight;
 	float ray_length;
 	if (!Light_RandomSample(light, ptProbe, r, ptLight, ray_length, multiplier))
 		return false;
 
-
 	// if there is no clear path from the light to the the light sample point, we disallow the sample
 	// but not for directional lights as only the direction matters for these, not the origin
-	if ((light.type != LLight::LT_DIRECTIONAL) && m_Scene.TestIntersect_Line(light.pos, ptLight))
-	{
+	if ((light.type != LLight::LT_DIRECTIONAL) && m_Scene.TestIntersect_Line(light.pos, ptLight)) {
 		disallow_sample = true;
 		return false;
 	}
@@ -326,4 +321,4 @@ bool LightMapper::Process_BackwardSample_Light(const LLight &light, const Vector
 }
 */
 
-} // namespace
+} // namespace LM

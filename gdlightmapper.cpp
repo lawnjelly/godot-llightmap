@@ -46,6 +46,9 @@ void LLightmap::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_noise_reduction_method", "method"), &LLightmap::set_noise_reduction_method);
 	ClassDB::bind_method(D_METHOD("get_noise_reduction_method"), &LLightmap::get_noise_reduction_method);
 
+	ClassDB::bind_method(D_METHOD("set_sky_filename", "sky_filename"), &LLightmap::set_sky_filename);
+	ClassDB::bind_method(D_METHOD("get_sky_filename"), &LLightmap::get_sky_filename);
+
 	//	ClassDB::bind_method(D_METHOD("set_probe_filename", "probe_filename"), &LLightmap::set_probe_filename);
 	//	ClassDB::bind_method(D_METHOD("get_probe_filename"), &LLightmap::get_probe_filename);
 
@@ -113,6 +116,12 @@ void LLightmap::_bind_methods() {
 	LIMPL_PROPERTY_RANGE(Variant::INT, ao_samples, set_ao_num_samples, get_ao_num_samples, "1,2048,1");
 	LIMPL_PROPERTY(Variant::REAL, ao_range, set_ao_range, get_ao_range);
 	//	LIMPL_PROPERTY(Variant::REAL, ao_cut_range, set_ao_cut_range, get_ao_cut_range);
+
+	ADD_GROUP("Sky", "");
+	ADD_PROPERTY(PropertyInfo(Variant::STRING, "sky_filename", PROPERTY_HINT_FILE, "*.exr,*.png,*.jpg"), "set_sky_filename", "get_sky_filename");
+	LIMPL_PROPERTY_RANGE(Variant::INT, sky_size, set_sky_size, get_sky_size, "64,2048,64");
+	LIMPL_PROPERTY_RANGE(Variant::INT, sky_samples, set_sky_samples, get_sky_samples, "128,8192,128");
+	LIMPL_PROPERTY_RANGE(Variant::REAL, sky_blur, set_sky_blur, get_sky_blur, "0.0,0.5,0.01");
 
 	ADD_GROUP("Dynamic Range", "");
 	//	LIMPL_PROPERTY(Variant::BOOL, normalize, set_normalize, get_normalize);
@@ -442,6 +451,37 @@ void LLightmap::set_dilate(bool active) {
 
 bool LLightmap::get_dilate() const {
 	return m_LM.m_Settings_Dilate;
+}
+
+void LLightmap::set_sky_filename(const String &p_filename) {
+	m_LM.m_Settings_Sky_Filename = p_filename;
+}
+String LLightmap::get_sky_filename() const {
+	return m_LM.m_Settings_Sky_Filename;
+}
+
+void LLightmap::set_sky_blur(float p_blur) {
+	m_LM.m_Settings_Sky_BlurAmount = p_blur;
+}
+
+float LLightmap::get_sky_blur() const {
+	return m_LM.m_Settings_Sky_BlurAmount;
+}
+
+void LLightmap::set_sky_size(int p_size) {
+	m_LM.m_Settings_Sky_Size = p_size;
+}
+
+int LLightmap::get_sky_size() const {
+	return m_LM.m_Settings_Sky_Size;
+}
+
+void LLightmap::set_sky_samples(int p_samples) {
+	m_LM.m_Settings_Sky_Samples = p_samples;
+}
+
+int LLightmap::get_sky_samples() const {
+	return m_LM.m_Settings_Sky_Samples;
 }
 
 //void LLightmap::set_probe_filename(const String &p_filename) {m_LM.m_Settings_ProbeFilename = p_filename;}

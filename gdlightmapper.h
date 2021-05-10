@@ -184,6 +184,19 @@ public:
 	void set_dilate(bool active);
 	bool get_dilate() const;
 
+	// sky
+	void set_sky_filename(const String &p_filename);
+	String get_sky_filename() const;
+
+	void set_sky_blur(float p_blur);
+	float get_sky_blur() const;
+
+	void set_sky_size(int p_size);
+	int get_sky_size() const;
+
+	void set_sky_samples(int p_samples);
+	int get_sky_samples() const;
+
 private:
 	LM::LightMapper m_LM;
 

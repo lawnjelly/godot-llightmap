@@ -4,6 +4,7 @@
 #include "llightimage.h"
 #include "llightscene.h"
 #include "lqmc.h"
+#include "lsky.h"
 #include "scene/3d/light.h"
 #include "scene/3d/mesh_instance.h"
 #include "scene/3d/spatial.h"
@@ -152,6 +153,7 @@ protected:
 
 	QMC m_QMC;
 	LAtomic m_Atomic;
+	LSky m_Sky;
 
 	// for stats
 	int m_iNumTests;
@@ -181,6 +183,8 @@ public:
 		int m_AO_Samples;
 
 		int m_Max_Material_Size;
+
+		int m_Sky_Samples;
 	} m_AdjustedSettings;
 
 	// params
@@ -262,6 +266,11 @@ public:
 
 	bool m_Settings_VisualizeSeams;
 	bool m_Settings_Dilate;
+
+	String m_Settings_Sky_Filename;
+	float m_Settings_Sky_BlurAmount;
+	int m_Settings_Sky_Size;
+	int m_Settings_Sky_Samples;
 
 	// some internal logic based on the bake state
 	bool m_Logic_Process_Lightmap;

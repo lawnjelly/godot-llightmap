@@ -82,6 +82,10 @@ LightMapper_Base::LightMapper_Base() {
 
 	m_Settings_VisualizeSeams = false;
 	m_Settings_Dilate = true;
+
+	m_Settings_Sky_BlurAmount = 0.1f;
+	m_Settings_Sky_Size = 256;
+	m_Settings_Sky_Samples = 512;
 }
 
 void LightMapper_Base::Base_Reset() {
@@ -120,6 +124,8 @@ void LightMapper_Base::CalculateQualityAdjustedSettings() {
 
 	as.m_Max_Material_Size = m_Settings_Max_Material_Size;
 
+	as.m_Sky_Samples = m_Settings_Sky_Samples;
+
 	// overrides
 	switch (m_Settings_Quality) {
 		case LM_QUALITY_LOW: {
@@ -130,12 +136,14 @@ void LightMapper_Base::CalculateQualityAdjustedSettings() {
 			as.m_Max_Material_Size = 32;
 			as.m_NumAmbientBounces = 0;
 			as.m_NumDirectionalBounces = 0;
+			as.m_Sky_Samples = 64;
 		} break;
 		case LM_QUALITY_MEDIUM: {
 			as.m_NumPrimaryRays /= 2;
 			as.m_AO_Samples /= 2;
 			as.m_Max_Material_Size /= 4;
 			as.m_NumAmbientBounceRays /= 2;
+			as.m_Sky_Samples /= 2;
 		} break;
 		default:
 			// high is default
@@ -144,6 +152,7 @@ void LightMapper_Base::CalculateQualityAdjustedSettings() {
 			as.m_NumPrimaryRays *= 2;
 			as.m_AO_Samples *= 2;
 			as.m_NumAmbientBounceRays *= 2;
+			as.m_Sky_Samples *= 2;
 			break;
 	}
 

@@ -93,6 +93,10 @@ Version 0.1.
 		<member name="mode" type="int" setter="set_mode" getter="get_mode" enum="LLightmap.eMode" default="1">
 			Chooses whether to bake lightmaps using forward (from the light) or backward (from the texel) tracing.
 		</member>
+		<member name="noise method" type="int" setter="set_noise_reduction_method" getter="get_noise_reduction_method" default="2">
+			Noise reduction method can be disabled, simple or advanced (using OpenImageDenoise). Advanced noise reduction ignores other noise parameters.
+			It takes place as a post process (after merging), so you can make quickly preview changes by merging rather than doing a full bake.
+		</member>
 		<member name="noise_reduction" type="float" setter="set_noise_reduction" getter="get_noise_reduction" default="1.0">
 			Applies simple noise reduction to reduce dithering. This can make the lightmap look 'plastic'. For in progress versions it is a good trade off, for final versions consider a longer bake and turning off noise reduction (set to 0), or applying it in a specialist photo editor afterwards.
 			It takes place as a post process (after merging), so you can make quickly preview changes by merging rather than doing a full bake.
@@ -130,6 +134,19 @@ Version 0.1.
 		<member name="seam_stitching" type="bool" setter="set_seam_stitching" getter="get_seam_stitching" default="true">
 			Seam stitching can help prevent ugly artifacts at the seams between UV islands. It takes place as a post process (after merging), so you can make quickly preview changes by merging rather than doing a full bake.
 		</member>
+		<member name="sky_blur" type="float" setter="set_sky_blur" getter="get_sky_blur" default="0.1">
+			When the sky contains a single light source such as the sun, by random chance samples will rarely hit the light source, resulting in very noisy images. It is usually much better to blur the sky texture prior to the sampling stage, so that a cleaner result can be obtained.
+			A higher blur value will give a cleaner result in fewer samples, at the expense of detail in the sky.
+		</member>
+		<member name="sky_filename" type="String" setter="set_sky_filename" getter="get_sky_filename" default="&quot;&quot;">
+			You can optionally choose an HDRI type environment texture to light the scene, especially outdoor scenes.
+		</member>
+		<member name="sky_samples" type="int" setter="set_sky_samples" getter="get_sky_samples" default="512">
+			Determines the number of ray samples into the environment to use for sky.
+		</member>
+		<member name="sky_size" type="int" setter="set_sky_size" getter="get_sky_size" default="256">
+			The sky will be reduced in size to approximately these dimensions for sampling, to increase speed.
+		</member>
 		<member name="surface_bias" type="float" setter="set_surface_bias" getter="get_surface_bias" default="0.005">
 			In order to prevent self intersection of rays bounced from surfaces, a small bias is added to the ray start position. The default value should normally work, but just in case there are problems, this can be edited.
 		</member>
@@ -142,7 +159,7 @@ Version 0.1.
 		<member name="uv_filename" type="String" setter="set_uv_filename" getter="get_uv_filename" default="&quot;&quot;">
 			As uv mapping is a destructive process, that also adds information to the meshes scene (vertex count may change, and UVs are added), the uvmapped scene will be saved separately from the source meshes scene. This new scene is automatically loaded to replace the original scene in the scene tree during uvmapping.
 		</member>
-		<member name="uv_padding" type="int" setter="set_uv_padding" getter="get_uv_padding" default="2">
+		<member name="uv_padding" type="int" setter="set_uv_padding" getter="get_uv_padding" default="4">
 			When uv mapping it is a good idea to add padding of unused texels around the uv islands. This prevents visual artifacts due to the GPU sampling outside the island, during filtering and mipmapping.
 		</member>
 		<member name="visualize_seams" type="bool" setter="set_visualize_seams" getter="get_visualize_seams" default="false">
