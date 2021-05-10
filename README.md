@@ -1,6 +1,6 @@
 # godot-llightmap
 * Lightmap module for Godot Engine 3.x (compatible with 3.2.2 or later versions) 
-* Version 0.43 (May 9th, 2021)
+* Version 0.44 (May 10th, 2021)
 * Lightmaps created can be used with standard Godot builds and templates, i.e. you only need the module for a preprocess
 * (work in progress, there may be bugs, especially in the uv mapping but it is usable)
 
@@ -34,9 +34,9 @@ https://www.youtube.com/watch?v=pBpF2raGA8A
 * Light Probes for realtime lighting of dynamic objects
 * Noise reduction (simple or OpenImageDenoise)
 * Seam stitching
+* Support for HDRI type skies (wrapped horizontally, not cubemaps)
 
 ### Still todo
-* Sky panorama textures
 * Roughness / metal from source textures for PBR reflections
 * Option of multiple lightmaps
 
@@ -155,6 +155,7 @@ As you only need it to create lightmaps on desktop as a preprocess, the lightmap
 I'm hoping to eventually make some builds for windows / linux x86_64 so users won't need to compile. The custom build is only needed to create the lightmaps / probe data. Once these are created they can be used in standard vanilla Godot engine (with a gdscript addon for probes, but that requires no compilation).
 
 ### Tips
+* It is *highly* recommended to bake final lightmaps at a size of 1024x1024 or more. Although baking is slower at larger sizes, it will reduce artifacts, and the lightmap textures can be downsized in a photo editing program if desired to save download space. Most levels _will_ show artifacts at 512x512 or less, and these sizes are only intended for 'roughing out' a level.
 * Set overall brightness with a combination of using a multiplier in the shader (see the example shader) and using `dynamic_range/normalize_multiplier` in the llightmap settings to make the lightmap overbright. You can also change overall gamma, and may want to change the power of bounces to vary the look.
 * For each light, you can control the volumetric effect (soft or hard shadows) by changing the x, y, and z scale in the node `Transform` properties. Note that due to a bug / feature in Godot, light scales get reset every time you move the light in the editor, which can be annoying.
 * Be sure to use bounces in order to get colors from textures to affect the lightmap. You can make a bounced scene darker by reducing the bounce power.
@@ -166,4 +167,4 @@ I'm hoping to eventually make some builds for windows / linux x86_64 so users wo
 * When using spatial materials, the albedo texture will be found automatically. When using custom shaders, in order for LLightmap to find the texture colors for bouncing light, the uniform in the shader _must_ be called `texture_albedo`. Otherwise a plain white color will be used for bounces.
 * Directional lights must point at least slightly downward. This isn't ideal but allows more consistent lighting, and the use case is mainly skies. For side lights, or lighting from below, area lights via omnis are a better bet.
 * To make a material emit light, use the example shader or one containing an 'emission' parameter, and set this to above 0.0. 1.0 should be a reasonable value. You can control the relative amount of glow and emission using the `glow` setting in the LLightmap inspector.
-* It is highly recommended to bake final lightmaps at a size of 1024x1024 or more. Although baking is slower at larger sizes, it will reduce artifacts, and the lightmap textures can be downsized in a photo editing program if desired to save download space. Most levels _will_ show artifacts at 512x512 or less, and these sizes are only intended for 'roughing out' a level.
+* To speed up baking in backward tracing, you can set a hard limit on the distance that lights operate at. Use with care, this may give hard edged shadows.
