@@ -1,24 +1,23 @@
 #pragma once
 
+#include "llighttypes.h"
+#include <atomic>
+
 namespace LM {
 
-class LAtomic
-{
+class LAtomic {
 public:
-	enum {NUM_LOCKS = 8};
+	enum { NUM_LOCKS = 8 };
 
 	std::atomic_flag m_Locks[NUM_LOCKS];
 
-	LAtomic()
-	{
-		for (int n=0; n<NUM_LOCKS; n++)
-		{
+	LAtomic() {
+		for (int n = 0; n < NUM_LOCKS; n++) {
 			m_Locks[n].clear();
 		}
 	}
 
-	void AtomicAddCol(unsigned int hash, FColor &col, const FColor &add)
-	{
+	void AtomicAddCol(unsigned int hash, FColor &col, const FColor &add) {
 		hash = hash % NUM_LOCKS;
 
 		// acquire lock
@@ -31,7 +30,6 @@ public:
 		// release lock
 		m_Locks[hash].clear(std::memory_order_release);
 	}
-
 };
 
-} // namespace
+} // namespace LM
