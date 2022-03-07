@@ -1,5 +1,13 @@
 # godot-llightmap
-* Lightmap module for Godot Engine 3.x (compatible with 3.2.2 or later versions) 
+
+___
+
+**Note:** Since Godot 3.3, there is a [built-in CPU lightmapper](https://docs.godotengine.org/en/stable/tutorials/3d/baked_lightmaps.html) (not based on this module).
+You no longer need to build this module to bake lightmaps.
+
+___
+
+* Lightmap module for Godot Engine 3.x (compatible with 3.2.2 or later versions)
 * Version 0.45 (May 10th, 2021)
 * Lightmaps created can be used with standard Godot builds and templates, i.e. you only need the module for a preprocess
 * (work in progress, there may be bugs, especially in the uv mapping but it is usable)
@@ -64,7 +72,7 @@ void fragment() {
 	// lookup the colors at the uv location of our textures
 	vec4 albedo_tex = texture(texture_albedo,UV);
 	vec4 lightmap_tex = texture(texture_lightmap,UV2);
-  
+
 	// the overall albedo (color) will be the material texture TIMES the lightmap
 	// (so it can be darkened).
 	// you can optionally use a multiplier to allow lightening areas (the 2.0 here)
