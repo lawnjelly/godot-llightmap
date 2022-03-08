@@ -1,4 +1,7 @@
 # godot-llightmap
+
+**Note:** Since Godot 3.3, there is a [built-in CPU lightmapper](https://docs.godotengine.org/en/stable/tutorials/3d/baked_lightmaps.html) (not based on this module). They both have slightly different features, so I would encourage you to try both and use the most appropriate for your project.
+
 * Lightmap module for Godot Engine 3.x (compatible with 3.2.2 or later versions) 
 * Version 0.45 (May 10th, 2021)
 * Lightmaps created can be used with standard Godot builds and templates, i.e. you only need the module for a preprocess
